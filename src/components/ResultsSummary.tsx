@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home } from 'lucide-react';
+import { CheckCircle2, Home, Trophy } from 'lucide-react';
 
 interface ResultsSummaryProps {
   gameState: GameState;
@@ -60,41 +60,46 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-fade-in">
-      <Card className="shadow-lg border-primary/20">
+      <Card className="shadow-lg border-primary/20 glassmorphic-card">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl">Your Journey Results</CardTitle>
-          <CardDescription className="text-base">
+          <div className="flex justify-center mb-2">
+            <div className="p-4 rounded-full bg-primary/30 backdrop-blur-md border border-primary/50 animate-glow">
+              <Trophy className="h-8 w-8 text-primary animate-float" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl gradient-heading">Your Journey Results</CardTitle>
+          <CardDescription className="text-base text-white/80">
             Here's how your choices shaped your path through "{gameState.currentScenario.title}"
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-6">
-          <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-            <h3 className="font-medium text-lg mb-2 flex items-center gap-2">
+          <div className="bg-primary/10 p-4 rounded-lg border border-primary/30">
+            <h3 className="font-medium text-lg mb-2 flex items-center gap-2 text-white">
               <CheckCircle2 className="text-primary" />
               Journey Outcome
             </h3>
-            <p className="text-base">{getEndingMessage()}</p>
+            <p className="text-base text-white/90">{getEndingMessage()}</p>
           </div>
           
           <div>
-            <h3 className="font-medium text-lg mb-3">Final Stats</h3>
+            <h3 className="font-medium text-lg mb-3 text-white">Final Stats</h3>
             <MetricsDisplay metrics={gameState.metrics} />
           </div>
           
-          <Separator />
+          <Separator className="bg-white/20" />
           
           <div>
-            <h3 className="font-medium text-lg mb-3">Your Journey</h3>
+            <h3 className="font-medium text-lg mb-3 text-white">Your Journey</h3>
             <div className="space-y-2">
               {gameState.history.map((entry, index) => {
                 const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
                 const choice = scene?.choices.find(c => c.id === entry.choiceId);
                 
                 return (
-                  <div key={index} className="bg-muted/30 p-3 rounded-md">
-                    <div className="font-medium">{scene?.title}</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div key={index} className="bg-white/10 backdrop-blur-sm p-3 rounded-md border border-white/20">
+                    <div className="font-medium text-white">{scene?.title}</div>
+                    <div className="text-sm text-white/70">
                       Choice: {choice?.text}
                     </div>
                   </div>
@@ -105,13 +110,13 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         </CardContent>
         
         <CardFooter className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={onPlayAgain} className="w-full sm:w-auto">
+          <Button onClick={onPlayAgain} className="w-full sm:w-auto bg-primary hover:bg-primary/80">
             Play Again
           </Button>
           <Button 
             variant="outline" 
             onClick={onReturnHome} 
-            className="w-full sm:w-auto flex items-center gap-2"
+            className="w-full sm:w-auto flex items-center gap-2 border-white/20 text-white hover:bg-white/10"
           >
             <Home size={16} />
             Return to Home

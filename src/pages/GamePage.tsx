@@ -5,6 +5,7 @@ import { useGameContext } from '@/context/GameContext';
 import SceneDisplay from '@/components/SceneDisplay';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
+import { Sparkles } from 'lucide-react';
 
 const GamePage = () => {
   const { gameState, makeChoice, resetGame, isGameActive } = useGameContext();
@@ -41,8 +42,9 @@ const GamePage = () => {
   if (!gameState.currentScenario || !gameState.currentScene) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className="teen-card animate-pulse">
-          <p>Loading your adventure...</p>
+        <div className="glassmorphic-card p-8 animate-pulse flex flex-col items-center gap-4">
+          <Sparkles className="text-primary h-10 w-10 animate-float" />
+          <p className="text-white">Loading your adventure...</p>
         </div>
       </div>
     );

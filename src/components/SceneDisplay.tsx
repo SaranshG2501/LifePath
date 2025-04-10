@@ -14,18 +14,18 @@ interface SceneDisplayProps {
 const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
   return (
     <div className="w-full max-w-4xl mx-auto animate-fade-in">
-      <Card className="mb-8 shadow-lg border-primary/20 overflow-hidden">
+      <Card className="mb-8 shadow-lg border-primary/20 overflow-hidden bg-black/30 backdrop-blur-md">
         {scene.image && (
           <div className="w-full h-60 overflow-hidden">
             <img src={scene.image} alt={scene.title} className="w-full h-full object-cover" />
           </div>
         )}
         <CardHeader className="pb-2 relative">
-          <div className="absolute -top-6 left-6 bg-primary text-white px-4 py-2 rounded-xl shadow-md">
+          <div className="absolute -top-6 left-6 bg-primary text-white px-4 py-2 rounded-xl shadow-md animate-float">
             {scene.title}
           </div>
-          <CardTitle className="text-2xl pt-4">{scene.title}</CardTitle>
-          <CardDescription className="text-base mt-1">
+          <CardTitle className="text-2xl pt-4 text-white">{scene.title}</CardTitle>
+          <CardDescription className="text-base mt-1 text-white/80">
             {scene.description}
           </CardDescription>
         </CardHeader>
@@ -33,7 +33,7 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
           
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pt-2">
-          <div className="w-full text-lg font-semibold mb-2 text-center gradient-heading">What will you do?</div>
+          <div className="w-full text-lg font-semibold mb-2 text-center gradient-heading animate-pulse-slow">What will you do?</div>
           <div className="w-full space-y-3">
             {scene.choices.map((choice) => (
               <ChoiceButton 
@@ -59,7 +59,7 @@ const ChoiceButton: React.FC<{
       onClick={onClick}
     >
       <ChevronRight className="text-primary flex-shrink-0" />
-      <span>{choice.text}</span>
+      <span className="text-white">{choice.text}</span>
     </button>
   );
 

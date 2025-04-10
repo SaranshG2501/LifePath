@@ -33,7 +33,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
                     <span>{value}</span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-slate-900/90 backdrop-blur-md border-white/10">
                   <p>{key.charAt(0).toUpperCase() + key.slice(1)}: {value}/100</p>
                 </TooltipContent>
               </Tooltip>
@@ -49,13 +49,13 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
       {metricsConfig.map(({ key, label, icon: Icon, color }) => {
         const value = metrics[key as keyof Metrics];
         return (
-          <div key={key} className="bg-white/80 p-3 rounded-lg shadow-sm backdrop-blur-lg border border-primary/10">
+          <div key={key} className="glassmorphic-card p-3 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Icon size={18} className={color.replace('bg-', 'text-')} />
               <span className="font-medium">{label}</span>
             </div>
-            <Progress value={value} className="h-2" />
-            <div className="text-right text-sm mt-1 text-muted-foreground">{value}/100</div>
+            <Progress value={value} className={`h-2 ${color} bg-white/20`} />
+            <div className="text-right text-sm mt-1 text-white/70">{value}/100</div>
           </div>
         );
       })}

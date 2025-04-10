@@ -51,11 +51,16 @@ export default {
         'glow': {
           '0%, 100%': { boxShadow: '0 0 10px rgba(155, 135, 245, 0.3)' },
           '50%': { boxShadow: '0 0 20px rgba(155, 135, 245, 0.5)' },
+        },
+        'pulse-slow': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
         }
       },
       animation: {
         'float': 'float 5s ease-in-out infinite',
-        'glow': 'glow 3s ease-in-out infinite'
+        'glow': 'glow 3s ease-in-out infinite',
+        'pulse-slow': 'pulse-slow 4s ease-in-out infinite'
       }
     },
   },
