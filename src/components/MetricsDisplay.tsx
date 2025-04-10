@@ -49,12 +49,12 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
       {metricsConfig.map(({ key, label, icon: Icon, color }) => {
         const value = metrics[key as keyof Metrics];
         return (
-          <div key={key} className="bg-white p-3 rounded-lg shadow-sm">
+          <div key={key} className="bg-white/80 p-3 rounded-lg shadow-sm backdrop-blur-lg border border-primary/10">
             <div className="flex items-center gap-2 mb-2">
               <Icon size={18} className={color.replace('bg-', 'text-')} />
               <span className="font-medium">{label}</span>
             </div>
-            <Progress value={value} className="h-2" indicatorClassName={color} />
+            <Progress value={value} className="h-2" />
             <div className="text-right text-sm mt-1 text-muted-foreground">{value}/100</div>
           </div>
         );

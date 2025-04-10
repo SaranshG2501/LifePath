@@ -8,89 +8,47 @@
     --background: 260 30% 98%;
     --foreground: 260 10% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 260 10% 15%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 260 10% 15%;
+    --card: 265 70% 98%;
+    --card-foreground: 265 70% 15%;
 
     --primary: 265 70% 60%;
     --primary-foreground: 260 100% 97%;
 
-    --secondary: 230 60% 60%;
-    --secondary-foreground: 220 100% 97%;
+    --secondary: 285 60% 65%;
+    --secondary-foreground: 280 100% 97%;
 
-    --muted: 260 20% 90%;
-    --muted-foreground: 260 10% 40%;
+    --muted: 265 20% 90%;
+    --muted-foreground: 265 10% 40%;
 
-    --accent: 280 60% 65%;
-    --accent-foreground: 280 100% 97%;
+    --accent: 290 70% 70%;
+    --accent-foreground: 290 100% 97%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 260 20% 85%;
-    --input: 260 20% 85%;
-    --ring: 260 60% 55%;
-
-    --radius: 1rem;
-
-    --sidebar-background: 260 30% 98%;
-    --sidebar-foreground: 260 10% 15%;
-    --sidebar-primary: 260 60% 55%;
-    --sidebar-primary-foreground: 260 100% 97%;
-    --sidebar-accent: 280 50% 60%;
-    --sidebar-accent-foreground: 280 100% 97%;
-    --sidebar-border: 260 20% 85%;
-    --sidebar-ring: 260 60% 55%;
+    --destructive: 350 70% 60%;
+    --destructive-foreground: 350 100% 97%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-background text-foreground;
     background-image: 
-      radial-gradient(rgba(155, 135, 245, 0.04) 2px, transparent 2px),
-      radial-gradient(rgba(155, 135, 245, 0.04) 2px, transparent 2px);
+      radial-gradient(rgba(155, 135, 245, 0.05) 2px, transparent 2px),
+      radial-gradient(rgba(155, 135, 245, 0.05) 2px, transparent 2px);
     background-size: 50px 50px;
     background-position: 0 0, 25px 25px;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
   }
 }
 
 @layer components {
-  .scenario-card {
-    @apply bg-white rounded-2xl shadow-lg border border-primary/10 hover:shadow-xl transition-all duration-300 hover:border-primary/30 hover:-translate-y-1;
+  .gradient-bg {
+    @apply bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10;
   }
 
-  .choice-button {
-    @apply w-full p-4 rounded-xl border border-border bg-white shadow-sm hover:bg-primary/5 transition-all duration-200 text-left flex items-center gap-3 hover:border-primary/30 hover:translate-x-1;
-  }
-
-  .stat-badge {
-    @apply px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1;
-  }
-
-  .gradient-heading {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  .glassmorphic-card {
+    @apply bg-white/80 backdrop-blur-lg border border-white/30 shadow-xl;
   }
 
   .teen-card {
-    @apply rounded-2xl bg-white p-6 shadow-lg border border-primary/10 hover:shadow-xl transition-all duration-300;
-  }
-
-  .glass-card {
-    @apply rounded-2xl bg-white/80 backdrop-blur-sm p-6 shadow-lg border border-white/30;
-  }
-
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+    @apply rounded-2xl bg-white/90 backdrop-blur-lg border border-primary/10 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-primary/30;
   }
 }
