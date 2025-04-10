@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy } from 'lucide-react';
+import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star } from 'lucide-react';
 
 interface ResultsSummaryProps {
   gameState: GameState;
@@ -59,22 +59,28 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto animate-scale-in">
       <Card className="shadow-lg border-primary/20 glassmorphic-card">
         <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-2">
-            <div className="p-4 rounded-full bg-primary/30 backdrop-blur-md border border-primary/50 animate-glow">
+          <div className="flex justify-center mb-4">
+            <div className="p-4 rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 backdrop-blur-md border border-primary/50 animate-glow relative">
               <Trophy className="h-8 w-8 text-primary animate-float" />
+              <Sparkles className="h-4 w-4 absolute top-0 right-0 text-yellow-400 animate-pulse" />
+              <Sparkles className="h-4 w-4 absolute bottom-0 left-0 text-yellow-400 animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
           </div>
-          <CardTitle className="text-2xl gradient-heading">Your Journey Results</CardTitle>
+          <CardTitle className="text-2xl gradient-heading flex items-center justify-center gap-2">
+            <Star className="h-5 w-5 text-yellow-400 animate-pulse" />
+            Your Journey Results
+            <Star className="h-5 w-5 text-yellow-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          </CardTitle>
           <CardDescription className="text-base text-white/80">
             Here's how your choices shaped your path through "{gameState.currentScenario.title}"
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-6">
-          <div className="bg-primary/10 p-4 rounded-lg border border-primary/30">
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/30 animate-slide-up">
             <h3 className="font-medium text-lg mb-2 flex items-center gap-2 text-white">
               <CheckCircle2 className="text-primary" />
               Journey Outcome
@@ -82,22 +88,33 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
             <p className="text-base text-white/90">{getEndingMessage()}</p>
           </div>
           
-          <div>
-            <h3 className="font-medium text-lg mb-3 text-white">Final Stats</h3>
+          <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Final Stats
+            </h3>
             <MetricsDisplay metrics={gameState.metrics} />
           </div>
           
           <Separator className="bg-white/20" />
           
-          <div>
-            <h3 className="font-medium text-lg mb-3 text-white">Your Journey</h3>
+          <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Your Journey
+            </h3>
             <div className="space-y-2">
               {gameState.history.map((entry, index) => {
                 const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
                 const choice = scene?.choices.find(c => c.id === entry.choiceId);
+                const animationDelay = `${0.3 + index * 0.1}s`;
                 
                 return (
-                  <div key={index} className="bg-white/10 backdrop-blur-sm p-3 rounded-md border border-white/20">
+                  <div 
+                    key={index} 
+                    className="bg-white/10 backdrop-blur-sm p-3 rounded-md border border-white/20 animate-slide-up hover:bg-white/15 transition-all duration-200"
+                    style={{ animationDelay }}
+                  >
                     <div className="font-medium text-white">{scene?.title}</div>
                     <div className="text-sm text-white/70">
                       Choice: {choice?.text}
@@ -109,8 +126,12 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           </div>
         </CardContent>
         
-        <CardFooter className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={onPlayAgain} className="w-full sm:w-auto bg-primary hover:bg-primary/80">
+        <CardFooter className="flex flex-col sm:flex-row gap-3 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <Button 
+            onClick={onPlayAgain} 
+            className="w-full sm:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:shadow-lg transition-all duration-300"
+          >
+            <Repeat className="h-4 w-4 mr-2" />
             Play Again
           </Button>
           <Button 

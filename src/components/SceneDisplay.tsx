@@ -4,7 +4,7 @@ import { Scene, Choice } from '@/types/game';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronRight, ThumbsUp } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 
 interface SceneDisplayProps {
   scene: Scene;
@@ -13,15 +13,19 @@ interface SceneDisplayProps {
 
 const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
   return (
-    <div className="w-full max-w-4xl mx-auto animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto animate-scale-in">
       <Card className="mb-8 shadow-lg border-primary/20 overflow-hidden bg-black/30 backdrop-blur-md">
         {scene.image && (
-          <div className="w-full h-60 overflow-hidden">
-            <img src={scene.image} alt={scene.title} className="w-full h-full object-cover" />
+          <div className="w-full h-64 overflow-hidden">
+            <img 
+              src={scene.image} 
+              alt={scene.title} 
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" 
+            />
           </div>
         )}
         <CardHeader className="pb-2 relative">
-          <div className="absolute -top-6 left-6 bg-primary text-white px-4 py-2 rounded-xl shadow-md animate-float">
+          <div className="absolute -top-6 left-6 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-xl shadow-md animate-float">
             {scene.title}
           </div>
           <CardTitle className="text-2xl pt-4 text-white">{scene.title}</CardTitle>
@@ -33,13 +37,18 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
           
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pt-2">
-          <div className="w-full text-lg font-semibold mb-2 text-center gradient-heading animate-pulse-slow">What will you do?</div>
+          <div className="w-full text-lg font-semibold mb-2 text-center gradient-heading flex justify-center items-center gap-2 animate-pulse-slow">
+            <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
+            What will you do?
+            <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
+          </div>
           <div className="w-full space-y-3">
-            {scene.choices.map((choice) => (
+            {scene.choices.map((choice, index) => (
               <ChoiceButton 
                 key={choice.id} 
                 choice={choice} 
                 onClick={() => onChoiceMade(choice.id)} 
+                delay={index * 0.1}
               />
             ))}
           </div>
@@ -52,11 +61,17 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
 const ChoiceButton: React.FC<{
   choice: Choice;
   onClick: () => void;
-}> = ({ choice, onClick }) => {
+  delay: number;
+}> = ({ choice, onClick, delay }) => {
+  const buttonStyle = {
+    animationDelay: `${delay}s`
+  };
+
   const button = (
     <button
-      className="choice-button"
+      className="choice-button animate-slide-up"
       onClick={onClick}
+      style={buttonStyle}
     >
       <ChevronRight className="text-primary flex-shrink-0" />
       <span className="text-white">{choice.text}</span>

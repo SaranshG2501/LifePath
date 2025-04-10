@@ -5,7 +5,7 @@ import { useGameContext } from '@/context/GameContext';
 import SceneDisplay from '@/components/SceneDisplay';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 const GamePage = () => {
   const { gameState, makeChoice, resetGame, isGameActive } = useGameContext();
@@ -43,8 +43,12 @@ const GamePage = () => {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <div className="glassmorphic-card p-8 animate-pulse flex flex-col items-center gap-4">
-          <Sparkles className="text-primary h-10 w-10 animate-float" />
-          <p className="text-white">Loading your adventure...</p>
+          <div className="relative">
+            <Sparkles className="text-primary h-10 w-10 animate-float" />
+            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
+          </div>
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-white text-lg">Loading your adventure...</p>
         </div>
       </div>
     );
@@ -55,7 +59,10 @@ const GamePage = () => {
       {/* Header with scenario title and metrics */}
       <div className="mb-8">
         <div className="glass-card">
-          <h1 className="text-2xl font-bold mb-4 gradient-heading">{gameState.currentScenario.title}</h1>
+          <h1 className="text-2xl font-bold mb-4 gradient-heading flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+            {gameState.currentScenario.title}
+          </h1>
           <MetricsDisplay metrics={gameState.metrics} compact={true} />
         </div>
       </div>

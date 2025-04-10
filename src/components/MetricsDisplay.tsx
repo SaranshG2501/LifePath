@@ -22,14 +22,19 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
   if (compact) {
     return (
       <div className="flex flex-wrap gap-2 justify-center">
-        {metricsConfig.map(({ key, icon: Icon, color, textColor }) => {
+        {metricsConfig.map(({ key, icon: Icon, color, textColor }, index) => {
           const value = metrics[key as keyof Metrics];
+          const animationDelay = `${index * 0.1}s`;
+          
           return (
             <TooltipProvider key={key}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className={`stat-badge ${textColor} border-${color.replace('bg-', 'border-')}`}>
-                    <Icon size={14} />
+                  <div 
+                    className={`stat-badge ${textColor} border-${color.replace('bg-', 'border-')} animate-scale-in`}
+                    style={{ animationDelay }}
+                  >
+                    <Icon size={14} className="animate-pulse-slow" />
                     <span>{value}</span>
                   </div>
                 </TooltipTrigger>
@@ -46,12 +51,14 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {metricsConfig.map(({ key, label, icon: Icon, color }) => {
+      {metricsConfig.map(({ key, label, icon: Icon, color }, index) => {
         const value = metrics[key as keyof Metrics];
+        const animationDelay = `${index * 0.1}s`;
+        
         return (
-          <div key={key} className="glassmorphic-card p-3 rounded-lg">
+          <div key={key} className="glassmorphic-card p-3 rounded-lg animate-scale-in" style={{ animationDelay }}>
             <div className="flex items-center gap-2 mb-2">
-              <Icon size={18} className={color.replace('bg-', 'text-')} />
+              <Icon size={18} className={`${color.replace('bg-', 'text-')} animate-pulse-slow`} />
               <span className="font-medium">{label}</span>
             </div>
             <Progress value={value} className={`h-2 ${color} bg-white/20`} />
