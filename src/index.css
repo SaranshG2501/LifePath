@@ -14,16 +14,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 260 10% 15%;
 
-    --primary: 260 60% 55%;
+    --primary: 265 70% 60%;
     --primary-foreground: 260 100% 97%;
 
-    --secondary: 220 60% 50%;
+    --secondary: 230 60% 60%;
     --secondary-foreground: 220 100% 97%;
 
     --muted: 260 20% 90%;
     --muted-foreground: 260 10% 40%;
 
-    --accent: 280 50% 60%;
+    --accent: 280 60% 65%;
     --accent-foreground: 280 100% 97%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,7 +33,7 @@
     --input: 260 20% 85%;
     --ring: 260 60% 55%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     --sidebar-background: 260 30% 98%;
     --sidebar-foreground: 260 10% 15%;
@@ -53,19 +53,44 @@
 
   body {
     @apply bg-background text-foreground;
+    background-image: 
+      radial-gradient(rgba(155, 135, 245, 0.04) 2px, transparent 2px),
+      radial-gradient(rgba(155, 135, 245, 0.04) 2px, transparent 2px);
+    background-size: 50px 50px;
+    background-position: 0 0, 25px 25px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
   }
 }
 
 @layer components {
   .scenario-card {
-    @apply bg-white rounded-2xl shadow-lg border border-border hover:shadow-xl transition-shadow duration-300;
+    @apply bg-white rounded-2xl shadow-lg border border-primary/10 hover:shadow-xl transition-all duration-300 hover:border-primary/30 hover:-translate-y-1;
   }
 
   .choice-button {
-    @apply w-full p-4 rounded-xl border border-border bg-white shadow-sm hover:bg-muted/30 transition-colors duration-200 text-left flex items-center gap-3;
+    @apply w-full p-4 rounded-xl border border-border bg-white shadow-sm hover:bg-primary/5 transition-all duration-200 text-left flex items-center gap-3 hover:border-primary/30 hover:translate-x-1;
   }
 
   .stat-badge {
     @apply px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1;
+  }
+
+  .gradient-heading {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .teen-card {
+    @apply rounded-2xl bg-white p-6 shadow-lg border border-primary/10 hover:shadow-xl transition-all duration-300;
+  }
+
+  .glass-card {
+    @apply rounded-2xl bg-white/80 backdrop-blur-sm p-6 shadow-lg border border-white/30;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
   }
 }

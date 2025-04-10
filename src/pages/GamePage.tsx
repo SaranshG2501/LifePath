@@ -41,17 +41,21 @@ const GamePage = () => {
   if (!gameState.currentScenario || !gameState.currentScene) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <p>Loading scenario...</p>
+        <div className="teen-card animate-pulse">
+          <p>Loading your adventure...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 animate-fade-in">
       {/* Header with scenario title and metrics */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-4">{gameState.currentScenario.title}</h1>
-        <MetricsDisplay metrics={gameState.metrics} compact={true} />
+        <div className="glass-card">
+          <h1 className="text-2xl font-bold mb-4 gradient-heading">{gameState.currentScenario.title}</h1>
+          <MetricsDisplay metrics={gameState.metrics} compact={true} />
+        </div>
       </div>
 
       {/* Main game content */}
