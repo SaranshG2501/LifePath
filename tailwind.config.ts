@@ -37,6 +37,15 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))'
         },
+        // Gaming-inspired color scheme
+        neon: {
+          blue: '#4DEEEA',
+          purple: '#A566FF',
+          pink: '#F768A1',
+          green: '#4AFF91',
+          yellow: '#FDDA16',
+          red: '#FF6B6B',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -49,8 +58,8 @@ export default {
           '50%': { transform: 'translateY(-10px)' },
         },
         'glow': {
-          '0%, 100%': { boxShadow: '0 0 10px rgba(155, 135, 245, 0.3)' },
-          '50%': { boxShadow: '0 0 20px rgba(155, 135, 245, 0.5)' },
+          '0%, 100%': { boxShadow: '0 0 15px rgba(155, 135, 245, 0.4)' },
+          '50%': { boxShadow: '0 0 30px rgba(155, 135, 245, 0.7)' },
         },
         'pulse-slow': {
           '0%, 100%': { opacity: '1' },
@@ -68,6 +77,18 @@ export default {
           '0%': { transform: 'rotate(0deg)', boxShadow: '0 0 15px rgba(155, 135, 245, 0.3)' },
           '50%': { boxShadow: '0 0 25px rgba(155, 135, 245, 0.5)' },
           '100%': { transform: 'rotate(360deg)', boxShadow: '0 0 15px rgba(155, 135, 245, 0.3)' },
+        },
+        'hover-bounce': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
+        'background-pulse': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         }
       },
       animation: {
@@ -77,6 +98,9 @@ export default {
         'scale-in': 'scale-in 0.3s ease-out',
         'slide-up': 'slide-up 0.4s ease-out',
         'rotate-glow': 'rotate-glow 10s linear infinite',
+        'hover-bounce': 'hover-bounce 2s ease-in-out infinite',
+        'background-pulse': 'background-pulse 5s ease infinite',
+        'shimmer': 'shimmer 3s infinite linear'
       }
     },
   },

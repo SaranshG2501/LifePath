@@ -5,11 +5,11 @@
 
 @layer base {
   :root {
-    --background: 260 30% 98%;
-    --foreground: 260 10% 15%;
+    --background: 260 30% 10%;
+    --foreground: 260 10% 95%;
 
-    --card: 265 70% 98%;
-    --card-foreground: 265 70% 15%;
+    --card: 265 70% 10%;
+    --card-foreground: 265 70% 95%;
 
     --primary: 265 70% 60%;
     --primary-foreground: 260 100% 97%;
@@ -17,25 +17,32 @@
     --secondary: 285 60% 65%;
     --secondary-foreground: 280 100% 97%;
 
-    --muted: 265 20% 90%;
-    --muted-foreground: 265 10% 40%;
+    --muted: 265 20% 25%;
+    --muted-foreground: 265 10% 80%;
 
     --accent: 290 70% 70%;
     --accent-foreground: 290 100% 97%;
 
     --destructive: 350 70% 60%;
     --destructive-foreground: 350 100% 97%;
+
+    --border: 265 30% 30%;
+    --input: 265 30% 30%;
+    --ring: 265 70% 50%;
+
+    --radius: 0.75rem;
   }
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground;
-    background-color: #2d1b69;
+    background-color: #1d1033;
     background-image: 
-      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.08) 2%, transparent 10%),
-      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.08) 2%, transparent 10%),
-      radial-gradient(circle at 50% 50%, rgba(225, 200, 255, 0.06) 30%, transparent 80%);
+      radial-gradient(circle at 25% 25%, rgba(155, 135, 245, 0.05) 2%, transparent 10%),
+      radial-gradient(circle at 75% 75%, rgba(155, 135, 245, 0.05) 2%, transparent 10%),
+      radial-gradient(circle at 50% 50%, rgba(155, 135, 245, 0.03) 30%, transparent 80%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-attachment: fixed;
   }
 
@@ -45,17 +52,17 @@
   }
   
   ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(120, 100, 210, 0.1);
     border-radius: 10px;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: rgba(155, 135, 245, 0.4);
+    background: rgba(155, 135, 245, 0.5);
     border-radius: 10px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(155, 135, 245, 0.6);
+    background: rgba(155, 135, 245, 0.7);
   }
 }
 
@@ -65,38 +72,38 @@
   }
 
   .glassmorphic-card {
-    @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+    @apply bg-black/15 backdrop-blur-lg border border-white/10 shadow-lg rounded-xl;
   }
 
   .teen-card {
-    @apply rounded-2xl bg-white/10 backdrop-blur-lg border border-primary/20 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-primary/40;
+    @apply rounded-2xl bg-black/15 backdrop-blur-lg border border-primary/20 shadow-lg transition-all duration-300 hover:shadow-primary/30 hover:border-primary/40;
   }
   
   .glass-card {
-    @apply p-6 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply p-6 rounded-2xl bg-black/15 backdrop-blur-lg border border-white/10 shadow-lg hover:shadow-primary/20 transition-all duration-300;
   }
 
   .gradient-heading {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent font-bold;
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-neon-purple via-primary to-neon-pink font-bold;
   }
 
   .stat-badge {
-    @apply flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-white/15 backdrop-blur-md border shadow-sm hover:bg-white/20 transition-all duration-200;
+    @apply flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-black/20 backdrop-blur-md border border-white/10 shadow-sm hover:bg-black/30 transition-all duration-200;
   }
 
   .choice-button {
-    @apply flex items-center gap-2 w-full p-3 rounded-xl text-left transition-all duration-200 
-    bg-white/5 backdrop-blur-sm border border-primary/20 hover:bg-primary/20 hover:border-primary/40 
-    hover:translate-x-1 shadow-sm hover:shadow-md;
+    @apply flex items-center gap-2 w-full p-4 rounded-xl text-left transition-all duration-200 
+    bg-black/20 backdrop-blur-sm border border-primary/20 hover:bg-primary/20 hover:border-primary/40 
+    hover:translate-x-1 shadow-sm hover:shadow-primary/20;
   }
 
   .scenario-card {
-    @apply rounded-2xl overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 
-    shadow-lg transition-all duration-300 hover:shadow-xl hover:border-primary/30 hover:-translate-y-2;
+    @apply rounded-2xl overflow-hidden bg-black/20 backdrop-blur-lg border border-white/10 
+    shadow-lg transition-all duration-300 hover:shadow-primary/30 hover:border-primary/30 hover:-translate-y-2;
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl;
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-primary/20;
   }
 
   .animate-bounce-light {
@@ -123,6 +130,28 @@
   
   .glow-button:hover::after {
     @apply opacity-100;
+  }
+
+  .neon-border {
+    @apply border border-transparent relative;
+    background: linear-gradient(to right, #4DEEEA, #A566FF, #F768A1);
+    background-clip: padding-box;
+    box-shadow: 0 0 10px rgba(155, 135, 245, 0.5);
+  }
+
+  .neon-border::after {
+    content: '';
+    position: absolute;
+    top: -2px; right: -2px; bottom: -2px; left: -2px;
+    background: linear-gradient(to right, #4DEEEA, #A566FF, #F768A1);
+    border-radius: inherit;
+    z-index: -1;
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(to right, transparent 0%, rgba(155, 135, 245, 0.2) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
   }
 
   @keyframes bounce {

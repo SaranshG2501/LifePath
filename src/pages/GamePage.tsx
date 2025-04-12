@@ -5,11 +5,13 @@ import { useGameContext } from '@/context/GameContext';
 import SceneDisplay from '@/components/SceneDisplay';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const GamePage = () => {
   const { gameState, makeChoice, resetGame, isGameActive } = useGameContext();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // If no active game, redirect to home
@@ -29,7 +31,6 @@ const GamePage = () => {
 
   const handlePlayAgain = () => {
     if (gameState.currentScenario) {
-      const scenarioId = gameState.currentScenario.id;
       resetGame();
       // Need to wait for reset before starting new scenario
       setTimeout(() => {
@@ -41,8 +42,8 @@ const GamePage = () => {
 
   if (!gameState.currentScenario || !gameState.currentScene) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <div className="glassmorphic-card p-8 animate-pulse flex flex-col items-center gap-4">
+      <div className="container mx-auto px-4 py-8 text-center flex justify-center items-center min-h-[50vh]">
+        <div className="glassmorphic-card p-8 animate-pulse flex flex-col items-center gap-4 max-w-md w-full">
           <div className="relative">
             <Sparkles className="text-primary h-10 w-10 animate-float" />
             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
@@ -55,15 +56,15 @@ const GamePage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
+    <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
       {/* Header with scenario title and metrics */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <div className="glass-card">
-          <h1 className="text-2xl font-bold mb-4 gradient-heading flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold mb-4 gradient-heading flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
             {gameState.currentScenario.title}
           </h1>
-          <MetricsDisplay metrics={gameState.metrics} compact={true} />
+          <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
         </div>
       </div>
 

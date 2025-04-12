@@ -12,17 +12,17 @@ interface MetricsDisplayProps {
 
 const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = false }) => {
   const metricsConfig = [
-    { key: 'health', label: 'Health', icon: Heart, color: 'bg-red-500', textColor: 'text-red-500' },
-    { key: 'money', label: 'Money', icon: DollarSign, color: 'bg-green-500', textColor: 'text-green-500' },
-    { key: 'happiness', label: 'Happiness', icon: Smile, color: 'bg-yellow-500', textColor: 'text-yellow-500' },
-    { key: 'knowledge', label: 'Knowledge', icon: BookOpen, color: 'bg-blue-500', textColor: 'text-blue-500' },
-    { key: 'relationships', label: 'Relationships', icon: Users, color: 'bg-purple-500', textColor: 'text-purple-500' },
+    { key: 'health', label: 'Health', icon: Heart, color: 'bg-neon-red', textColor: 'text-neon-red', bgColor: 'bg-neon-red/20' },
+    { key: 'money', label: 'Money', icon: DollarSign, color: 'bg-neon-green', textColor: 'text-neon-green', bgColor: 'bg-neon-green/20' },
+    { key: 'happiness', label: 'Happiness', icon: Smile, color: 'bg-neon-yellow', textColor: 'text-neon-yellow', bgColor: 'bg-neon-yellow/20' },
+    { key: 'knowledge', label: 'Knowledge', icon: BookOpen, color: 'bg-neon-blue', textColor: 'text-neon-blue', bgColor: 'bg-neon-blue/20' },
+    { key: 'relationships', label: 'Relationships', icon: Users, color: 'bg-neon-purple', textColor: 'text-neon-purple', bgColor: 'bg-neon-purple/20' },
   ];
 
   if (compact) {
     return (
       <div className="flex flex-wrap gap-2 justify-center">
-        {metricsConfig.map(({ key, icon: Icon, color, textColor }, index) => {
+        {metricsConfig.map(({ key, icon: Icon, color, textColor, bgColor }, index) => {
           const value = metrics[key as keyof Metrics];
           const animationDelay = `${index * 0.1}s`;
           
@@ -31,14 +31,14 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div 
-                    className={`stat-badge ${textColor} border-${color.replace('bg-', 'border-')} animate-scale-in`}
+                    className={`stat-badge ${bgColor} ${textColor} animate-scale-in`}
                     style={{ animationDelay }}
                   >
                     <Icon size={14} className="animate-pulse-slow" />
                     <span>{value}</span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="bg-slate-900/90 backdrop-blur-md border-white/10">
+                <TooltipContent className="bg-black/80 backdrop-blur-md border-white/10 shadow-lg shadow-primary/10">
                   <p>{key.charAt(0).toUpperCase() + key.slice(1)}: {value}/100</p>
                 </TooltipContent>
               </Tooltip>
@@ -50,18 +50,20 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {metricsConfig.map(({ key, label, icon: Icon, color }, index) => {
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {metricsConfig.map(({ key, label, icon: Icon, color, bgColor }, index) => {
         const value = metrics[key as keyof Metrics];
         const animationDelay = `${index * 0.1}s`;
         
         return (
           <div key={key} className="glassmorphic-card p-3 rounded-lg animate-scale-in" style={{ animationDelay }}>
             <div className="flex items-center gap-2 mb-2">
-              <Icon size={18} className={`${color.replace('bg-', 'text-')} animate-pulse-slow`} />
-              <span className="font-medium">{label}</span>
+              <div className={`${bgColor} p-1 rounded-full`}>
+                <Icon size={16} className={`${color.replace('bg-', 'text-')} animate-pulse-slow`} />
+              </div>
+              <span className="font-medium text-white">{label}</span>
             </div>
-            <Progress value={value} className={`h-2 ${color} bg-white/20`} />
+            <Progress value={value} className={`h-2 ${color} bg-white/10`} />
             <div className="text-right text-sm mt-1 text-white/70">{value}/100</div>
           </div>
         );

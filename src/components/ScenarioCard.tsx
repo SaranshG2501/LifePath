@@ -4,7 +4,7 @@ import { Scenario } from '@/types/game';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import { Play, Sparkles, CalendarClock } from 'lucide-react';
 
 interface ScenarioCardProps {
   scenario: Scenario;
@@ -13,38 +13,44 @@ interface ScenarioCardProps {
 
 const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart }) => {
   return (
-    <Card className="scenario-card overflow-hidden h-full flex flex-col animate-fade-in">
+    <Card className="scenario-card overflow-hidden h-full flex flex-col animate-fade-in group">
       <div className="h-48 overflow-hidden relative">
         <img 
           src={scenario.thumbnail} 
           alt={scenario.title} 
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
         <div className="absolute bottom-3 left-3 flex gap-2">
           <Badge variant="outline" className="bg-primary/80 text-white border-none">
             {scenario.category}
           </Badge>
-          <Badge variant="outline" className="bg-black/50 text-white border-none">
+          <Badge variant="outline" className="bg-black/60 text-white border-none flex items-center gap-1">
+            <CalendarClock className="h-3 w-3" />
             Ages {scenario.ageGroup}
           </Badge>
         </div>
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="bg-black/40 p-1 rounded-full backdrop-blur-sm animate-pulse-slow">
+            <Sparkles className="h-4 w-4 text-neon-yellow" />
+          </div>
+        </div>
       </div>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl">{scenario.title}</CardTitle>
-        <CardDescription className="line-clamp-2">{scenario.description}</CardDescription>
+        <CardTitle className="text-xl text-white">{scenario.title}</CardTitle>
+        <CardDescription className="line-clamp-2 text-white/80">{scenario.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         <div className="flex gap-2 flex-wrap">
           {Object.entries(scenario.initialMetrics).map(([key, value]) => {
             let bgColor = "";
             switch(key) {
-              case "health": bgColor = "bg-green-100 text-green-800"; break;
-              case "money": bgColor = "bg-blue-100 text-blue-800"; break;
-              case "happiness": bgColor = "bg-yellow-100 text-yellow-800"; break;
-              case "knowledge": bgColor = "bg-purple-100 text-purple-800"; break;
-              case "relationships": bgColor = "bg-pink-100 text-pink-800"; break;
-              default: bgColor = "bg-gray-100 text-gray-800";
+              case "health": bgColor = "bg-neon-red/20 text-neon-red"; break;
+              case "money": bgColor = "bg-neon-green/20 text-neon-green"; break;
+              case "happiness": bgColor = "bg-neon-yellow/20 text-neon-yellow"; break;
+              case "knowledge": bgColor = "bg-neon-blue/20 text-neon-blue"; break;
+              case "relationships": bgColor = "bg-neon-purple/20 text-neon-purple"; break;
+              default: bgColor = "bg-white/10 text-white/80";
             }
             return (
               <span key={key} className={`text-xs px-2 py-1 rounded-full ${bgColor} capitalize`}>
@@ -56,7 +62,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart }) => {
       </CardContent>
       <CardFooter>
         <Button 
-          className="w-full rounded-xl"
+          className="w-full rounded-xl bg-gradient-to-r from-primary to-secondary hover:shadow-lg hover:shadow-primary/20 group-hover:scale-105 transition-all"
           onClick={() => onStart(scenario.id)}
         >
           <Play className="w-4 h-4 mr-2" /> Start This Adventure

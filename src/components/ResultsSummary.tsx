@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star } from 'lucide-react';
+import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ResultsSummaryProps {
   gameState: GameState;
@@ -18,6 +19,8 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   onPlayAgain,
   onReturnHome,
 }) => {
+  const isMobile = useIsMobile();
+  
   // Calculate total metric changes
   const totalChanges = gameState.history.reduce(
     (acc, entry) => {
@@ -64,25 +67,26 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
             <div className="p-4 rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 backdrop-blur-md border border-primary/50 animate-glow relative">
-              <Trophy className="h-8 w-8 text-primary animate-float" />
-              <Sparkles className="h-4 w-4 absolute top-0 right-0 text-yellow-400 animate-pulse" />
-              <Sparkles className="h-4 w-4 absolute bottom-0 left-0 text-yellow-400 animate-pulse" style={{ animationDelay: '1s' }} />
+              <Trophy className="h-8 w-8 text-neon-yellow animate-float" />
+              <Sparkles className="h-4 w-4 absolute top-0 right-0 text-neon-yellow animate-pulse" />
+              <Sparkles className="h-4 w-4 absolute bottom-0 left-0 text-neon-yellow animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
           </div>
           <CardTitle className="text-2xl gradient-heading flex items-center justify-center gap-2">
-            <Star className="h-5 w-5 text-yellow-400 animate-pulse" />
+            <Star className="h-5 w-5 text-neon-yellow animate-pulse" />
             Your Journey Results
-            <Star className="h-5 w-5 text-yellow-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <Star className="h-5 w-5 text-neon-yellow animate-pulse" style={{ animationDelay: '0.5s' }} />
           </CardTitle>
-          <CardDescription className="text-base text-white/80">
+          <CardDescription className="text-base mt-1 text-white/90">
             Here's how your choices shaped your path through "{gameState.currentScenario.title}"
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-6">
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/30 animate-slide-up">
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/30 animate-slide-up relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm -z-10"></div>
             <h3 className="font-medium text-lg mb-2 flex items-center gap-2 text-white">
-              <CheckCircle2 className="text-primary" />
+              <Flame className="text-neon-yellow" />
               Journey Outcome
             </h3>
             <p className="text-base text-white/90">{getEndingMessage()}</p>
@@ -93,7 +97,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
               Final Stats
             </h3>
-            <MetricsDisplay metrics={gameState.metrics} />
+            <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
           </div>
           
           <Separator className="bg-white/20" />
@@ -103,7 +107,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
               Your Journey
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
               {gameState.history.map((entry, index) => {
                 const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
                 const choice = scene?.choices.find(c => c.id === entry.choiceId);
@@ -112,12 +116,13 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                 return (
                   <div 
                     key={index} 
-                    className="bg-white/10 backdrop-blur-sm p-3 rounded-md border border-white/20 animate-slide-up hover:bg-white/15 transition-all duration-200"
+                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
                     style={{ animationDelay }}
                   >
                     <div className="font-medium text-white">{scene?.title}</div>
-                    <div className="text-sm text-white/70">
-                      Choice: {choice?.text}
+                    <div className="text-sm text-white/70 flex items-start gap-2">
+                      <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      {choice?.text}
                     </div>
                   </div>
                 );
@@ -126,10 +131,10 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           </div>
         </CardContent>
         
-        <CardFooter className="flex flex-col sm:flex-row gap-3 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+        <CardFooter className="flex flex-col sm:flex-row gap-3 animate-slide-up pt-4" style={{ animationDelay: '0.5s' }}>
           <Button 
             onClick={onPlayAgain} 
-            className="w-full sm:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:shadow-lg transition-all duration-300"
+            className="w-full sm:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
           >
             <Repeat className="h-4 w-4 mr-2" />
             Play Again
@@ -137,7 +142,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           <Button 
             variant="outline" 
             onClick={onReturnHome} 
-            className="w-full sm:w-auto flex items-center gap-2 border-white/20 text-white hover:bg-white/10"
+            className="w-full sm:w-auto flex items-center gap-2 border-white/20 text-white hover:bg-white/10 bg-black/30"
           >
             <Home size={16} />
             Return to Home
