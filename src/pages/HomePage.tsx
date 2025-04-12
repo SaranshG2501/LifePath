@@ -21,12 +21,12 @@ const HomePage = () => {
     <div className="container mx-auto px-4 py-6 md:py-8">
       <section className="text-center mb-10 md:mb-16">
         <div className="max-w-3xl mx-auto">
-          <div className="inline-block p-3 bg-primary/20 rounded-full mb-4 animate-float relative">
+          <div className="inline-flex justify-center items-center p-3 bg-primary/20 rounded-full mb-4 animate-float relative">
             <Gamepad2 className="h-7 w-7 md:h-8 md:w-8 text-primary animate-pulse-slow" />
             <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl"></div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4 md:mb-6 gradient-heading relative">
-            <span className="relative inline-block">
+            <span className="relative inline-block text-white">
               LifePath
               <span className="absolute -top-1 -right-4">
                 <Sparkles className="h-4 w-4 text-neon-yellow animate-pulse-slow" />
@@ -51,7 +51,7 @@ const HomePage = () => {
       </section>
 
       <section className="mb-12 md:mb-16">
-        <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-center gradient-heading flex items-center justify-center">
+        <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-center gradient-heading flex items-center justify-center text-white">
           <Sparkles className="h-6 w-6 text-primary mr-2 animate-pulse-slow" />
           Choose Your Scenario
         </h2>
