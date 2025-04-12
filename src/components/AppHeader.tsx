@@ -1,19 +1,18 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { LogOut, Info, Home, Gamepad2, Sparkles } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
-
 const AppHeader: React.FC = () => {
-  const { isGameActive, resetGame } = useGameContext();
-
-  return (
-    <header className="border-b border-white/10 bg-black/50 backdrop-blur-md shadow-md sticky top-0 z-10">
+  const {
+    isGameActive,
+    resetGame
+  } = useGameContext();
+  return <header className="border-b border-white/10 bg-black/50 backdrop-blur-md shadow-md sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 relative animate-float group">
           <div className="relative flex items-center justify-center">
-            <div className="absolute -z-10 w-10 h-10 bg-primary/20 rounded-full group-hover:bg-primary/30 transition-all"></div>
+            <div className="absolute -z-10 w-10 h-10 bg-primary/20 rounded-full group-hover:bg-primary/30 transition-all px-0 my-[50px]"></div>
             <Gamepad2 className="h-6 w-6 text-primary animate-pulse-slow absolute" />
           </div>
           <span className="font-bold text-xl text-white gradient-heading ml-8">LifePath</span>
@@ -21,8 +20,7 @@ const AppHeader: React.FC = () => {
         </Link>
         
         <div className="flex items-center gap-2 md:gap-3">
-          {!isGameActive && (
-            <>
+          {!isGameActive && <>
               <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
                 <Link to="/" className="flex items-center gap-1.5">
                   <Home className="h-4 w-4" />
@@ -35,25 +33,15 @@ const AppHeader: React.FC = () => {
                   <span className="hidden md:inline">About</span>
                 </Link>
               </Button>
-            </>
-          )}
+            </>}
           
-          {isGameActive && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={resetGame}
-              className="flex items-center gap-1.5 rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20"
-            >
+          {isGameActive && <Button variant="outline" size="sm" onClick={resetGame} className="flex items-center gap-1.5 rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20">
               <LogOut className="h-4 w-4" />
               <span className="hidden md:inline">Exit Scenario</span>
               <span className="inline md:hidden">Exit</span>
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default AppHeader;
