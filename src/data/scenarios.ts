@@ -1,4 +1,3 @@
-
 import { Scenario } from "@/types/game";
 
 export const scenarios: Scenario[] = [
@@ -398,7 +397,6 @@ export const scenarios: Scenario[] = [
           }
         ]
       },
-      // Additional scenes would be defined here...
       {
         id: "tired-for-test",
         title: "Test Day Exhaustion",
@@ -445,5 +443,582 @@ export const scenarios: Scenario[] = [
         isEnding: true
       }
     ]
-  }
-];
+  },
+  {
+    id: "first-paycheck",
+    title: "First Paycheck — Budget or Blow It?",
+    description: "Learn to manage your first salary and make smart financial decisions that impact your future.",
+    ageGroup: "16-20",
+    category: "Financial Literacy",
+    thumbnail: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2000&auto=format&fit=crop",
+    initialMetrics: {
+      health: 80,
+      money: 50,
+      happiness: 70,
+      knowledge: 50,
+      relationships: 75
+    },
+    scenes: [
+      {
+        id: "start",
+        title: "The Alert — You Got Paid!",
+        description: "You wake up to your phone vibrating: \"₹38,000 credited to your account.\" It's your first ever paycheck. You're thrilled — but now what?",
+        choices: [
+          {
+            id: "save",
+            text: "Immediately transfer 30% to a savings account",
+            nextSceneId: "wants-vs-needs",
+            metricChanges: {
+              money: 10,
+              happiness: -2,
+              knowledge: 8
+            },
+            tooltip: "Building good financial habits early pays off"
+          },
+          {
+            id: "post",
+            text: "Screenshot & post it with \"Let's GOOOO\" on Instagram",
+            nextSceneId: "wants-vs-needs",
+            metricChanges: {
+              money: 0,
+              happiness: 7,
+              relationships: 5,
+              knowledge: -2
+            },
+            tooltip: "Social validation can feel good, but be careful with financial info"
+          },
+          {
+            id: "call-friend",
+            text: "Call your best friend to plan a celebration",
+            nextSceneId: "wants-vs-needs",
+            metricChanges: {
+              money: -2,
+              happiness: 8,
+              relationships: 8
+            },
+            tooltip: "Sharing joy with close friends strengthens bonds"
+          }
+        ]
+      },
+      {
+        id: "wants-vs-needs",
+        title: "Wants vs. Needs",
+        description: "Your wishlist: New phone, sneakers, that designer hoodie. Your needs: Rent, commute, groceries, loan from a friend.",
+        choices: [
+          {
+            id: "budget-split",
+            text: "Create a \"fun\" vs \"needs\" split in a money app",
+            nextSceneId: "roommate-deal",
+            metricChanges: {
+              money: 8,
+              knowledge: 10,
+              happiness: 3
+            }
+          },
+          {
+            id: "ask-parents",
+            text: "Ask parents what they did with their first check",
+            nextSceneId: "roommate-deal",
+            metricChanges: {
+              knowledge: 8,
+              relationships: 5,
+              money: 5
+            }
+          },
+          {
+            id: "go-shopping",
+            text: "Go shopping. You'll budget next month",
+            nextSceneId: "roommate-deal",
+            metricChanges: {
+              money: -10,
+              happiness: 10,
+              knowledge: -5
+            }
+          }
+        ]
+      },
+      {
+        id: "roommate-deal",
+        title: "The Roommate Deal",
+        description: "Your classmate wants to share a flat near your work. It's close, fun, but expensive. Your parents say stay home and save.",
+        choices: [
+          {
+            id: "move-in",
+            text: "Move in — freedom matters",
+            nextSceneId: "impulse-trap",
+            metricChanges: {
+              money: -15,
+              happiness: 10,
+              relationships: 5,
+              health: -3
+            }
+          },
+          {
+            id: "negotiate",
+            text: "Negotiate a lower rent with your friend",
+            nextSceneId: "impulse-trap",
+            metricChanges: {
+              money: -5,
+              knowledge: 8,
+              relationships: 5
+            }
+          },
+          {
+            id: "stay-home",
+            text: "Stay at home for now and save",
+            nextSceneId: "impulse-trap",
+            metricChanges: {
+              money: 15,
+              happiness: -5,
+              relationships: -3
+            }
+          }
+        ]
+      },
+      {
+        id: "impulse-trap",
+        title: "The Impulse Trap",
+        description: "At the mall, your favorite phone is on sale. Sales rep: \"Zero interest EMI! Just ₹2,500/month!\"",
+        choices: [
+          {
+            id: "buy-it",
+            text: "Buy it. You work now",
+            nextSceneId: "celebration-isolation",
+            metricChanges: {
+              money: -15,
+              happiness: 15,
+              knowledge: -5
+            }
+          },
+          {
+            id: "compare-deals",
+            text: "Compare with refurbished deals online",
+            nextSceneId: "celebration-isolation",
+            metricChanges: {
+              money: -5,
+              knowledge: 10,
+              happiness: 3
+            }
+          },
+          {
+            id: "walk-away",
+            text: "Walk away. You'll revisit later",
+            nextSceneId: "celebration-isolation",
+            metricChanges: {
+              money: 5,
+              knowledge: 8,
+              happiness: -3
+            }
+          }
+        ]
+      },
+      {
+        id: "celebration-isolation",
+        title: "Celebration or Isolation?",
+        description: "Friends are planning a night out to celebrate your success. ₹3,000 split. You also owe your cousin ₹2,000.",
+        choices: [
+          {
+            id: "join-pay",
+            text: "Join and pay for the group — feel generous",
+            nextSceneId: "emergency",
+            metricChanges: {
+              money: -10,
+              happiness: 10,
+              relationships: 15
+            }
+          },
+          {
+            id: "skip",
+            text: "Say you're broke — skip and deal with FOMO",
+            nextSceneId: "emergency",
+            metricChanges: {
+              money: 5,
+              happiness: -10,
+              relationships: -5
+            }
+          },
+          {
+            id: "budget-limit",
+            text: "Go but set a spending limit",
+            nextSceneId: "emergency",
+            metricChanges: {
+              money: -5,
+              happiness: 8,
+              knowledge: 5,
+              relationships: 7
+            }
+          }
+        ]
+      },
+      {
+        id: "emergency",
+        title: "The Emergency",
+        description: "End of week: your laptop dies. Work deadline tomorrow. Repair will cost ₹4,000. You have ₹2,000 left.",
+        choices: [
+          {
+            id: "borrow",
+            text: "Ask a friend for a temporary loan",
+            nextSceneId: "help-past-future",
+            metricChanges: {
+              money: 0,
+              relationships: -2,
+              happiness: -5
+            }
+          },
+          {
+            id: "emergency-fund",
+            text: "Use your emergency fund (if you made one)",
+            nextSceneId: "help-past-future",
+            metricChanges: {
+              money: -5,
+              knowledge: 10,
+              happiness: 5
+            }
+          },
+          {
+            id: "diy-fix",
+            text: "Panic and try to DIY fix it",
+            nextSceneId: "help-past-future",
+            metricChanges: {
+              knowledge: 5,
+              happiness: -8,
+              health: -5
+            }
+          }
+        ]
+      },
+      {
+        id: "help-past-future",
+        title: "Help from the Past or Future?",
+        description: "You find an online finance course: ₹799. A voice in your head says it's worth it. Another says wait till next month.",
+        choices: [
+          {
+            id: "take-course",
+            text: "Invest in yourself — take the course",
+            nextSceneId: "credit-card-call",
+            metricChanges: {
+              money: -3,
+              knowledge: 15,
+              happiness: 5
+            }
+          },
+          {
+            id: "bookmark",
+            text: "Bookmark it for later",
+            nextSceneId: "credit-card-call",
+            metricChanges: {
+              money: 0,
+              knowledge: 0,
+              happiness: -3
+            }
+          },
+          {
+            id: "free-videos",
+            text: "Watch free videos instead",
+            nextSceneId: "credit-card-call",
+            metricChanges: {
+              money: 0,
+              knowledge: 8,
+              happiness: 3
+            }
+          }
+        ]
+      },
+      {
+        id: "credit-card-call",
+        title: "Credit Card Call",
+        description: "Your bank offers a credit card. ₹50,000 limit. \"Perfect for first earners like you!\" they say.",
+        choices: [
+          {
+            id: "accept",
+            text: "Accept it. Emergency backup, right?",
+            nextSceneId: "rent-due",
+            metricChanges: {
+              money: 0,
+              knowledge: -5,
+              happiness: 5
+            }
+          },
+          {
+            id: "decline",
+            text: "Decline politely",
+            nextSceneId: "rent-due",
+            metricChanges: {
+              money: 3,
+              knowledge: 5,
+              happiness: 0
+            }
+          },
+          {
+            id: "accept-hide",
+            text: "Accept but keep it hidden until needed",
+            nextSceneId: "rent-due",
+            metricChanges: {
+              money: 0,
+              knowledge: 3,
+              happiness: 3
+            }
+          }
+        ]
+      },
+      {
+        id: "rent-due",
+        title: "Rent is Due",
+        description: "If you moved out, this is where rent hits. Unexpected power bill is also due. If you stayed home, this is where you're asked to contribute or help with chores.",
+        choices: [
+          {
+            id: "cut-back",
+            text: "Cut back on food/luxuries to afford bills",
+            nextSceneId: "end-of-month",
+            metricChanges: {
+              money: 5,
+              health: -5,
+              happiness: -5
+            }
+          },
+          {
+            id: "early-payment",
+            text: "Ask boss for early payment",
+            nextSceneId: "end-of-month",
+            metricChanges: {
+              money: 3,
+              relationships: -3,
+              happiness: -3
+            }
+          },
+          {
+            id: "borrow-again",
+            text: "Borrow again",
+            nextSceneId: "end-of-month",
+            metricChanges: {
+              money: 5,
+              relationships: -8,
+              happiness: -5
+            }
+          }
+        ]
+      },
+      {
+        id: "end-of-month",
+        title: "End of Month Debrief",
+        description: "You've lived through your first month of adulting. You reflect on: How much is left in your account? How do you feel about your choices? What would you do differently next time?",
+        choices: [
+          {
+            id: "see-future",
+            text: "View a \"Future You\" scenario if you keep the same habits",
+            nextSceneId: "ending-financial",
+            metricChanges: {},
+            tooltip: "See how your current habits affect your future self"
+          },
+          {
+            id: "replay-saver",
+            text: "Replay path with a saver mindset",
+            nextSceneId: "ending-financial-reflective",
+            metricChanges: {},
+            tooltip: "Learn what might happen with more financial discipline"
+          },
+          {
+            id: "get-template",
+            text: "Download a budget template and start fresh",
+            nextSceneId: "ending-financial-proactive",
+            metricChanges: {},
+            tooltip: "Take practical steps to improve your financial future"
+          }
+        ],
+        isEnding: true
+      },
+      {
+        id: "ending-financial",
+        title: "Your Financial Future",
+        description: "Based on your choices, you've learned important lessons about managing your first income. Your spending habits have set a foundation for your financial future.",
+        choices: [
+          {
+            id: "complete",
+            text: "Complete the journey",
+            nextSceneId: "complete",
+            metricChanges: {}
+          }
+        ],
+        isEnding: true
+      },
+      {
+        id: "ending-financial-reflective",
+        title: "The Path of Saving",
+        description: "You consider how your choices might have been different with a saver's mindset. This reflection gives you clarity for your next paycheck.",
+        choices: [
+          {
+            id: "complete",
+            text: "Complete the journey",
+            nextSceneId: "complete",
+            metricChanges: {}
+          }
+        ],
+        isEnding: true
+      },
+      {
+        id: "ending-financial-proactive",
+        title: "Budget Master",
+        description: "Armed with a budget template, you're ready to take control of your finances with your next paycheck. Financial literacy is a journey!",
+        choices: [
+          {
+            id: "complete",
+            text: "Complete the journey",
+            nextSceneId: "complete",
+            metricChanges: {}
+          }
+        ],
+        isEnding: true
+      }
+    ]
+  },
+  {
+    id: "party-pressure",
+    title: "The Party Pressure",
+    description: "Navigate the complex social dynamics of a high school party while staying true to your values and priorities.",
+    ageGroup: "14-18",
+    category: "Social Skills",
+    thumbnail: "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?q=80&w=2000&auto=format&fit=crop",
+    initialMetrics: {
+      health: 85,
+      money: 60,
+      happiness: 70,
+      knowledge: 75,
+      relationships: 65
+    },
+    scenes: [
+      {
+        id: "start",
+        title: "The Invite",
+        description: "You're prepping for a high-stakes exam next week when Aryan texts: \"Party at mine. It's going to be EPIC. You're in, right?\"",
+        choices: [
+          {
+            id: "say-yes",
+            text: "Say yes immediately",
+            nextSceneId: "hype-pressure",
+            metricChanges: {
+              happiness: 5,
+              knowledge: -5,
+              relationships: 5
+            },
+            tooltip: "Social acceptance feels good, but could impact your study time"
+          },
+          {
+            id: "say-no",
+            text: "Say no — you need to study",
+            nextSceneId: "hype-pressure",
+            metricChanges: {
+              happiness: -5,
+              knowledge: 8,
+              relationships: -5
+            },
+            tooltip: "Prioritizing academics can be tough but valuable"
+          },
+          {
+            id: "say-maybe",
+            text: "Say \"maybe\" and keep options open",
+            nextSceneId: "hype-pressure",
+            metricChanges: {
+              happiness: 2,
+              knowledge: 3,
+              relationships: 0
+            },
+            tooltip: "Keeping options open gives you time to think"
+          }
+        ]
+      },
+      {
+        id: "hype-pressure",
+        title: "Hype and Pressure",
+        description: "You're bombarded with snaps of pre-party excitement. A friend says, \"Don't be boring, it's just ONE night.\"",
+        choices: [
+          {
+            id: "cave-in",
+            text: "Cave in — make it a short visit",
+            nextSceneId: "crossroads",
+            metricChanges: {
+              happiness: 3,
+              relationships: 5,
+              knowledge: -3
+            }
+          },
+          {
+            id: "double-down",
+            text: "Double down on studying — exam comes first",
+            nextSceneId: "crossroads",
+            metricChanges: {
+              happiness: -3,
+              relationships: -5,
+              knowledge: 10
+            }
+          },
+          {
+            id: "host-movie",
+            text: "Host a chill movie night at home instead",
+            nextSceneId: "crossroads",
+            metricChanges: {
+              happiness: 7,
+              relationships: 3,
+              knowledge: 0
+            }
+          }
+        ]
+      },
+      {
+        id: "crossroads",
+        title: "The Crossroads",
+        description: "You get ready. Your sibling asks, \"Are you sure this is a good idea?\" You hesitate. Your backpack is packed — for the party or the library?",
+        choices: [
+          {
+            id: "go-party",
+            text: "Go to the party. YOLO",
+            nextSceneId: "party-begins",
+            metricChanges: {
+              happiness: 8,
+              relationships: 5,
+              knowledge: -8
+            }
+          },
+          {
+            id: "go-library",
+            text: "Head to the library",
+            nextSceneId: "library-path",
+            metricChanges: {
+              happiness: -5,
+              relationships: -5,
+              knowledge: 15
+            }
+          },
+          {
+            id: "cafe-think",
+            text: "Sit in a café and think it over",
+            nextSceneId: "cafe-path",
+            metricChanges: {
+              happiness: 3,
+              relationships: 0,
+              knowledge: 5
+            }
+          }
+        ]
+      },
+      {
+        id: "party-begins",
+        title: "The Party Begins",
+        description: "Music's loud, drinks everywhere, someone's already passed out on the beanbag. Aryan grins: \"Finally! You made it!\"",
+        choices: [
+          {
+            id: "join-dance",
+            text: "Join the dance floor",
+            nextSceneId: "drinks-dares",
+            metricChanges: {
+              happiness: 10,
+              relationships: 8,
+              health: -3
+            }
+          },
+          {
+            id: "stay-wall",
+            text: "Stay near the wall — observe",
+            nextSceneId: "drinks-dares",
+            metricChanges: {
+              happiness: 3,
+              relationships:
