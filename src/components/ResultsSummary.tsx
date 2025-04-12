@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame, ChevronRight, Award, TrendingUp, Brain, Heart } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ResultsSummaryProps {
@@ -57,9 +57,132 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     return "You've completed your journey with a unique set of experiences and outcomes!";
   };
 
+  // Get achievement badges based on metrics and choices
+  const getAchievements = () => {
+    const { metrics } = gameState;
+    const achievements = [];
+
+    if (metrics.money > 75) {
+      achievements.push({ 
+        title: 'Financial Wizard', 
+        description: 'Masterful management of your finances',
+        icon: <Award className="h-5 w-5 text-neon-yellow" />
+      });
+    }
+    
+    if (metrics.health > 75) {
+      achievements.push({
+        title: 'Health Champion',
+        description: 'Prioritized your physical wellbeing',
+        icon: <Heart className="h-5 w-5 text-neon-red" />
+      });
+    }
+    
+    if (metrics.knowledge > 75) {
+      achievements.push({
+        title: 'Knowledge Seeker',
+        description: 'Pursued learning at every opportunity',
+        icon: <Brain className="h-5 w-5 text-neon-blue" />
+      });
+    }
+    
+    if (metrics.relationships > 75) {
+      achievements.push({
+        title: 'Social Butterfly',
+        description: 'Built meaningful connections with others',
+        icon: <Heart className="h-5 w-5 text-neon-purple" />
+      });
+    }
+
+    if (metrics.happiness > 75) {
+      achievements.push({
+        title: 'Joy Master',
+        description: 'Found happiness along your journey',
+        icon: <Star className="h-5 w-5 text-neon-yellow" />
+      });
+    }
+    
+    if (Object.values(metrics).every(val => val > 60)) {
+      achievements.push({
+        title: 'Balanced Achiever',
+        description: 'Maintained balance in all areas of life',
+        icon: <TrendingUp className="h-5 w-5 text-neon-green" />
+      });
+    }
+    
+    return achievements;
+  };
+
+  // Generate personalized tips based on game stats
+  const getPersonalizedTips = () => {
+    const { metrics } = gameState;
+    const tips = [];
+    
+    // Find lowest metric to provide a focused tip
+    const lowestMetric = Object.entries(metrics).reduce(
+      (lowest, [key, value]) => value < lowest.value ? { key, value } : lowest,
+      { key: '', value: 100 }
+    );
+    
+    switch(lowestMetric.key) {
+      case 'money':
+        tips.push("Consider creating a simple budget to track your income and expenses.");
+        break;
+      case 'health':
+        tips.push("Small daily habits like taking short walks can greatly improve your overall health.");
+        break;
+      case 'knowledge':
+        tips.push("Setting aside just 15 minutes a day for learning can lead to major knowledge gains.");
+        break;
+      case 'relationships':
+        tips.push("Quality connections often matter more than the quantity of relationships.");
+        break;
+      case 'happiness':
+        tips.push("Taking time for activities you enjoy is essential for your emotional wellbeing.");
+        break;
+      default:
+        tips.push("Reflecting on your decisions helps build better decision-making skills.");
+    }
+    
+    // Add a general tip
+    tips.push("The choices that seem small today can have significant impacts on your future self.");
+    
+    return tips;
+  };
+
+  // Evaluate decision-making style
+  const getDecisionStyle = () => {
+    const { metrics, history } = gameState;
+    
+    // Count risky vs cautious choices (simplified example)
+    const riskyChoices = history.filter(entry => {
+      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      // This is a simplified example - would need actual choice data with risk indicators
+      return choice?.metricChanges.money && choice.metricChanges.money < -5;
+    }).length;
+    
+    const cautiousChoices = history.filter(entry => {
+      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      return choice?.metricChanges.money && choice.metricChanges.money > 5;
+    }).length;
+    
+    if (riskyChoices > cautiousChoices) {
+      return "You tend to make bold, sometimes risky decisions. While this can lead to exciting opportunities, consider balancing with some caution.";
+    } else if (cautiousChoices > riskyChoices) {
+      return "You prefer safe, reliable choices. This stability is valuable, but occasionally taking calculated risks might open new doors.";
+    } else {
+      return "You balance risk and caution well in your decisions, adapting to situations thoughtfully.";
+    }
+  };
+
   if (!gameState.currentScenario || !gameState.currentScene) {
     return null;
   }
+
+  const achievements = getAchievements();
+  const personaltips = getPersonalizedTips();
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-scale-in">
@@ -100,9 +223,62 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
             <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
           </div>
           
-          <Separator className="bg-white/20" />
+          {achievements.length > 0 && (
+            <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
+              <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
+                <Award className="h-5 w-5 text-neon-yellow" />
+                Achievements Unlocked
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {achievements.map((achievement, index) => (
+                  <div 
+                    key={index}
+                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-neon-yellow/30 hover:border-neon-yellow/60 transition-all flex items-start gap-2"
+                  >
+                    <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-2 rounded-full">
+                      {achievement.icon}
+                    </div>
+                    <div>
+                      <div className="font-medium text-white">{achievement.title}</div>
+                      <div className="text-xs text-white/70">{achievement.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
+              <Brain className="h-5 w-5 text-neon-blue" />
+              Decision Style
+            </h3>
+            <div className="bg-black/30 backdrop-blur-sm p-4 rounded-md border border-white/10">
+              <p className="text-white/90">{getDecisionStyle()}</p>
+            </div>
+          </div>
+          
+          <div className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
+            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-neon-green" />
+              Tips For Your Journey
+            </h3>
+            <div className="space-y-3">
+              {personaltips.map((tip, index) => (
+                <div 
+                  key={index}
+                  className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-neon-green/20 flex items-start gap-2"
+                >
+                  <ChevronRight className="h-4 w-4 text-neon-green mt-0.5 flex-shrink-0" />
+                  <p className="text-white/90 text-sm">{tip}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <Separator className="bg-white/20" />
+          
+          <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               Your Journey
