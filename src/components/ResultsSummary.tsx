@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame } from 'lucide-react';
+import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ResultsSummaryProps {
