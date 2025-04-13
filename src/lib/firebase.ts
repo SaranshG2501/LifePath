@@ -54,7 +54,7 @@ export const getCurrentUser = () => {
 };
 
 // Firestore functions
-export const createUserProfile = async (uid: string, userData: any) => {
+export const createUserProfile = async (uid: string, userData: Record<string, any>) => {
   return setDoc(doc(db, 'users', uid), {
     ...userData,
     xp: 0,
