@@ -19,6 +19,7 @@ import {
   where,
   getDocs
 } from 'firebase/firestore';
+import { Metrics } from '@/types/game';
 
 // Your web app's Firebase configuration
 // Replace with your actual Firebase config
@@ -56,12 +57,22 @@ export const getCurrentUser = () => {
 
 // Firestore functions
 export const createUserProfile = async (uid: string, userData: Record<string, any>) => {
+  // Initialize metrics at 0
+  const initialMetrics: Metrics = {
+    health: 0,
+    money: 0,
+    happiness: 0,
+    knowledge: 0,
+    relationships: 0
+  };
+  
   const defaultData = {
     xp: 0,
     level: 1,
     completedScenarios: [],
     badges: [],
     history: [],
+    metrics: initialMetrics,
     createdAt: new Date()
   };
   
