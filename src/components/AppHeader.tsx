@@ -4,15 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, BookOpen } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 
 const AppHeader: React.FC = () => {
   const {
     isGameActive,
     resetGame,
-    userRole,
     gameMode,
     setGameMode
   } = useGameContext();
+  
+  const { userProfile } = useAuth();
 
   return (
     <header className="border-b border-white/10 bg-black/50 backdrop-blur-md shadow-md sticky top-0 z-10">
@@ -65,7 +67,7 @@ const AppHeader: React.FC = () => {
                 </Link>
               </Button>
               
-              {userRole && userRole !== 'guest' ? (
+              {userProfile ? (
                 <Button variant="outline" size="sm" asChild className="rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20">
                   <Link to="/profile" className="flex items-center gap-1.5">
                     <User className="h-4 w-4" />

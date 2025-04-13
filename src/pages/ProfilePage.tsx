@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useGameContext } from '@/context/GameContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { 
   User, School, Trophy, History, BarChart, 
   Users, LogOut, BookOpen, Gamepad2, Award, 
@@ -15,42 +16,58 @@ import {
 
 const ProfilePage: React.FC = () => {
   const { userRole } = useGameContext();
+  const { userProfile, logout, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [xpProgress, setXpProgress] = useState(0);
   
-  // Mock data - in a real app, this would come from backend
-  const userProfile = {
-    username: userRole === 'teacher' ? 'Ms. Johnson' : 'Alex',
-    email: userRole === 'teacher' ? 'teacher@example.com' : 'student@example.com',
-    role: userRole,
-    xp: 650,
-    level: 3,
-    completedScenarios: ['college-choice', 'dream-vs-family'],
-    badges: [
-      { id: 'empath', name: 'Empath', description: "Show understanding of others' perspectives", icon: 'heart' },
-      { id: 'strategist', name: 'Strategist', description: 'Make financially sound decisions', icon: 'trending-up' },
-      { id: 'balanced', name: 'Balanced', description: 'Maintain good balance across all metrics', icon: 'balance-scale' },
-    ],
-    classrooms: userRole === 'teacher' 
-      ? [
-          { id: 'class1', name: 'Psychology 101', students: 24 },
-          { id: 'class2', name: 'Ethics in Decision Making', students: 18 }
-        ]
-      : [
-          { id: 'class1', name: 'Psychology 101', teacher: 'Ms. Johnson' },
-          { id: 'class3', name: 'Life Skills 203', teacher: 'Mr. Davis' }
-        ],
-    history: [
-      { scenarioId: 'dream-vs-family', date: '2025-04-10', score: 85 },
-      { scenarioId: 'college-choice', date: '2025-04-05', score: 73 }
-    ]
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isLoading && !userProfile) {
+      navigate('/auth');
+    }
+  }, [userProfile, isLoading, navigate]);
+
+  useEffect(() => {
+    if (userProfile) {
+      // Calculate XP progress to next level
+      const xpToNextLevel = 1000;
+      const progress = ((userProfile.xp || 0) % xpToNextLevel) / xpToNextLevel * 100;
+      setXpProgress(progress);
+    }
+  }, [userProfile]);
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
   
-  // Calculate XP progress to next level
-  const xpToNextLevel = 1000;
-  const xpProgress = (userProfile.xp % xpToNextLevel) / xpToNextLevel * 100;
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
+        <div className="text-white text-xl">Loading profile...</div>
+      </div>
+    );
+  }
   
-  const handleLogout = () => {
-    navigate('/');
+  if (!userProfile) {
+    return null; // Will redirect in useEffect
+  }
+  
+  // Default values for new users
+  const defaultProfile = {
+    username: userProfile.username || 'User',
+    email: userProfile.email || '',
+    role: userProfile.role || userRole || 'student',
+    xp: userProfile.xp || 0,
+    level: userProfile.level || 1,
+    completedScenarios: userProfile.completedScenarios || [],
+    badges: userProfile.badges || [],
+    classrooms: userProfile.classrooms || [],
+    history: userProfile.history || []
   };
   
   return (
@@ -62,10 +79,10 @@ const ProfilePage: React.FC = () => {
             <div className="flex justify-center mb-4">
               <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
                 <span className="text-4xl font-bold text-white">
-                  {userProfile.username.charAt(0).toUpperCase()}
+                  {defaultProfile.username.charAt(0).toUpperCase()}
                 </span>
                 <div className="absolute bottom-0 right-0 bg-black/50 rounded-full p-1">
-                  {userProfile.role === 'teacher' ? (
+                  {defaultProfile.role === 'teacher' ? (
                     <School className="h-5 w-5 text-primary animate-pulse-slow" />
                   ) : (
                     <User className="h-5 w-5 text-primary animate-pulse-slow" />
@@ -74,10 +91,10 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
             <CardTitle className="text-center text-xl font-bold gradient-heading text-white">
-              {userProfile.username}
+              {defaultProfile.username}
             </CardTitle>
             <CardDescription className="text-center flex items-center justify-center gap-1 text-white/70">
-              {userProfile.role === 'teacher' ? (
+              {defaultProfile.role === 'teacher' ? (
                 <>
                   <School className="h-4 w-4" />
                   Teacher
@@ -94,12 +111,12 @@ const ProfilePage: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-white/70">Level {userProfile.level}</span>
-                  <span className="text-sm font-medium text-white/70">{userProfile.xp} XP</span>
+                  <span className="text-sm font-medium text-white/70">Level {defaultProfile.level}</span>
+                  <span className="text-sm font-medium text-white/70">{defaultProfile.xp} XP</span>
                 </div>
                 <Progress value={xpProgress} className="h-2 bg-white/10" />
                 <div className="flex justify-end mt-1">
-                  <span className="text-xs text-white/50">{Math.round(xpProgress)}% to Level {userProfile.level + 1}</span>
+                  <span className="text-xs text-white/50">{Math.round(xpProgress)}% to Level {defaultProfile.level + 1}</span>
                 </div>
               </div>
               
@@ -109,15 +126,19 @@ const ProfilePage: React.FC = () => {
                   Badges Earned
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {userProfile.badges.map((badge) => (
-                    <Badge 
-                      key={badge.id}
-                      variant="outline"
-                      className="bg-black/40 border-primary/30 text-white py-1"
-                    >
-                      {badge.name}
-                    </Badge>
-                  ))}
+                  {defaultProfile.badges.length > 0 ? (
+                    defaultProfile.badges.map((badge: any) => (
+                      <Badge 
+                        key={badge.id}
+                        variant="outline"
+                        className="bg-black/40 border-primary/30 text-white py-1"
+                      >
+                        {badge.name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <div className="text-white/50 text-sm">No badges earned yet</div>
+                  )}
                 </div>
               </div>
               
@@ -127,7 +148,7 @@ const ProfilePage: React.FC = () => {
                   Completed Scenarios
                 </h3>
                 <div className="text-sm text-white/80">
-                  {userProfile.completedScenarios.length} scenarios completed
+                  {defaultProfile.completedScenarios.length} scenarios completed
                 </div>
               </div>
               

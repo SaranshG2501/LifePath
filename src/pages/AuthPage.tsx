@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Gamepad2, LogIn, UserPlus, School, User, ArrowRight, Sparkles } from 'lucide-react';
 import { UserRole } from '@/types/game';
 import { useGameContext } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 
 const AuthPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -21,22 +21,19 @@ const AuthPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { setUserRole } = useGameContext();
+  const { login, signup } = useAuth();
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, this would validate credentials against a backend
-    // For demo purposes, we'll simulate a successful login
     if (email && password) {
-      // Set the user role (in a real app, this would come from the backend)
-      setUserRole(role);
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome back${username ? ', ' + username : ''}!`,
-      });
-      
-      navigate('/profile');
+      try {
+        await login(email, password);
+        setUserRole(role);
+        navigate('/profile');
+      } catch (error) {
+        // Error is handled in the auth context
+      }
     } else {
       toast({
         title: "Login failed",
@@ -46,21 +43,17 @@ const AuthPage: React.FC = () => {
     }
   };
   
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, this would register the user with a backend
-    // For demo purposes, we'll simulate a successful registration
     if (email && password && username) {
-      // Set the user role
-      setUserRole(role);
-      
-      toast({
-        title: "Account created",
-        description: `Welcome to LifePath, ${username}!`,
-      });
-      
-      navigate('/profile');
+      try {
+        await signup(email, password, username, role);
+        setUserRole(role);
+        navigate('/profile');
+      } catch (error) {
+        // Error is handled in the auth context
+      }
     } else {
       toast({
         title: "Signup failed",

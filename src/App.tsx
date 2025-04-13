@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider } from "@/context/GameContext";
+import { AuthProvider } from "@/context/AuthContext";
 import AppHeader from "@/components/AppHeader";
 import HomePage from "@/pages/HomePage";
 import GamePage from "@/pages/GamePage";
@@ -18,25 +19,27 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <GameProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-background flex flex-col">
-            <AppHeader />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/game" element={<GamePage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
-      </GameProvider>
+      <AuthProvider>
+        <GameProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="min-h-screen bg-background flex flex-col">
+              <AppHeader />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/game" element={<GamePage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </BrowserRouter>
+        </GameProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
