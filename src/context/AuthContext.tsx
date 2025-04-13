@@ -1,6 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, createUserProfile, getUserProfile } from '@/lib/firebase';
+import { 
+  auth, 
+  createUserProfile, 
+  getUserProfile, 
+  loginUser, 
+  logoutUser,
+  createUser
+} from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { UserRole } from '@/types/game';
@@ -55,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const { user } = await auth.signInWithEmailAndPassword(email, password);
+      const { user } = await loginUser(email, password);
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
       toast({
@@ -74,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (email: string, password: string, username: string, role: UserRole) => {
     try {
-      const { user } = await auth.createUserWithEmailAndPassword(email, password);
+      const { user } = await createUser(email, password);
       
       // Create user profile
       const userData = {
@@ -103,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await auth.signOut();
+      await logoutUser();
       setUserProfile(null);
       toast({
         title: "Logged out",
