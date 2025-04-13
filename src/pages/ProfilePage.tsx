@@ -57,7 +57,7 @@ const ProfilePage: React.FC = () => {
     return null; // Will redirect in useEffect
   }
   
-  // Default values for new users
+  // Default values for new users with proper null checks
   const defaultProfile = {
     username: userProfile.username || 'User',
     email: userProfile.email || '',
@@ -126,14 +126,14 @@ const ProfilePage: React.FC = () => {
                   Badges Earned
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {defaultProfile.badges.length > 0 ? (
-                    defaultProfile.badges.map((badge: any) => (
+                  {defaultProfile.badges && defaultProfile.badges.length > 0 ? (
+                    defaultProfile.badges.map((badge: any, index: number) => (
                       <Badge 
-                        key={badge.id}
+                        key={index}
                         variant="outline"
                         className="bg-black/40 border-primary/30 text-white py-1"
                       >
-                        {badge.name}
+                        {badge.name || badge}
                       </Badge>
                     ))
                   ) : (
@@ -148,7 +148,7 @@ const ProfilePage: React.FC = () => {
                   Completed Scenarios
                 </h3>
                 <div className="text-sm text-white/80">
-                  {defaultProfile.completedScenarios.length} scenarios completed
+                  {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0} scenarios completed
                 </div>
               </div>
               
@@ -196,15 +196,25 @@ const ProfilePage: React.FC = () => {
                       </h3>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-white/80">Scenarios Completed</span>
-                        <span className="font-mono text-white">{userProfile.completedScenarios.length}/10</span>
+                        <span className="font-mono text-white">
+                          {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0}/10
+                        </span>
                       </div>
-                      <Progress value={userProfile.completedScenarios.length * 10} className="h-2 mb-4 bg-white/10" />
+                      <Progress 
+                        value={(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length * 10) || 0} 
+                        className="h-2 mb-4 bg-white/10" 
+                      />
                       
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-white/80">Badges Earned</span>
-                        <span className="font-mono text-white">{userProfile.badges.length}/8</span>
+                        <span className="font-mono text-white">
+                          {(defaultProfile.badges && defaultProfile.badges.length) || 0}/8
+                        </span>
                       </div>
-                      <Progress value={userProfile.badges.length * 12.5} className="h-2 bg-white/10" />
+                      <Progress 
+                        value={(defaultProfile.badges && defaultProfile.badges.length * 12.5) || 0} 
+                        className="h-2 bg-white/10" 
+                      />
                     </div>
                     
                     <div className="bg-black/20 rounded-lg p-4 flex flex-col">
@@ -249,16 +259,20 @@ const ProfilePage: React.FC = () => {
                         <div className="font-medium text-white/80">Date</div>
                         <div className="font-medium text-white/80 text-right">Score</div>
                       </div>
-                      {userProfile.history.map((item, index) => (
-                        <div 
-                          key={index} 
-                          className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
-                        >
-                          <div className="text-white">{item.scenarioId.replace(/-/g, ' ')}</div>
-                          <div className="text-white/70">{item.date}</div>
-                          <div className="text-right font-mono text-white">{item.score}%</div>
-                        </div>
-                      ))}
+                      {defaultProfile.history && defaultProfile.history.length > 0 ? (
+                        defaultProfile.history.map((item: any, index: number) => (
+                          <div 
+                            key={index} 
+                            className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
+                          >
+                            <div className="text-white">{item.scenarioId?.replace(/-/g, ' ') || 'Unknown Scenario'}</div>
+                            <div className="text-white/70">{item.date || 'N/A'}</div>
+                            <div className="text-right font-mono text-white">{item.score || 0}%</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-white/50 text-center">No activity recorded yet</div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -275,31 +289,37 @@ const ProfilePage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {userProfile.classrooms.map((classroom) => (
-                      <div 
-                        key={classroom.id} 
-                        className="bg-black/30 rounded-lg p-4 border border-white/10 hover:border-primary/30 transition-colors cursor-pointer"
-                      >
-                        <h3 className="font-medium mb-2 text-white">{classroom.name}</h3>
-                        {userRole === 'teacher' ? (
-                          <div className="text-sm text-white/70 flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {classroom.students} students
+                    {defaultProfile.classrooms && defaultProfile.classrooms.length > 0 ? (
+                      defaultProfile.classrooms.map((classroom: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className="bg-black/30 rounded-lg p-4 border border-white/10 hover:border-primary/30 transition-colors cursor-pointer"
+                        >
+                          <h3 className="font-medium mb-2 text-white">{classroom.name || `Classroom ${index+1}`}</h3>
+                          {userRole === 'teacher' ? (
+                            <div className="text-sm text-white/70 flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              {classroom.students || 0} students
+                            </div>
+                          ) : (
+                            <div className="text-sm text-white/70 flex items-center gap-1">
+                              <School className="h-4 w-4" />
+                              Teacher: {classroom.teacher || 'Unknown'}
+                            </div>
+                          )}
+                          
+                          <div className="mt-3 flex justify-end">
+                            <Button variant="outline" size="sm" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
+                              {userRole === 'teacher' ? 'Manage Class' : 'View Activities'}
+                            </Button>
                           </div>
-                        ) : (
-                          <div className="text-sm text-white/70 flex items-center gap-1">
-                            <School className="h-4 w-4" />
-                            Teacher: {classroom.teacher}
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 flex justify-end">
-                          <Button variant="outline" size="sm" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
-                            {userRole === 'teacher' ? 'Manage Class' : 'View Activities'}
-                          </Button>
                         </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 bg-black/20 rounded-lg p-4 text-white/60 text-center">
+                        No classrooms found
                       </div>
-                    ))}
+                    )}
                     
                     <div className="bg-black/10 rounded-lg border border-dashed border-white/20 p-4 flex flex-col items-center justify-center text-center hover:bg-black/20 transition-colors cursor-pointer">
                       <div className="rounded-full bg-white/5 p-3 mb-2">
@@ -335,21 +355,25 @@ const ProfilePage: React.FC = () => {
                       <div className="font-medium text-white/80">Score</div>
                       <div className="font-medium text-white/80 text-right">Actions</div>
                     </div>
-                    {userProfile.history.map((item, index) => (
-                      <div 
-                        key={index} 
-                        className="grid grid-cols-4 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
-                      >
-                        <div className="text-white capitalize">{item.scenarioId.replace(/-/g, ' ')}</div>
-                        <div className="text-white/70">{item.date}</div>
-                        <div className="font-mono text-white">{item.score}%</div>
-                        <div className="text-right">
-                          <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 hover:text-primary">
-                            View Details
-                          </Button>
+                    {defaultProfile.history && defaultProfile.history.length > 0 ? (
+                      defaultProfile.history.map((item: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className="grid grid-cols-4 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
+                        >
+                          <div className="text-white capitalize">{item.scenarioId?.replace(/-/g, ' ') || 'Unknown'}</div>
+                          <div className="text-white/70">{item.date || 'N/A'}</div>
+                          <div className="font-mono text-white">{item.score || 0}%</div>
+                          <div className="text-right">
+                            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 hover:text-primary">
+                              View Details
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="p-3 text-white/50 text-center">No history available</div>
+                    )}
                   </div>
                   
                   <div className="mt-6">

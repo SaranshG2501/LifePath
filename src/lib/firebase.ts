@@ -56,14 +56,18 @@ export const getCurrentUser = () => {
 
 // Firestore functions
 export const createUserProfile = async (uid: string, userData: Record<string, any>) => {
-  return setDoc(doc(db, 'users', uid), {
-    ...userData,
+  const defaultData = {
     xp: 0,
     level: 1,
     completedScenarios: [],
     badges: [],
     history: [],
     createdAt: new Date()
+  };
+  
+  return setDoc(doc(db, 'users', uid), {
+    ...defaultData,
+    ...userData
   });
 };
 
