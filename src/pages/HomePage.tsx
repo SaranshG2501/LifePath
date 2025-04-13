@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Info, Map, TrendingUp, Brain, Users, 
   Camera, Lightbulb, Sparkles, Gamepad2, 
-  School, User, BarChart, MessageSquare, Award
+  School, User, BarChart, MessageSquare, Award,
+  BookOpen
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
