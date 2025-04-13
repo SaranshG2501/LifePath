@@ -15,7 +15,7 @@ const BadgesDisplay: React.FC<BadgesDisplayProps> = ({ earnedBadges = [] }) => {
       id: 'empath', 
       name: 'Empath', 
       icon: <Heart className="h-5 w-5 text-red-400" />,
-      description: 'Show understanding of others' perspectives in your decisions',
+      description: "Show understanding of others' perspectives in your decisions",
       criteria: 'Make 5 decisions that prioritize relationships'
     },
     { 

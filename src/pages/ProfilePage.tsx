@@ -26,7 +26,7 @@ const ProfilePage: React.FC = () => {
     level: 3,
     completedScenarios: ['college-choice', 'dream-vs-family'],
     badges: [
-      { id: 'empath', name: 'Empath', description: 'Show understanding of others' perspectives', icon: 'heart' },
+      { id: 'empath', name: 'Empath', description: "Show understanding of others' perspectives", icon: 'heart' },
       { id: 'strategist', name: 'Strategist', description: 'Make financially sound decisions', icon: 'trending-up' },
       { id: 'balanced', name: 'Balanced', description: 'Maintain good balance across all metrics', icon: 'balance-scale' },
     ],
