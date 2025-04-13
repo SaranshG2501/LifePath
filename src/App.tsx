@@ -9,6 +9,8 @@ import AppHeader from "@/components/AppHeader";
 import HomePage from "@/pages/HomePage";
 import GamePage from "@/pages/GamePage";
 import AboutPage from "@/pages/AboutPage";
+import AuthPage from "@/pages/AuthPage";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
                 <Route path="/" element={<HomePage />} />
                 <Route path="/game" element={<GamePage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

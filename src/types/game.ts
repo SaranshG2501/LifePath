@@ -49,3 +49,39 @@ export type GameState = {
     metricChanges: MetricChange;
   }[];
 };
+
+export type GameMode = "individual" | "classroom";
+export type UserRole = "student" | "teacher" | "guest";
+
+export type Badge = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  criteria: (gameState: GameState) => boolean;
+};
+
+export type UserProfile = {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  xp: number;
+  completedScenarios: string[];
+  badges: string[];
+  classrooms: string[];
+};
+
+export type Classroom = {
+  id: string;
+  name: string;
+  teacherId: string;
+  students: string[];
+  activeScenario?: string;
+};
+
+export type VoteStats = {
+  choiceId: string;
+  count: number;
+  percentage: number;
+};

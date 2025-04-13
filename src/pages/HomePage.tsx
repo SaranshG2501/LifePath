@@ -4,11 +4,16 @@ import { useGameContext } from '@/context/GameContext';
 import ScenarioCard from '@/components/ScenarioCard';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Info, Map, TrendingUp, Brain, Users, Camera, Lightbulb, Sparkles, Gamepad2 } from 'lucide-react';
+import { 
+  Info, Map, TrendingUp, Brain, Users, 
+  Camera, Lightbulb, Sparkles, Gamepad2, 
+  School, User, BarChart, MessageSquare, Award
+} from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
 
 const HomePage = () => {
-  const { scenarios, startScenario } = useGameContext();
+  const { scenarios, startScenario, userRole, gameMode, setGameMode } = useGameContext();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -46,6 +51,59 @@ const HomePage = () => {
               <Info size={16} className="text-primary" />
               Learn More
             </Button>
+            
+            {!userRole || userRole === 'guest' ? (
+              <Button 
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-xl"
+              >
+                <User size={16} className="text-white" />
+                Sign Up / Login
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-xl"
+              >
+                <User size={16} className="text-white" />
+                My Profile
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            {gameMode === "classroom" ? (
+              <Badge className="py-1.5 px-3 bg-primary/20 text-white border-0 rounded-full flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-primary" />
+                Classroom Mode
+              </Badge>
+            ) : (
+              <Badge className="py-1.5 px-3 bg-black/20 text-white/80 border-white/10 rounded-full flex items-center gap-1.5">
+                <User className="h-4 w-4" />
+                Individual Mode
+              </Badge>
+            )}
+            
+            {userRole && (
+              <Badge className="py-1.5 px-3 bg-secondary/20 text-white border-0 rounded-full flex items-center gap-1.5">
+                {userRole === 'teacher' ? (
+                  <>
+                    <School className="h-4 w-4 text-secondary" />
+                    Teacher
+                  </>
+                ) : userRole === 'student' ? (
+                  <>
+                    <BookOpen className="h-4 w-4 text-secondary" />
+                    Student
+                  </>
+                ) : (
+                  <>
+                    <User className="h-4 w-4" />
+                    Guest
+                  </>
+                )}
+              </Badge>
+            )}
           </div>
         </div>
       </section>
@@ -68,7 +126,7 @@ const HomePage = () => {
       </section>
 
       <section className="glassmorphic-card p-6 md:p-8 mb-10 md:mb-12 animate-fade-in">
-        <h2 className="text-xl md:text-2xl font-bold mb-6 gradient-heading flex items-center">
+        <h2 className="text-xl md:text-2xl font-bold mb-6 gradient-heading flex items-center text-white">
           <Sparkles className="h-5 w-5 text-primary mr-2 animate-pulse-slow" />
           Why LifePath is Different
         </h2>
@@ -94,6 +152,60 @@ const HomePage = () => {
             <h3 className="font-bold text-lg mb-2 text-white">Learn Life Skills</h3>
             <p className="text-muted-foreground">Gain practical knowledge about budgeting, relationships, and more.</p>
           </div>
+        </div>
+      </section>
+
+      <section className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-6 md:p-8 border border-white/10 backdrop-blur-sm animate-fade-in mb-10 md:mb-12">
+        <h2 className="text-xl md:text-2xl font-bold mb-6 gradient-heading flex items-center text-white">
+          <Users className="h-5 w-5 text-primary mr-2 animate-pulse-slow" />
+          New! Classroom Features
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-black/30 rounded-xl p-5 border border-white/10 hover:border-primary/30 transition-colors">
+            <div className="p-3 bg-primary/20 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+              <MessageSquare className="text-primary" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-white">Live Discussion Mode</h3>
+            <p className="text-muted-foreground">Teachers can lead discussions by showing scenarios to the class and collecting anonymous votes on decisions.</p>
+          </div>
+          <div className="bg-black/30 rounded-xl p-5 border border-white/10 hover:border-primary/30 transition-colors">
+            <div className="p-3 bg-primary/20 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+              <BarChart className="text-primary" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-white">Assessment Dashboard</h3>
+            <p className="text-muted-foreground">Teachers get insights into students' decision-making patterns and can track progress across scenarios.</p>
+          </div>
+          <div className="bg-black/30 rounded-xl p-5 border border-white/10 hover:border-primary/30 transition-colors">
+            <div className="p-3 bg-primary/20 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+              <Award className="text-primary" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-white">Gamification Elements</h3>
+            <p className="text-muted-foreground">Students earn XP and badges like "Empath" or "Strategist" based on their decision patterns.</p>
+          </div>
+        </div>
+        <div className="mt-6 text-center">
+          {!userRole || userRole === 'guest' ? (
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white"
+            >
+              Sign Up to Access Classroom Features
+            </Button>
+          ) : userRole === 'teacher' ? (
+            <Button 
+              onClick={() => setGameMode("classroom")}
+              className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white"
+            >
+              Create Your Classroom
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => setGameMode("classroom")}
+              className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white"
+            >
+              Join a Classroom
+            </Button>
+          )}
         </div>
       </section>
 
