@@ -23,12 +23,13 @@ import {
 // Your web app's Firebase configuration
 // Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
+  authDomain: "lifepath-3ff8f.firebaseapp.com",
+  projectId: "lifepath-3ff8f",
+  storageBucket: "lifepath-3ff8f.firebasestorage.app",
+  messagingSenderId: "185300197020",
+  appId: "1:185300197020:web:d3c7701675bc4972fbd759",
+  measurementId: "G-N5CCD171WX"
 };
 
 // Initialize Firebase
