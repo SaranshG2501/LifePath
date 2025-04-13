@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,14 @@ const AuthPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { setUserRole } = useGameContext();
-  const { login, signup } = useAuth();
+  const { login, signup, userProfile, isLoading } = useAuth();
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    if (userProfile && !isLoading) {
+      navigate('/profile');
+    }
+  }, [userProfile, isLoading, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +38,10 @@ const AuthPage: React.FC = () => {
       try {
         await login(email, password);
         setUserRole(role);
-        navigate('/profile');
+        // Since login is asynchronous, we'll navigate from the useEffect when userProfile is updated
       } catch (error) {
         // Error is handled in the auth context
+        console.error("Login error:", error);
       }
     } else {
       toast({
@@ -50,9 +59,10 @@ const AuthPage: React.FC = () => {
       try {
         await signup(email, password, username, role);
         setUserRole(role);
-        navigate('/profile');
+        // Since signup is asynchronous, we'll navigate from the useEffect when userProfile is updated
       } catch (error) {
         // Error is handled in the auth context
+        console.error("Signup error:", error);
       }
     } else {
       toast({
@@ -71,6 +81,11 @@ const AuthPage: React.FC = () => {
     });
     navigate('/');
   };
+
+  // If already logged in, don't show login page
+  if (userProfile && !isLoading) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">

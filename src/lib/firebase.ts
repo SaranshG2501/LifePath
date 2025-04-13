@@ -75,7 +75,7 @@ export const getUserProfile = async (uid: string) => {
   return null;
 };
 
-export const updateUserProfile = async (uid: string, data: any) => {
+export const updateUserProfile = async (uid: string, data: Record<string, any>) => {
   return updateDoc(doc(db, 'users', uid), data);
 };
 

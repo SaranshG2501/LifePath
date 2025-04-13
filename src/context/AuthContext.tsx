@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      setIsLoading(true);
       const { user } = await loginUser(email, password);
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
@@ -76,11 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive",
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signup = async (email: string, password: string, username: string, role: UserRole) => {
     try {
+      setIsLoading(true);
       const { user } = await createUser(email, password);
       
       // Create user profile
@@ -105,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive",
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
