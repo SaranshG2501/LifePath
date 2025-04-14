@@ -93,6 +93,29 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Validate classroom mode
+    if (gameMode === "classroom") {
+      // Students need to be in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Teachers need to have created a classroom
+      if (userRole === "teacher" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please create a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Use user's saved metrics if available, otherwise use scenario defaults
     const startingMetrics = userProfile?.metrics || { ...scenario.initialMetrics };
 
@@ -109,7 +132,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (gameMode === "classroom") {
       toast({
-        title: gameMode === "classroom" ? "Classroom Mode Active" : "Individual Mode Active",
+        title: "Classroom Mode Active",
         description: userRole === "teacher" 
           ? "You're leading this scenario. Students can join with your classroom code." 
           : "You're participating in a classroom activity.",
@@ -244,6 +267,16 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
 
   const submitVote = (choiceId: string) => {
     if (gameMode === "classroom" && gameState.currentScene) {
+      // Validate student is in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before voting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const newVotes = { ...classroomVotes };
       newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
       setClassroomVotes(newVotes);

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useGameContext } from '@/context/GameContext';
 import ScenarioCard from '@/components/ScenarioCard';
@@ -44,15 +43,6 @@ const HomePage = () => {
             Navigate through realistic scenarios and see how your choices shape your future.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <Button 
-              onClick={() => navigate('/about')}
-              variant="outline"
-              className="flex items-center gap-2 rounded-xl border-primary/30 bg-black/20 text-white hover:bg-primary/20 backdrop-blur-sm"
-            >
-              <Info size={16} className="text-primary" />
-              Learn More
-            </Button>
-            
             {!userRole || userRole === 'guest' ? (
               <Button 
                 onClick={() => navigate('/auth')}
@@ -70,6 +60,15 @@ const HomePage = () => {
                 My Profile
               </Button>
             )}
+            
+            <Button 
+              onClick={() => navigate('/about')}
+              variant="outline"
+              className="flex items-center gap-2 rounded-xl border-primary/30 bg-black/20 text-white hover:bg-primary/20 backdrop-blur-sm"
+            >
+              <Info size={16} className="text-primary" />
+              Learn More
+            </Button>
           </div>
           
           <div className="flex flex-wrap justify-center items-center gap-3">

@@ -76,6 +76,7 @@ export const createUserProfile = async (uid: string, userData: Record<string, an
     createdAt: new Date()
   };
   
+  // Fix: Use object spread instead of spreading Record<string, any>
   return setDoc(doc(db, 'users', uid), {
     ...defaultData,
     ...userData

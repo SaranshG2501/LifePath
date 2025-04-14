@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, BookOpen } from 'lucide-react';
+import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 
