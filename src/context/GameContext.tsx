@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { updateUserProfile } from "@/lib/firebase";
 
 type GameContextType = {
   gameState: GameState;
@@ -57,6 +59,16 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
   const { toast } = useToast();
+  const { userProfile, currentUser, refreshUserProfile } = useAuth();
+
+  // Set user role based on profile
+  useEffect(() => {
+    if (userProfile?.role) {
+      setUserRole(userProfile.role as UserRole);
+    } else {
+      setUserRole("guest");
+    }
+  }, [userProfile]);
 
   const startScenario = (id: string) => {
     const scenario = scenarios.find((s) => s.id === id);
@@ -81,16 +93,28 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Use user's saved metrics if available, otherwise use scenario defaults
+    const startingMetrics = userProfile?.metrics || { ...scenario.initialMetrics };
+
     setGameState({
       currentScenario: scenario,
       currentScene: firstScene,
-      metrics: { ...scenario.initialMetrics },
+      metrics: startingMetrics,
       history: []
     });
     setIsGameActive(true);
     setShowMirrorMoment(false);
     setRevealVotes(false);
     setClassroomVotes({});
+
+    if (gameMode === "classroom") {
+      toast({
+        title: gameMode === "classroom" ? "Classroom Mode Active" : "Individual Mode Active",
+        description: userRole === "teacher" 
+          ? "You're leading this scenario. Students can join with your classroom code." 
+          : "You're participating in a classroom activity.",
+      });
+    }
   };
 
   const makeChoice = (choiceId: string) => {
@@ -170,12 +194,23 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       metricChanges: choice.metricChanges
     };
 
-    setGameState({
+    const updatedGameState = {
       ...gameState,
       currentScene: nextScene,
       metrics: newMetrics,
       history: [...gameState.history, newHistoryEntry]
-    });
+    };
+
+    setGameState(updatedGameState);
+
+    // If user is logged in, update their metrics in their profile
+    if (currentUser && gameMode === "individual") {
+      updateUserProfile(currentUser.uid, { 
+        metrics: newMetrics
+      }).catch(error => {
+        console.error("Error updating user metrics:", error);
+      });
+    }
 
     // Reset mirror moment and votes state
     setShowMirrorMoment(false);
