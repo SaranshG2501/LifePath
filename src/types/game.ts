@@ -20,6 +20,7 @@ export type Choice = {
 };
 
 export type Scene = {
+  isEndScene: any;
   id: string;
   title: string;
   description: string;

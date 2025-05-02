@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
 import { 
@@ -428,4 +429,4 @@ export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => 
   return unsubscribe;
 };
 
-export { auth, db };
+export { auth, db, Timestamp };
