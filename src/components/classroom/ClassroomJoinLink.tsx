@@ -67,18 +67,22 @@ const ClassroomJoinLink: React.FC = () => {
         classDescription
       );
       
-      setClassroomId(newClassroom.id);
-      setGameMode("classroom");
-      
-      toast({
-        title: "Classroom Created",
-        description: `Your classroom '${className}' has been created successfully.`,
-      });
-      
-      setIsCreateModalOpen(false);
-      setClassName('');
-      setClassDescription('');
-      navigate('/teacher');
+      if (newClassroom && newClassroom.id) {
+        setClassroomId(newClassroom.id);
+        setGameMode("classroom");
+        
+        toast({
+          title: "Classroom Created",
+          description: `Your classroom '${className}' has been created successfully.`,
+        });
+        
+        setIsCreateModalOpen(false);
+        setClassName('');
+        setClassDescription('');
+        navigate('/teacher');
+      } else {
+        throw new Error("Failed to create classroom");
+      }
     } catch (error) {
       console.error('Error creating classroom:', error);
       toast({
@@ -127,23 +131,27 @@ const ClassroomJoinLink: React.FC = () => {
       }
       
       // Join classroom
-      await joinClassroom(
+      const joinedClassroom = await joinClassroom(
         classroom.id, 
         currentUser.uid, 
         userProfile?.displayName || 'Student'
       );
       
-      setClassroomId(classroom.id);
-      setGameMode("classroom");
-      
-      toast({
-        title: "Joined Classroom",
-        description: `You have joined ${classroom.name}!`,
-      });
-      
-      setIsJoinModalOpen(false);
-      setClassCode('');
-      navigate('/profile');
+      if (joinedClassroom && joinedClassroom.id) {
+        setClassroomId(classroom.id);
+        setGameMode("classroom");
+        
+        toast({
+          title: "Joined Classroom",
+          description: `You have joined ${classroom.name}!`,
+        });
+        
+        setIsJoinModalOpen(false);
+        setClassCode('');
+        navigate('/profile');
+      } else {
+        throw new Error("Failed to join classroom");
+      }
     } catch (error) {
       console.error('Error joining classroom:', error);
       toast({

@@ -1,9 +1,16 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { updateUserProfile, getUserClassrooms } from "@/lib/firebase";
+import { 
+  updateUserProfile, 
+  getUserClassrooms, 
+  saveScenarioHistory, 
+  ScenarioChoice, 
+  Timestamp 
+} from "@/lib/firebase";
 
 type GameContextType = {
   gameState: GameState;
@@ -59,6 +66,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
   const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
+  const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -153,6 +161,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Use user's saved metrics if available, otherwise use scenario defaults
     const startingMetrics = userProfile?.metrics || { ...scenario.initialMetrics };
+
+    // Reset scenario choices for new scenario
+    setScenarioChoices([]);
 
     setGameState({
       currentScenario: scenario,
@@ -252,6 +263,19 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       metricChanges: choice.metricChanges
     };
 
+    // Save choice to scenario choices for Firestore
+    if (currentUser) {
+      const newChoice: ScenarioChoice = {
+        sceneId: gameState.currentScene.id,
+        choiceId: choice.id,
+        choiceText: choice.text,
+        timestamp: Timestamp.now(),
+        metricChanges: choice.metricChanges
+      };
+      
+      setScenarioChoices(prev => [...prev, newChoice]);
+    }
+
     const updatedGameState = {
       ...gameState,
       currentScene: nextScene,
@@ -267,6 +291,28 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         metrics: newMetrics
       }).catch(error => {
         console.error("Error updating user metrics:", error);
+      });
+    }
+
+    // Check if this is the end of the scenario
+    if (nextScene.isEndScene && currentUser && gameState.currentScenario) {
+      // Save completed scenario to Firestore
+      saveScenarioHistory(
+        currentUser.uid,
+        gameState.currentScenario.id,
+        gameState.currentScenario.title,
+        [...scenarioChoices, newChoice], // Include the current choice
+        newMetrics
+      ).then(() => {
+        toast({
+          title: "Scenario Completed",
+          description: "Your choices have been saved to your profile.",
+        });
+        
+        // Refresh user profile to get updated data
+        refreshUserProfile();
+      }).catch(error => {
+        console.error("Error saving scenario history:", error);
       });
     }
 
@@ -298,6 +344,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setShowMirrorMoment(false);
     setRevealVotes(false);
     setClassroomVotes({});
+    setScenarioChoices([]);
   };
 
   const submitVote = (choiceId: string) => {

@@ -24,7 +24,8 @@ import {
   orderBy,
   onSnapshot,
   DocumentData,
-  Timestamp
+  Timestamp,
+  FieldValue
 } from 'firebase/firestore';
 import { Metrics } from '@/types/game';
 
@@ -73,10 +74,28 @@ export interface UserProfileData {
   level?: number;
   completedScenarios?: string[];
   badges?: string[];
-  history?: any[];
+  history?: ScenarioHistory[];
   metrics?: Metrics;
   classrooms?: string[];
   createdAt?: Date | Timestamp;
+}
+
+// New type for scenario history
+export interface ScenarioHistory {
+  scenarioId: string;
+  scenarioTitle?: string;
+  startedAt: Timestamp | Date;
+  completedAt?: Timestamp | Date;
+  choices: ScenarioChoice[];
+  finalMetrics?: Metrics;
+}
+
+export interface ScenarioChoice {
+  sceneId: string;
+  choiceId: string;
+  choiceText?: string;
+  timestamp: Timestamp | Date;
+  metricChanges?: Record<string, number>;
 }
 
 // Auth functions
@@ -115,7 +134,7 @@ export const createUserProfile = async (uid: string, userData: UserProfileData) 
     history: [],
     metrics: initialMetrics,
     classrooms: [],
-    createdAt: serverTimestamp()
+    createdAt: Timestamp.now()
   };
   
   // Merge the default data with provided user data
@@ -139,16 +158,68 @@ export const updateUserProfile = async (uid: string, data: Record<string, any>) 
   return updateDoc(doc(db, 'users', uid), data);
 };
 
+// Scenario History functions
+export const saveScenarioHistory = async (
+  userId: string, 
+  scenarioId: string, 
+  scenarioTitle: string, 
+  choices: ScenarioChoice[], 
+  finalMetrics: Metrics
+) => {
+  try {
+    // Get user's current profile
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error("User not found");
+    }
+    
+    const userData = userDoc.data();
+    const history = userData.history || [];
+    
+    // Create new history entry
+    const historyEntry: ScenarioHistory = {
+      scenarioId,
+      scenarioTitle,
+      startedAt: choices.length > 0 ? choices[0].timestamp : Timestamp.now(),
+      completedAt: Timestamp.now(),
+      choices,
+      finalMetrics
+    };
+    
+    // Add to history array
+    const updatedHistory = [...history, historyEntry];
+    
+    // Update completed scenarios
+    const completedScenarios = userData.completedScenarios || [];
+    if (!completedScenarios.includes(scenarioId)) {
+      completedScenarios.push(scenarioId);
+    }
+    
+    // Update user profile
+    await updateDoc(doc(db, 'users', userId), {
+      history: updatedHistory,
+      completedScenarios,
+      metrics: finalMetrics,
+      xp: (userData.xp || 0) + 50 // Award XP for completion
+    });
+    
+    return historyEntry;
+  } catch (error) {
+    console.error('Error saving scenario history:', error);
+    throw error;
+  }
+};
+
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
-  const classroomData: Classroom = {
+  const classroomData = {
     name,
     description: description || "",
     teacherId,
     students: [],
     activeScenario: null,
     currentScene: null,
-    createdAt: serverTimestamp(),
+    createdAt: Timestamp.now(),
     classCode: generateClassCode(),
     isActive: true
   };
@@ -195,9 +266,10 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     const newStudent: ClassroomStudent = {
       id: studentId,
       name: studentName,
-      joinedAt: serverTimestamp()
+      joinedAt: Timestamp.now()
     };
     
+    // Add student to classroom
     await updateDoc(classroomRef, {
       students: [...studentList, newStudent]
     });
@@ -218,7 +290,9 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     }
   }
   
-  return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
+  // Fetch the updated classroom data
+  const updatedClassroomDoc = await getDoc(classroomRef);
+  return { id: updatedClassroomDoc.id, ...updatedClassroomDoc.data() } as Classroom;
 };
 
 export const getClassroomByCode = async (classCode: string) => {
@@ -286,7 +360,7 @@ export const startClassroomScenario = async (classroomId: string, scenarioId: st
   return updateDoc(doc(db, 'classrooms', classroomId), {
     activeScenario: scenarioId,
     currentScene: initialScene,
-    startedAt: serverTimestamp(),
+    startedAt: Timestamp.now(),
     votes: {},
     studentProgress: {}
   });
@@ -296,7 +370,7 @@ export const recordStudentVote = async (classroomId: string, studentId: string, 
   const voteRef = doc(db, 'classrooms', classroomId, 'votes', studentId);
   return setDoc(voteRef, { 
     choiceId, 
-    timestamp: serverTimestamp() 
+    timestamp: Timestamp.now() 
   });
 };
 
@@ -318,7 +392,7 @@ export const advanceClassroomScene = async (classroomId: string, nextSceneId: st
   // Set new scene
   return updateDoc(doc(db, 'classrooms', classroomId), {
     currentScene: nextSceneId,
-    lastUpdated: serverTimestamp()
+    lastUpdated: Timestamp.now()
   });
 };
 

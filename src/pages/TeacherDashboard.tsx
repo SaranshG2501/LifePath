@@ -15,7 +15,7 @@ import { scenarios } from '@/data/scenarios';
 
 const TeacherDashboard = () => {
   const { userProfile, currentUser } = useAuth();
-  const { setUserRole } = useGameContext();
+  const { setUserRole, startScenario } = useGameContext();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState("classrooms");
@@ -71,6 +71,11 @@ const TeacherDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleScenarioClick = (scenarioId: string) => {
+    startScenario(scenarioId);
+    navigate('/game');
   };
   
   if (!currentUser) {
@@ -234,7 +239,7 @@ const TeacherDashboard = () => {
             <ScenarioCard 
               key={scenario.id}
               scenario={scenario}
-              onClick={() => {}}
+              onSelect={() => handleScenarioClick(scenario.id)}
             />
           ))}
         </div>
