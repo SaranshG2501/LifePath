@@ -6,10 +6,11 @@ import SceneDisplay from '@/components/SceneDisplay';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
 import MirrorMoment from '@/components/MirrorMoment';
-import ClassroomVoting from '@/components/ClassroomVoting';
+import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 
 const GamePage = () => {
   const { 
@@ -21,11 +22,13 @@ const GamePage = () => {
     gameMode,
     setGameMode,
     userRole,
+    classroomId,
     mirrorMomentsEnabled,
     toggleMirrorMoments
   } = useGameContext();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     // If no active game, redirect to home
@@ -33,6 +36,20 @@ const GamePage = () => {
       navigate('/');
     }
   }, [isGameActive, navigate]);
+  
+  // Prevent using classroom mode without joining a classroom
+  useEffect(() => {
+    if (gameMode === "classroom" && !classroomId) {
+      toast({
+        title: "Classroom Required",
+        description: userRole === 'teacher' 
+          ? "Please create a classroom before starting a scenario in classroom mode." 
+          : "Please join a classroom before starting a scenario in classroom mode.",
+        variant: "destructive",
+      });
+      setGameMode("individual");
+    }
+  }, [gameMode, classroomId, userRole, toast, setGameMode]);
 
   const handleChoiceMade = (choiceId: string) => {
     makeChoice(choiceId);
@@ -51,6 +68,33 @@ const GamePage = () => {
         navigate('/');
         navigate('/game');
       }, 100);
+    }
+  };
+  
+  const toggleGameMode = () => {
+    if (gameMode === "classroom") {
+      setGameMode("individual");
+      toast({
+        title: "Individual Mode",
+        description: "You're now playing in individual mode.",
+      });
+    } else {
+      if (!classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: userRole === 'teacher' 
+            ? "Please create a classroom first." 
+            : "Please join a classroom first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setGameMode("classroom");
+      toast({
+        title: "Classroom Mode",
+        description: "You're now playing in classroom mode.",
+      });
     }
   };
 
@@ -95,28 +139,25 @@ const GamePage = () => {
                 Mirror Moments
               </Button>
               
-              {gameMode === "individual" ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-1 border-primary/20 bg-black/20 text-white hover:bg-primary/10"
-                  onClick={() => setGameMode("classroom")}
-                  disabled={userRole === "guest"}
-                >
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  Individual Mode
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-1 border-primary/20 bg-black/20 text-white hover:bg-primary/10"
-                  onClick={() => setGameMode("individual")}
-                >
-                  <Users className="h-4 w-4 text-primary" />
-                  Classroom Mode
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1 border-primary/20 bg-black/20 text-white hover:bg-primary/10"
+                onClick={toggleGameMode}
+                disabled={!classroomId && gameMode === "individual"}
+              >
+                {gameMode === "classroom" ? (
+                  <>
+                    <Users className="h-4 w-4 text-primary" />
+                    Classroom Mode
+                  </>
+                ) : (
+                  <>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Individual Mode
+                  </>
+                )}
+              </Button>
             </div>
           </div>
           <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
@@ -133,7 +174,7 @@ const GamePage = () => {
       ) : showMirrorMoment ? (
         <MirrorMoment />
       ) : gameMode === "classroom" ? (
-        <ClassroomVoting scene={gameState.currentScene} />
+        <EnhancedClassroomVoting scene={gameState.currentScene} />
       ) : (
         <SceneDisplay 
           scene={gameState.currentScene} 

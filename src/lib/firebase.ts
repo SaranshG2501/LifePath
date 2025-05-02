@@ -17,7 +17,13 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  deleteDoc,
+  orderBy,
+  onSnapshot,
+  DocumentData
 } from 'firebase/firestore';
 import { Metrics } from '@/types/game';
 
@@ -76,11 +82,11 @@ export const createUserProfile = async (uid: string, userData: Record<string, an
     createdAt: new Date()
   };
   
-  // Fix: Use object spread instead of spreading Record<string, any>
+  // Fix: Use object spread with explicit typing
   return setDoc(doc(db, 'users', uid), {
     ...defaultData,
     ...userData
-  });
+  } as DocumentData);
 };
 
 export const getUserProfile = async (uid: string) => {
@@ -93,6 +99,84 @@ export const getUserProfile = async (uid: string) => {
 
 export const updateUserProfile = async (uid: string, data: Record<string, any>) => {
   return updateDoc(doc(db, 'users', uid), data);
+};
+
+// Classroom functions
+export const createClassroom = async (teacherId: string, name: string, description?: string) => {
+  const classroomData = {
+    name,
+    description: description || "",
+    teacherId,
+    students: [],
+    activeScenario: null,
+    currentScene: null,
+    createdAt: serverTimestamp(),
+    classCode: generateClassCode(),
+    isActive: true
+  };
+  
+  const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
+  return { id: docRef.id, ...classroomData };
+};
+
+export const getClassroom = async (classroomId: string) => {
+  const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+  if (classroomDoc.exists()) {
+    return { id: classroomDoc.id, ...classroomDoc.data() };
+  }
+  return null;
+};
+
+export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
+  const classroomRef = doc(db, 'classrooms', classroomId);
+  const classroomDoc = await getDoc(classroomRef);
+  
+  if (!classroomDoc.exists()) {
+    throw new Error("Classroom not found");
+  }
+  
+  const classroom = classroomDoc.data();
+  const studentList = classroom.students || [];
+  
+  // Check if student is already in the classroom
+  if (!studentList.some((s: any) => s.id === studentId)) {
+    await updateDoc(classroomRef, {
+      students: [...studentList, { id: studentId, name: studentName, joinedAt: new Date() }]
+    });
+  }
+  
+  // Also update user's classrooms list
+  const userRef = doc(db, 'users', studentId);
+  const userDoc = await getDoc(userRef);
+  
+  if (userDoc.exists()) {
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    if (!userClassrooms.includes(classroomId)) {
+      await updateDoc(userRef, {
+        classrooms: [...userClassrooms, classroomId]
+      });
+    }
+  }
+  
+  return { id: classroomDoc.id, ...classroomDoc.data() };
+};
+
+export const getClassroomByCode = async (classCode: string) => {
+  const classroomsQuery = query(
+    collection(db, 'classrooms'), 
+    where('classCode', '==', classCode)
+  );
+  
+  const snapshot = await getDocs(classroomsQuery);
+  
+  if (snapshot.empty) {
+    return null;
+  }
+  
+  const classroomDoc = snapshot.docs[0];
+  return { id: classroomDoc.id, ...classroomDoc.data() };
 };
 
 export const getClassrooms = async (teacherId?: string) => {
@@ -110,11 +194,88 @@ export const getClassrooms = async (teacherId?: string) => {
 export const getStudentClassrooms = async (studentId: string) => {
   const classroomsQuery = query(
     collection(db, 'classrooms'), 
-    where('students', 'array-contains', studentId)
+    where('students', 'array-contains', { id: studentId })
   );
   
   const snapshot = await getDocs(classroomsQuery);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const updateClassroom = async (classroomId: string, data: Record<string, any>) => {
+  return updateDoc(doc(db, 'classrooms', classroomId), data);
+};
+
+// Classroom activity functions
+export const startClassroomScenario = async (classroomId: string, scenarioId: string, initialScene: string) => {
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    activeScenario: scenarioId,
+    currentScene: initialScene,
+    startedAt: serverTimestamp(),
+    votes: {},
+    studentProgress: {}
+  });
+};
+
+export const recordStudentVote = async (classroomId: string, studentId: string, choiceId: string) => {
+  const voteRef = doc(db, 'classrooms', classroomId, 'votes', studentId);
+  return setDoc(voteRef, { 
+    choiceId, 
+    timestamp: serverTimestamp() 
+  });
+};
+
+export const getScenarioVotes = async (classroomId: string) => {
+  const votesQuery = collection(db, 'classrooms', classroomId, 'votes');
+  const snapshot = await getDocs(votesQuery);
+  return snapshot.docs.map(doc => ({ studentId: doc.id, ...doc.data() }));
+};
+
+export const advanceClassroomScene = async (classroomId: string, nextSceneId: string) => {
+  // Clear previous votes and set new scene
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  const votesSnapshot = await getDocs(votesRef);
+  
+  // Delete previous votes
+  const deletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+  await Promise.all(deletePromises);
+  
+  // Set new scene
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    currentScene: nextSceneId,
+    lastUpdated: serverTimestamp()
+  });
+};
+
+// Helper to generate a random class code
+const generateClassCode = () => {
+  const prefix = 'LIFE';
+  const randomDigits = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+  return `${prefix}-${randomDigits}`;
+};
+
+// Real-time listeners
+export const onClassroomUpdated = (classroomId: string, callback: (classroom: any) => void) => {
+  const unsubscribe = onSnapshot(doc(db, 'classrooms', classroomId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() });
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => void) => {
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  
+  const unsubscribe = onSnapshot(votesRef, (snapshot) => {
+    const votes = snapshot.docs.map(doc => ({ 
+      studentId: doc.id, 
+      ...doc.data() 
+    }));
+    callback(votes);
+  });
+  
+  return unsubscribe;
 };
 
 export { auth, db };
