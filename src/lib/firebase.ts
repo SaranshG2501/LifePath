@@ -23,7 +23,8 @@ import {
   deleteDoc,
   orderBy,
   onSnapshot,
-  DocumentData
+  DocumentData,
+  Timestamp
 } from 'firebase/firestore';
 import { Metrics } from '@/types/game';
 
@@ -44,6 +45,40 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Define types
+export interface ClassroomStudent {
+  id: string;
+  name: string;
+  joinedAt: Timestamp | Date;
+}
+
+export interface Classroom {
+  id?: string;
+  name: string;
+  description?: string;
+  teacherId: string;
+  students: ClassroomStudent[];
+  activeScenario?: string | null;
+  currentScene?: string | null;
+  createdAt: any;
+  classCode: string;
+  isActive: boolean;
+}
+
+export interface UserProfileData {
+  displayName?: string;
+  email?: string;
+  role?: string;
+  xp?: number;
+  level?: number;
+  completedScenarios?: string[];
+  badges?: string[];
+  history?: any[];
+  metrics?: Metrics;
+  classrooms?: string[];
+  createdAt?: Date | Timestamp;
+}
+
 // Auth functions
 export const createUser = async (email: string, password: string) => {
   return createUserWithEmailAndPassword(auth, email, password);
@@ -62,7 +97,7 @@ export const getCurrentUser = () => {
 };
 
 // Firestore functions
-export const createUserProfile = async (uid: string, userData: Record<string, any>) => {
+export const createUserProfile = async (uid: string, userData: UserProfileData) => {
   // Initialize metrics at 0
   const initialMetrics: Metrics = {
     health: 0,
@@ -72,21 +107,24 @@ export const createUserProfile = async (uid: string, userData: Record<string, an
     relationships: 0
   };
   
-  const defaultData = {
+  const defaultData: UserProfileData = {
     xp: 0,
     level: 1,
     completedScenarios: [],
     badges: [],
     history: [],
     metrics: initialMetrics,
-    createdAt: new Date()
+    classrooms: [],
+    createdAt: serverTimestamp()
   };
   
-  // Fix: Use object spread with explicit typing
-  return setDoc(doc(db, 'users', uid), {
+  // Merge the default data with provided user data
+  const mergedData = {
     ...defaultData,
     ...userData
-  } as DocumentData);
+  };
+  
+  return setDoc(doc(db, 'users', uid), mergedData);
 };
 
 export const getUserProfile = async (uid: string) => {
@@ -103,7 +141,7 @@ export const updateUserProfile = async (uid: string, data: Record<string, any>) 
 
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
-  const classroomData = {
+  const classroomData: Classroom = {
     name,
     description: description || "",
     teacherId,
@@ -116,13 +154,27 @@ export const createClassroom = async (teacherId: string, name: string, descripti
   };
   
   const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
+  
+  // Update teacher's profile to include the new classroom
+  const teacherRef = doc(db, 'users', teacherId);
+  const teacherDoc = await getDoc(teacherRef);
+  
+  if (teacherDoc.exists()) {
+    const userData = teacherDoc.data();
+    const teacherClassrooms = userData.classrooms || [];
+    
+    await updateDoc(teacherRef, {
+      classrooms: [...teacherClassrooms, docRef.id]
+    });
+  }
+  
   return { id: docRef.id, ...classroomData };
 };
 
 export const getClassroom = async (classroomId: string) => {
   const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
   if (classroomDoc.exists()) {
-    return { id: classroomDoc.id, ...classroomDoc.data() };
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
   }
   return null;
 };
@@ -135,13 +187,19 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     throw new Error("Classroom not found");
   }
   
-  const classroom = classroomDoc.data();
+  const classroom = classroomDoc.data() as Classroom;
   const studentList = classroom.students || [];
   
   // Check if student is already in the classroom
-  if (!studentList.some((s: any) => s.id === studentId)) {
+  if (!studentList.some((s) => s.id === studentId)) {
+    const newStudent: ClassroomStudent = {
+      id: studentId,
+      name: studentName,
+      joinedAt: serverTimestamp()
+    };
+    
     await updateDoc(classroomRef, {
-      students: [...studentList, { id: studentId, name: studentName, joinedAt: new Date() }]
+      students: [...studentList, newStudent]
     });
   }
   
@@ -160,7 +218,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     }
   }
   
-  return { id: classroomDoc.id, ...classroomDoc.data() };
+  return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
 };
 
 export const getClassroomByCode = async (classCode: string) => {
@@ -176,7 +234,7 @@ export const getClassroomByCode = async (classCode: string) => {
   }
   
   const classroomDoc = snapshot.docs[0];
-  return { id: classroomDoc.id, ...classroomDoc.data() };
+  return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
 };
 
 export const getClassrooms = async (teacherId?: string) => {
@@ -188,21 +246,39 @@ export const getClassrooms = async (teacherId?: string) => {
   }
   
   const snapshot = await getDocs(classroomsQuery);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Classroom[];
 };
 
-export const getStudentClassrooms = async (studentId: string) => {
-  const classroomsQuery = query(
-    collection(db, 'classrooms'), 
-    where('students', 'array-contains', { id: studentId })
-  );
+export const getUserClassrooms = async (userId: string, role: string) => {
+  // For teachers, get classrooms they created
+  if (role === 'teacher') {
+    return getClassrooms(userId);
+  }
   
-  const snapshot = await getDocs(classroomsQuery);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // For students, get classrooms they've joined
+  const userDoc = await getDoc(doc(db, 'users', userId));
+  if (!userDoc.exists()) {
+    return [];
+  }
+  
+  const userData = userDoc.data();
+  const userClassrooms = userData.classrooms || [];
+  
+  // If user hasn't joined any classrooms yet
+  if (userClassrooms.length === 0) {
+    return [];
+  }
+  
+  // Get details for each classroom the user is in
+  const classroomPromises = userClassrooms.map(classroomId => getClassroom(classroomId));
+  const classrooms = await Promise.all(classroomPromises);
+  
+  // Filter out any null results (in case a classroom was deleted)
+  return classrooms.filter(Boolean) as Classroom[];
 };
 
-export const updateClassroom = async (classroomId: string, data: Record<string, any>) => {
-  return updateDoc(doc(db, 'classrooms', classroomId), data);
+export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
+  return updateDoc(doc(db, 'classrooms', classroomId), data as DocumentData);
 };
 
 // Classroom activity functions
@@ -254,10 +330,10 @@ const generateClassCode = () => {
 };
 
 // Real-time listeners
-export const onClassroomUpdated = (classroomId: string, callback: (classroom: any) => void) => {
+export const onClassroomUpdated = (classroomId: string, callback: (classroom: Classroom) => void) => {
   const unsubscribe = onSnapshot(doc(db, 'classrooms', classroomId), (doc) => {
     if (doc.exists()) {
-      callback({ id: doc.id, ...doc.data() });
+      callback({ id: doc.id, ...doc.data() } as Classroom);
     }
   });
   

@@ -18,6 +18,12 @@ interface StudentClassroomViewProps {
   onClassroomJoined?: (classroomId: string) => void;
 }
 
+interface ClassroomStudent {
+  id: string;
+  name: string;
+  joinedAt: any;
+}
+
 const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroomJoined }) => {
   const navigate = useNavigate();
   const { toast } = useToast();

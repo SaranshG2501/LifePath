@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { updateUserProfile } from "@/lib/firebase";
+import { updateUserProfile, getUserClassrooms } from "@/lib/firebase";
 
 type GameContextType = {
   gameState: GameState;
@@ -28,6 +27,7 @@ type GameContextType = {
   setRevealVotes: (reveal: boolean) => void;
   toggleMirrorMoments: () => void;
   mirrorMomentsEnabled: boolean;
+  hasJoinedClassroom: boolean;
 };
 
 const initialMetrics: Metrics = {
@@ -58,6 +58,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
+  const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -69,6 +70,40 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole("guest");
     }
   }, [userProfile]);
+
+  // Check if user has joined any classroom
+  useEffect(() => {
+    const checkClassroomStatus = async () => {
+      if (!currentUser || !userProfile) return;
+      
+      try {
+        const userClassrooms = await getUserClassrooms(currentUser.uid, userProfile.role || 'student');
+        setHasJoinedClassroom(userClassrooms.length > 0);
+        
+        // If user has classrooms but no active classroom selected, set the first one
+        if (userClassrooms.length > 0 && !classroomId) {
+          setClassroomId(userClassrooms[0].id);
+        }
+      } catch (error) {
+        console.error("Error checking classroom status:", error);
+      }
+    };
+    
+    checkClassroomStatus();
+  }, [currentUser, userProfile, classroomId]);
+
+  // Set game mode to individual if user has no classroom
+  useEffect(() => {
+    if (userRole === 'student' && !hasJoinedClassroom && gameMode === 'classroom') {
+      setGameMode('individual');
+      if (!classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "You need to join a classroom before using classroom mode.",
+        });
+      }
+    }
+  }, [hasJoinedClassroom, gameMode, userRole, classroomId, toast]);
 
   const startScenario = (id: string) => {
     const scenario = scenarios.find((s) => s.id === id);
@@ -321,7 +356,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         revealVotes,
         setRevealVotes,
         toggleMirrorMoments,
-        mirrorMomentsEnabled
+        mirrorMomentsEnabled,
+        hasJoinedClassroom
       }}
     >
       {children}
