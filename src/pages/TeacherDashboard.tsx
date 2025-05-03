@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -328,6 +327,7 @@ const TeacherDashboard = () => {
             <ScenarioCard 
               key={scenario.id}
               scenario={scenario}
+              onStart={handleScenarioClick}
               onClick={() => handleScenarioClick(scenario.id)}
             />
           ))}
