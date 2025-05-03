@@ -214,8 +214,8 @@ export const saveScenarioHistory = async (
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
   try {
-    const classroomData: Classroom = {
-      id: '', // This will be replaced by Firestore's ID
+    // Remove 'id' from the data sent to Firestore
+    const classroomData: Omit<Classroom, 'id'> = {
       name,
       description: description || "",
       teacherId,
@@ -242,6 +242,7 @@ export const createClassroom = async (teacherId: string, name: string, descripti
       });
     }
     
+    // Return the classroom object with the generated id
     return { id: docRef.id, ...classroomData };
   } catch (error) {
     console.error("Error creating classroom:", error);
