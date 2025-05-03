@@ -20,13 +20,13 @@ export type Choice = {
 };
 
 export type Scene = {
-  isEndScene: any;
   id: string;
   title: string;
   description: string;
   image?: string;
   choices: Choice[];
   isEnding?: boolean;
+  isEndScene?: boolean;
 };
 
 export type Scenario = {

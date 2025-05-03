@@ -239,7 +239,7 @@ const TeacherDashboard = () => {
             <ScenarioCard 
               key={scenario.id}
               scenario={scenario}
-              onSelect={() => handleScenarioClick(scenario.id)}
+              onClick={() => handleScenarioClick(scenario.id)}
             />
           ))}
         </div>

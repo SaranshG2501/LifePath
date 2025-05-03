@@ -8,9 +8,9 @@ import {
   updateUserProfile, 
   getUserClassrooms, 
   saveScenarioHistory, 
-  ScenarioChoice, 
-  Timestamp 
+  ScenarioChoice 
 } from "@/lib/firebase";
+import { Timestamp } from "firebase/firestore";
 
 type GameContextType = {
   gameState: GameState;
@@ -264,8 +264,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // Save choice to scenario choices for Firestore
+    let newChoice: ScenarioChoice | null = null;
     if (currentUser) {
-      const newChoice: ScenarioChoice = {
+      newChoice = {
         sceneId: gameState.currentScene.id,
         choiceId: choice.id,
         choiceText: choice.text,
@@ -273,7 +274,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         metricChanges: choice.metricChanges
       };
       
-      setScenarioChoices(prev => [...prev, newChoice]);
+      setScenarioChoices(prev => [...prev, newChoice as ScenarioChoice]);
     }
 
     const updatedGameState = {
@@ -295,13 +296,15 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Check if this is the end of the scenario
-    if (nextScene.isEndScene && currentUser && gameState.currentScenario) {
+    if ((nextScene.isEndScene || nextScene.isEnding) && currentUser && gameState.currentScenario && newChoice) {
+      const allChoices = [...scenarioChoices, newChoice];
+      
       // Save completed scenario to Firestore
       saveScenarioHistory(
         currentUser.uid,
         gameState.currentScenario.id,
         gameState.currentScenario.title,
-        [...scenarioChoices, newChoice], // Include the current choice
+        allChoices,
         newMetrics
       ).then(() => {
         toast({

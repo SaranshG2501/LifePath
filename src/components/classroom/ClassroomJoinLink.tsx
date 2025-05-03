@@ -73,7 +73,7 @@ const ClassroomJoinLink: React.FC = () => {
         
         toast({
           title: "Classroom Created",
-          description: `Your classroom '${className}' has been created successfully.`,
+          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
         });
         
         setIsCreateModalOpen(false);
@@ -131,19 +131,20 @@ const ClassroomJoinLink: React.FC = () => {
       }
       
       // Join classroom
+      const displayName = userProfile?.displayName || 'Student';
       const joinedClassroom = await joinClassroom(
         classroom.id, 
         currentUser.uid, 
-        userProfile?.displayName || 'Student'
+        displayName
       );
       
-      if (joinedClassroom && joinedClassroom.id) {
-        setClassroomId(classroom.id);
+      if (joinedClassroom) {
+        setClassroomId(joinedClassroom.id);
         setGameMode("classroom");
         
         toast({
           title: "Joined Classroom",
-          description: `You have joined ${classroom.name}!`,
+          description: `You have joined ${joinedClassroom.name}!`,
         });
         
         setIsJoinModalOpen(false);
