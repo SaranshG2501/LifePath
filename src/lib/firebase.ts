@@ -329,7 +329,7 @@ export const getClassroomByCode = async (classCode: string) => {
   }
 };
 
-export const getClassrooms = async (teacherId?: string) => {
+export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> => {
   try {
     let classroomsQuery;
     if (teacherId) {
@@ -339,7 +339,10 @@ export const getClassrooms = async (teacherId?: string) => {
     }
     
     const snapshot = await getDocs(classroomsQuery);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Classroom[];
+    return snapshot.docs.map(doc => {
+      const data = doc.data() as Record<string, any>; // Assert data as an object
+      return { id: doc.id, ...data }; // Spread the data
+    }) as Classroom[];
   } catch (error) {
     console.error("Error getting classrooms:", error);
     return [];
