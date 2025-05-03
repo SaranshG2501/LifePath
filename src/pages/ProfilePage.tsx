@@ -303,7 +303,7 @@ const ProfilePage: React.FC = () => {
                           Climate Council
                         </h3>
                         <p className="text-white/80 text-sm mb-4">
-                          Join our student-led Climate Council to make a real impact on environmental issues.
+                          It is a BUG. It will be UPDATED SOON!!
                         </p>
                         <Button 
                           variant="outline" 

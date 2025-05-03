@@ -648,7 +648,7 @@ export const scenarios: Scenario[] = [
     description: "Make difficult decisions about climate policy as part of a youth climate council.",
     ageGroup: "14-20",
     category: "Ethics",
-    thumbnail: "https://images.unsplash.com/photo-1569163139599-0f4519ce01e3?q=80&w=2000&auto=format&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1518495973542-4542c06a5843",
     initialMetrics: {
       health: 80,
       money: 65,
