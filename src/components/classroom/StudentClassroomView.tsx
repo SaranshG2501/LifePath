@@ -114,7 +114,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       }
       
       // Join the classroom
-      const displayName = userProfile?.displayName || 'Student';
+      const displayName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Student';
       console.log("Joining as:", displayName);
       
       const joinedClassroom = await joinClassroom(
@@ -147,7 +147,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       console.error('Error joining classroom:', error);
       toast({
         title: 'Error',
-        description: 'Failed to join classroom.',
+        description: 'Failed to join classroom. Please try again.',
         variant: 'destructive',
       });
     } finally {
