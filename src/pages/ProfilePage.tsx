@@ -8,10 +8,12 @@ import { Progress } from '@/components/ui/progress';
 import { useGameContext } from '@/context/GameContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { ScenarioHistory } from '@/lib/firebase';
+import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
 import { 
   User, School, Trophy, History, BarChart, 
   Users, LogOut, BookOpen, Gamepad2, Award, 
-  BadgeCheck, BarChart2, Sparkles
+  BadgeCheck, BarChart2, Sparkles, Calendar
 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
@@ -19,6 +21,15 @@ const ProfilePage: React.FC = () => {
   const { userProfile, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const [xpProgress, setXpProgress] = useState(0);
+  const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
+  const [isHistoryDetailOpen, setIsHistoryDetailOpen] = useState(false);
+  
+  // Initialize decision metrics
+  const [decisionMetrics, setDecisionMetrics] = useState({
+    analytical: 67,
+    emotional: 42,
+    riskTaking: 58
+  });
   
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -33,6 +44,41 @@ const ProfilePage: React.FC = () => {
       const xpToNextLevel = 1000;
       const progress = ((userProfile.xp || 0) % xpToNextLevel) / xpToNextLevel * 100;
       setXpProgress(progress);
+      
+      // Update decision metrics based on user history
+      if (userProfile.history && userProfile.history.length > 0) {
+        // This is a simplified example of how to calculate decision metrics
+        // In a real app, you would analyze the choices made in scenarios
+        
+        // Calculate metrics based on history
+        const allChoices = userProfile.history.flatMap(h => h.choices || []);
+        if (allChoices.length > 0) {
+          // Calculate analytical vs emotional decisions
+          // For demo purposes, we're using a simplified approach
+          const analyticalChoices = allChoices.filter(choice => 
+            choice.metricChanges?.knowledge && choice.metricChanges.knowledge > 0
+          ).length;
+          
+          const emotionalChoices = allChoices.filter(choice => 
+            choice.metricChanges?.happiness && choice.metricChanges.happiness > 0
+          ).length;
+          
+          const riskyChoices = allChoices.filter(choice => 
+            (choice.metricChanges?.money && choice.metricChanges.money < 0) ||
+            (choice.metricChanges?.health && choice.metricChanges.health < 0)
+          ).length;
+          
+          const totalChoices = allChoices.length;
+          
+          if (totalChoices > 0) {
+            setDecisionMetrics({
+              analytical: Math.round((analyticalChoices / totalChoices) * 100),
+              emotional: Math.round((emotionalChoices / totalChoices) * 100),
+              riskTaking: Math.round((riskyChoices / totalChoices) * 100)
+            });
+          }
+        }
+      }
     }
   }, [userProfile]);
   
@@ -43,6 +89,11 @@ const ProfilePage: React.FC = () => {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+  
+  const openHistoryDetail = (history: ScenarioHistory) => {
+    setSelectedHistory(history);
+    setIsHistoryDetailOpen(true);
   };
   
   if (isLoading) {
@@ -68,6 +119,28 @@ const ProfilePage: React.FC = () => {
     badges: userProfile.badges || [],
     classrooms: userProfile.classrooms || [],
     history: userProfile.history || []
+  };
+  
+  // Format date function for history items
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Unknown';
+    
+    try {
+      // Handle Firebase Timestamp
+      if (timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000).toLocaleDateString();
+      }
+      
+      // Handle Date objects
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString();
+      }
+      
+      return 'Unknown';
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return 'Unknown';
+    }
   };
   
   return (
@@ -217,33 +290,27 @@ const ProfilePage: React.FC = () => {
                       />
                     </div>
                     
-                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
-                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                        <BarChart className="h-4 w-4 text-primary" />
-                        Decision Metrics
-                      </h3>
-                      <div className="space-y-3 flex-grow">
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Analytical Decisions</span>
-                            <span className="font-mono">67%</span>
-                          </div>
-                          <Progress value={67} className="h-2 bg-white/10" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Emotional Decisions</span>
-                            <span className="font-mono">42%</span>
-                          </div>
-                          <Progress value={42} className="h-2 bg-white/10" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Risk-Taking</span>
-                            <span className="font-mono">58%</span>
-                          </div>
-                          <Progress value={58} className="h-2 bg-white/10" />
-                        </div>
+                    <div className="bg-black/20 rounded-lg p-4 flex flex-col relative overflow-hidden">
+                      <img 
+                        src="https://images.unsplash.com/photo-1518495973542-4542c06a5843" 
+                        alt="Climate Council" 
+                        className="absolute inset-0 h-full w-full object-cover opacity-20"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-transparent"></div>
+                      <div className="relative z-10">
+                        <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                          <BarChart className="h-4 w-4 text-primary" />
+                          Climate Council
+                        </h3>
+                        <p className="text-white/80 text-sm mb-4">
+                          Join our student-led Climate Council to make a real impact on environmental issues.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                        >
+                          Learn More
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -257,17 +324,26 @@ const ProfilePage: React.FC = () => {
                       <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
                         <div className="font-medium text-white/80">Scenario</div>
                         <div className="font-medium text-white/80">Date</div>
-                        <div className="font-medium text-white/80 text-right">Score</div>
+                        <div className="font-medium text-white/80 text-right">Actions</div>
                       </div>
                       {defaultProfile.history && defaultProfile.history.length > 0 ? (
-                        defaultProfile.history.map((item: any, index: number) => (
+                        defaultProfile.history.slice(0, 3).map((item: any, index: number) => (
                           <div 
                             key={index} 
                             className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
                           >
-                            <div className="text-white">{item.scenarioId?.replace(/-/g, ' ') || 'Unknown Scenario'}</div>
-                            <div className="text-white/70">{item.date || 'N/A'}</div>
-                            <div className="text-right font-mono text-white">{item.score || 0}%</div>
+                            <div className="text-white">{item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown Scenario'}</div>
+                            <div className="text-white/70">{formatDate(item.completedAt)}</div>
+                            <div className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-primary hover:bg-primary/10 hover:text-primary"
+                                onClick={() => openHistoryDetail(item)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -349,23 +425,31 @@ const ProfilePage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="bg-black/20 rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-4 gap-2 p-3 border-b border-white/10">
+                    <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
                       <div className="font-medium text-white/80">Scenario</div>
                       <div className="font-medium text-white/80">Date</div>
-                      <div className="font-medium text-white/80">Score</div>
                       <div className="font-medium text-white/80 text-right">Actions</div>
                     </div>
                     {defaultProfile.history && defaultProfile.history.length > 0 ? (
                       defaultProfile.history.map((item: any, index: number) => (
                         <div 
                           key={index} 
-                          className="grid grid-cols-4 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
+                          className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
                         >
-                          <div className="text-white capitalize">{item.scenarioId?.replace(/-/g, ' ') || 'Unknown'}</div>
-                          <div className="text-white/70">{item.date || 'N/A'}</div>
-                          <div className="font-mono text-white">{item.score || 0}%</div>
+                          <div className="text-white capitalize">
+                            {item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown'}
+                          </div>
+                          <div className="text-white/70 flex items-center gap-1">
+                            <Calendar className="h-4 w-4 opacity-70" />
+                            {formatDate(item.completedAt)}
+                          </div>
                           <div className="text-right">
-                            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 hover:text-primary">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-primary hover:bg-primary/10 hover:text-primary"
+                              onClick={() => openHistoryDetail(item)}
+                            >
                               View Details
                             </Button>
                           </div>
@@ -384,35 +468,44 @@ const ProfilePage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Health Choices</h4>
-                          <Badge className="bg-green-500/20 text-green-300 border-0">
-                            +12%
+                          <h4 className="text-white">Analytical Decisions</h4>
+                          <Badge className={`${
+                            decisionMetrics.analytical > 50 ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"
+                          } border-0`}>
+                            {decisionMetrics.analytical > 50 ? "+" : "-"}
                           </Badge>
                         </div>
-                        <div className="text-3xl font-bold text-white">72%</div>
-                        <div className="text-xs text-white/60 mt-1">Positive health decisions</div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.analytical}%</div>
+                        <div className="text-xs text-white/60 mt-1">Logic-based problem solving</div>
                       </div>
                       
                       <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Financial Choices</h4>
-                          <Badge className="bg-red-500/20 text-red-300 border-0">
-                            -5%
+                          <h4 className="text-white">Emotional Choices</h4>
+                          <Badge className={`${
+                            decisionMetrics.emotional > 50 ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"
+                          } border-0`}>
+                            {decisionMetrics.emotional > 50 ? "+" : "-"}
                           </Badge>
                         </div>
-                        <div className="text-3xl font-bold text-white">63%</div>
-                        <div className="text-xs text-white/60 mt-1">Positive financial decisions</div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.emotional}%</div>
+                        <div className="text-xs text-white/60 mt-1">Empathy-driven decisions</div>
                       </div>
                       
                       <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Relationship Choices</h4>
-                          <Badge className="bg-blue-500/20 text-blue-300 border-0">
-                            +8%
+                          <h4 className="text-white">Risk Taking</h4>
+                          <Badge className={`${
+                            decisionMetrics.riskTaking < 40 ? "bg-blue-500/20 text-blue-300" : 
+                            decisionMetrics.riskTaking > 70 ? "bg-red-500/20 text-red-300" : 
+                            "bg-green-500/20 text-green-300"
+                          } border-0`}>
+                            {decisionMetrics.riskTaking < 40 ? "Low" : 
+                             decisionMetrics.riskTaking > 70 ? "High" : "Balanced"}
                           </Badge>
                         </div>
-                        <div className="text-3xl font-bold text-white">81%</div>
-                        <div className="text-xs text-white/60 mt-1">Positive relationship decisions</div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.riskTaking}%</div>
+                        <div className="text-xs text-white/60 mt-1">Willingness to take chances</div>
                       </div>
                     </div>
                   </div>
@@ -422,6 +515,15 @@ const ProfilePage: React.FC = () => {
           </Tabs>
         </div>
       </div>
+      
+      {/* History Detail Dialog */}
+      {selectedHistory && (
+        <ScenarioHistoryDetail 
+          history={selectedHistory}
+          open={isHistoryDetailOpen}
+          onClose={() => setIsHistoryDetailOpen(false)}
+        />
+      )}
     </div>
   );
 };

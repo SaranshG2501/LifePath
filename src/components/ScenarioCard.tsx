@@ -9,9 +9,10 @@ import { Play, Sparkles, CalendarClock } from 'lucide-react';
 interface ScenarioCardProps {
   scenario: Scenario;
   onStart: (id: string) => void;
+  onClick?: () => void;
 }
 
-const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart }) => {
+const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick }) => {
   return (
     <Card className="scenario-card overflow-hidden h-full flex flex-col animate-fade-in group">
       <div className="h-48 overflow-hidden relative">

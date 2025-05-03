@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -215,7 +214,8 @@ export const saveScenarioHistory = async (
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
   try {
-    const classroomData = {
+    const classroomData: Classroom = {
+      id: '', // This will be replaced by Firestore's ID
       name,
       description: description || "",
       teacherId,
