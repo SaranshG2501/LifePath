@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/components/ui/use-toast';
 import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ClassroomStudent } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -19,7 +20,15 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
   const { toast } = useToast();
+  
+  // Initialize messages from classroom if available
+  useEffect(() => {
+    if (classroom && classroom.messages) {
+      setMessages(classroom.messages);
+    }
+  }, [classroom]);
   
   const handleCopyCode = () => {
     navigator.clipboard.writeText(classroom.classCode);
@@ -38,6 +47,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       title: "Student removed",
       description: "The student has been removed from your classroom.",
     });
+    onRefresh(); // Refresh classroom data
   };
   
   const handleSendMessage = () => {
@@ -51,12 +61,23 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     }
     
     // In a real app, this would send a message to all students in the classroom
+    const newMessage = {
+      text: message,
+      sentAt: new Date(),
+      sender: 'teacher'
+    };
+    
+    setMessages([newMessage, ...messages]);
+    
     toast({
       title: "Message sent",
       description: "Your message has been sent to all students.",
     });
     
     setMessage('');
+    
+    // Optionally update the classroom with the new message
+    // This would be handled by a backend function in a real app
   };
   
   return (
@@ -111,7 +132,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         
         {classroom.students?.length > 0 ? (
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-            {(classroom.students || []).map((student: any, i: number) => (
+            {(classroom.students || []).map((student: ClassroomStudent, i: number) => (
               <div 
                 key={student.id || i} 
                 className="bg-black/20 rounded-lg p-3 flex items-center justify-between"
@@ -124,7 +145,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                   </Avatar>
                   <div>
                     <div className="text-white">{student.name || `Student ${i + 1}`}</div>
-                    <div className="text-xs text-white/60">Joined: {student.joinedAt ? new Date(student.joinedAt.seconds * 1000).toLocaleDateString() : 'Recently'}</div>
+                    <div className="text-xs text-white/60">Joined: {student.joinedAt ? new Date((student.joinedAt as any).seconds * 1000).toLocaleDateString() : 'Recently'}</div>
                   </div>
                 </div>
                 
@@ -201,10 +222,23 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
             </Button>
           </div>
           
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <div className="text-sm text-white/70">
-              Recent messages will appear here
-            </div>
+          <div className="mt-4 pt-4 border-t border-white/10 max-h-[200px] overflow-y-auto">
+            {messages && messages.length > 0 ? (
+              <div className="space-y-3">
+                {messages.map((msg, index) => (
+                  <div key={index} className="bg-black/20 rounded-md p-3">
+                    <div className="text-white">{msg.text}</div>
+                    <div className="text-xs text-white/50 mt-1">
+                      {msg.sentAt ? new Date(msg.sentAt).toLocaleString() : 'Just now'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-white/70">
+                Recent messages will appear here
+              </div>
+            )}
           </div>
         </div>
       </div>

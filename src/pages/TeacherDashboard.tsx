@@ -1,27 +1,34 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, School, Users, BookOpen, BarChart3 } from 'lucide-react';
+import { ArrowRight, School, Users, BookOpen, BarChart3, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { getClassrooms, getUserClassrooms } from '@/lib/firebase';
+import { getClassrooms, getUserClassrooms, createClassroom } from '@/lib/firebase';
 import ScenarioCard from '@/components/ScenarioCard';
 import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
 import { scenarios } from '@/data/scenarios';
+import { useToast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 const TeacherDashboard = () => {
   const { userProfile, currentUser } = useAuth();
-  const { setUserRole, startScenario } = useGameContext();
+  const { setUserRole, startScenario, setClassroomId, setGameMode } = useGameContext();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState("classrooms");
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClassroom, setSelectedClassroom] = useState<any>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [className, setClassName] = useState('');
+  const [classDescription, setClassDescription] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   
   // Fetch teacher's classrooms
   useEffect(() => {
@@ -34,6 +41,7 @@ const TeacherDashboard = () => {
       try {
         setLoading(true);
         const fetchedClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
+        console.log("Fetched classrooms:", fetchedClassrooms);
         setClassrooms(fetchedClassrooms);
         
         // If classrooms exist, select the first one by default
@@ -53,12 +61,78 @@ const TeacherDashboard = () => {
     fetchClassrooms();
   }, [currentUser, navigate, setUserRole]);
   
+  const handleCreateClassroom = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to create a classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!className.trim()) {
+      toast({
+        title: "Class Name Required",
+        description: "Please enter a name for your classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      console.log("Creating classroom with name:", className);
+      
+      const newClassroom = await createClassroom(
+        currentUser.uid,
+        className,
+        classDescription
+      );
+      
+      console.log("Classroom created:", newClassroom);
+      
+      if (newClassroom && newClassroom.id) {
+        setClassroomId(newClassroom.id);
+        setGameMode("classroom");
+        
+        toast({
+          title: "Classroom Created",
+          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
+        });
+        
+        // Add the new classroom to the list
+        setClassrooms(prev => [...prev, newClassroom]);
+        
+        // Select the new classroom
+        setSelectedClassroom(newClassroom);
+        
+        setIsCreateModalOpen(false);
+        setClassName('');
+        setClassDescription('');
+        await handleRefresh();
+      } else {
+        throw new Error("Failed to create classroom");
+      }
+    } catch (error) {
+      console.error('Error creating classroom:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create classroom. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+  
   const handleRefresh = async () => {
     if (!currentUser) return;
     
     try {
       setLoading(true);
       const fetchedClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
+      console.log("Refreshed classrooms:", fetchedClassrooms);
       setClassrooms(fetchedClassrooms);
       
       // Update selected classroom with refreshed data
@@ -170,9 +244,10 @@ const TeacherDashboard = () => {
                 <div className="text-center py-4">
                   <p className="text-white/70 mb-3">No classrooms created yet</p>
                   <Button 
-                    onClick={() => {}}
+                    onClick={() => setIsCreateModalOpen(true)}
                     className="bg-primary hover:bg-primary/90"
                   >
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Create Classroom
                   </Button>
                 </div>
@@ -188,17 +263,28 @@ const TeacherDashboard = () => {
                 <CardTitle className="text-white">
                   {selectedClassroom ? selectedClassroom.name : "Classroom Management"}
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  className="border-white/20 bg-black/20 text-white hover:bg-white/10"
-                  onClick={handleRefresh}
-                  disabled={loading}
-                >
-                  {loading ? 
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 
-                    : "Refresh"
-                  }
-                </Button>
+                <div className="flex gap-2">
+                  {!selectedClassroom && (
+                    <Button 
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Create Classroom
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="border-white/20 bg-black/20 text-white hover:bg-white/10"
+                    onClick={handleRefresh}
+                    disabled={loading}
+                  >
+                    {loading ? 
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 
+                      : "Refresh"
+                    }
+                  </Button>
+                </div>
               </div>
               <CardDescription className="text-white/70">
                 {selectedClassroom 
@@ -222,7 +308,9 @@ const TeacherDashboard = () => {
                   </p>
                   <Button 
                     className="bg-primary hover:bg-primary/90"
+                    onClick={() => setIsCreateModalOpen(true)}
                   >
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Create New Classroom
                   </Button>
                 </div>
@@ -239,11 +327,67 @@ const TeacherDashboard = () => {
             <ScenarioCard 
               key={scenario.id}
               scenario={scenario}
-              onSelect={() => handleScenarioClick(scenario.id)}
+              onStart={handleScenarioClick}
+              onClick={() => handleScenarioClick(scenario.id)}
             />
           ))}
         </div>
       </div>
+
+      {/* Create Classroom Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="bg-black/95 border border-primary/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl">Create a Classroom</DialogTitle>
+            <DialogDescription className="text-white/70">
+              Fill out the form below to create your virtual classroom.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Classroom Name</label>
+              <Input
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                placeholder="e.g., Introduction to Psychology"
+                className="bg-black/40 border-white/20 text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Description (Optional)</label>
+              <Input
+                value={classDescription}
+                onChange={(e) => setClassDescription(e.target.value)}
+                placeholder="Brief description of your class"
+                className="bg-black/40 border-white/20 text-white"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCreateModalOpen(false)}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateClassroom}
+              disabled={isCreating}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isCreating ? (
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>Create Classroom</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

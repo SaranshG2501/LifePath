@@ -43,8 +43,11 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       
       try {
         setIsLoading(true);
+        console.log("Setting up classroom listener for:", classroomId);
+        
         // Set up real-time listener for classroom updates
         const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
+          console.log("Classroom updated:", classroom);
           setClassroom(classroom);
           
           // If classroom has an active scenario, fetch it
@@ -94,9 +97,11 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
     
     try {
       setIsLoading(true);
+      console.log("Joining classroom with code:", classCode);
       
       // Validate class code
       const foundClassroom = await getClassroomByCode(classCode);
+      console.log("Found classroom:", foundClassroom);
       
       if (!foundClassroom) {
         toast({
@@ -109,32 +114,40 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       }
       
       // Join the classroom
-      await joinClassroom(
+      const displayName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Student';
+      console.log("Joining as:", displayName);
+      
+      const joinedClassroom = await joinClassroom(
         foundClassroom.id, 
         currentUser.uid, 
-        userProfile?.displayName || 'Student'
+        displayName
       );
       
-      // Update local state
-      setClassroom(foundClassroom);
-      setClassroomId(foundClassroom.id);
-      setGameMode("classroom");
+      console.log("Joined classroom:", joinedClassroom);
       
-      if (onClassroomJoined) {
-        onClassroomJoined(foundClassroom.id);
+      if (joinedClassroom) {
+        setClassroom(joinedClassroom);
+        setClassroomId(joinedClassroom.id);
+        setGameMode("classroom");
+        
+        if (onClassroomJoined) {
+          onClassroomJoined(joinedClassroom.id);
+        }
+        
+        toast({
+          title: "Joined Classroom",
+          description: `You have joined ${joinedClassroom.name}!`,
+        });
+        
+        setClassCode('');
+      } else {
+        throw new Error("Failed to join classroom");
       }
-      
-      toast({
-        title: "Joined Classroom",
-        description: `You have joined ${foundClassroom.name}!`,
-      });
-      
-      setClassCode('');
     } catch (error) {
       console.error('Error joining classroom:', error);
       toast({
         title: 'Error',
-        description: 'Failed to join classroom.',
+        description: 'Failed to join classroom. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -144,6 +157,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
   
   const handleStartScenario = () => {
     if (classroom?.activeScenario) {
+      startScenario(classroom.activeScenario);
       navigate('/game');
       
       toast({
@@ -183,7 +197,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                 <Input 
                   placeholder="Enter class code" 
                   value={classCode}
-                  onChange={(e) => setClassCode(e.target.value)}
+                  onChange={(e) => setClassCode(e.target.value.toUpperCase())}
                   className="bg-black/20 border-white/20 text-white"
                   disabled={isLoading}
                 />

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { School, Users, LogIn } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { createClassroom, getClassroomByCode, joinClassroom } from '@/lib/firebase';
+import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const ClassroomJoinLink: React.FC = () => {
@@ -22,10 +22,32 @@ const ClassroomJoinLink: React.FC = () => {
   const [className, setClassName] = useState('');
   const [classDescription, setClassDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userHasClassrooms, setUserHasClassrooms] = useState(false);
+  
+  // Check if user already has classrooms
+  useEffect(() => {
+    const checkUserClassrooms = async () => {
+      if (!currentUser || !userProfile?.role) return;
+      
+      try {
+        const classrooms = await getUserClassrooms(currentUser.uid, userProfile.role);
+        setUserHasClassrooms(classrooms.length > 0);
+        
+        // If user has classrooms but no active one set, use the first one
+        if (classrooms.length > 0 && !classroomId) {
+          setClassroomId(classrooms[0].id);
+        }
+      } catch (error) {
+        console.error("Error checking user classrooms:", error);
+      }
+    };
+    
+    checkUserClassrooms();
+  }, [currentUser, userProfile, classroomId, setClassroomId]);
   
   // For teachers, create classroom and navigate to teacher dashboard
   const handleTeacherAction = () => {
-    if (classroomId) {
+    if (userHasClassrooms || classroomId) {
       navigate('/teacher');
     } else {
       setIsCreateModalOpen(true);
@@ -33,7 +55,7 @@ const ClassroomJoinLink: React.FC = () => {
   };
   
   const handleStudentAction = () => {
-    if (classroomId) {
+    if (userHasClassrooms || classroomId) {
       navigate('/profile');
     } else {
       setIsJoinModalOpen(true);
@@ -61,19 +83,24 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
+      console.log("Creating classroom with name:", className);
+      
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
         classDescription
       );
       
+      console.log("Classroom created:", newClassroom);
+      
       if (newClassroom && newClassroom.id) {
         setClassroomId(newClassroom.id);
         setGameMode("classroom");
+        setUserHasClassrooms(true);
         
         toast({
           title: "Classroom Created",
-          description: `Your classroom '${className}' has been created successfully.`,
+          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
         });
         
         setIsCreateModalOpen(false);
@@ -116,9 +143,11 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
+      console.log("Joining classroom with code:", classCode);
       
       // Validate class code
       const classroom = await getClassroomByCode(classCode);
+      console.log("Found classroom:", classroom);
       
       if (!classroom) {
         toast({
@@ -131,19 +160,25 @@ const ClassroomJoinLink: React.FC = () => {
       }
       
       // Join classroom
+      const displayName = userProfile?.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Student');
+      console.log("Joining as:", displayName);
+      
       const joinedClassroom = await joinClassroom(
         classroom.id, 
         currentUser.uid, 
-        userProfile?.displayName || 'Student'
+        displayName
       );
       
-      if (joinedClassroom && joinedClassroom.id) {
-        setClassroomId(classroom.id);
+      console.log("Joined classroom:", joinedClassroom);
+      
+      if (joinedClassroom) {
+        setClassroomId(joinedClassroom.id);
         setGameMode("classroom");
+        setUserHasClassrooms(true);
         
         toast({
           title: "Joined Classroom",
-          description: `You have joined ${classroom.name}!`,
+          description: `You have joined ${joinedClassroom.name}!`,
         });
         
         setIsJoinModalOpen(false);
@@ -172,7 +207,7 @@ const ClassroomJoinLink: React.FC = () => {
           onClick={handleTeacherAction}
         >
           <School className="mr-2 h-5 w-5" />
-          {classroomId ? 'Go to Teacher Dashboard' : 'Create a Classroom'}
+          {userHasClassrooms ? 'Go to Teacher Dashboard' : 'Create a Classroom'}
         </Button>
         
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -239,7 +274,7 @@ const ClassroomJoinLink: React.FC = () => {
         onClick={handleStudentAction}
       >
         <Users className="mr-2 h-5 w-5" />
-        {classroomId ? 'View Your Classroom' : 'Join a Classroom'}
+        {userHasClassrooms ? 'View Your Classroom' : 'Join a Classroom'}
       </Button>
       
       <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
