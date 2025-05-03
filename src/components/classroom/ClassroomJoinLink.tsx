@@ -61,11 +61,15 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
+      console.log("Creating classroom with name:", className);
+      
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
         classDescription
       );
+      
+      console.log("Classroom created:", newClassroom);
       
       if (newClassroom && newClassroom.id) {
         setClassroomId(newClassroom.id);
@@ -116,9 +120,11 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
+      console.log("Joining classroom with code:", classCode);
       
       // Validate class code
       const classroom = await getClassroomByCode(classCode);
+      console.log("Found classroom:", classroom);
       
       if (!classroom) {
         toast({
@@ -132,11 +138,15 @@ const ClassroomJoinLink: React.FC = () => {
       
       // Join classroom
       const displayName = userProfile?.displayName || 'Student';
+      console.log("Joining as:", displayName);
+      
       const joinedClassroom = await joinClassroom(
         classroom.id, 
         currentUser.uid, 
         displayName
       );
+      
+      console.log("Joined classroom:", joinedClassroom);
       
       if (joinedClassroom) {
         setClassroomId(joinedClassroom.id);

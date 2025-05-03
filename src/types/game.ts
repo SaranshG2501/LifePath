@@ -86,3 +86,8 @@ export type VoteStats = {
   count: number;
   percentage: number;
 };
+
+export interface ScenarioCardProps {
+  scenario: Scenario;
+  onClick?: () => void;
+}

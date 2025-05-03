@@ -214,34 +214,39 @@ export const saveScenarioHistory = async (
 
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
-  const classroomData = {
-    name,
-    description: description || "",
-    teacherId,
-    students: [],
-    activeScenario: null,
-    currentScene: null,
-    createdAt: Timestamp.now(),
-    classCode: generateClassCode(),
-    isActive: true
-  };
-  
-  const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
-  
-  // Update teacher's profile to include the new classroom
-  const teacherRef = doc(db, 'users', teacherId);
-  const teacherDoc = await getDoc(teacherRef);
-  
-  if (teacherDoc.exists()) {
-    const userData = teacherDoc.data();
-    const teacherClassrooms = userData.classrooms || [];
+  try {
+    const classroomData = {
+      name,
+      description: description || "",
+      teacherId,
+      students: [],
+      activeScenario: null,
+      currentScene: null,
+      createdAt: Timestamp.now(),
+      classCode: generateClassCode(),
+      isActive: true
+    };
     
-    await updateDoc(teacherRef, {
-      classrooms: [...teacherClassrooms, docRef.id]
-    });
+    const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
+    
+    // Update teacher's profile to include the new classroom
+    const teacherRef = doc(db, 'users', teacherId);
+    const teacherDoc = await getDoc(teacherRef);
+    
+    if (teacherDoc.exists()) {
+      const userData = teacherDoc.data();
+      const teacherClassrooms = userData.classrooms || [];
+      
+      await updateDoc(teacherRef, {
+        classrooms: [...teacherClassrooms, docRef.id]
+      });
+    }
+    
+    return { id: docRef.id, ...classroomData };
+  } catch (error) {
+    console.error("Error creating classroom:", error);
+    throw error;
   }
-  
-  return { id: docRef.id, ...classroomData };
 };
 
 export const getClassroom = async (classroomId: string) => {
@@ -253,104 +258,124 @@ export const getClassroom = async (classroomId: string) => {
 };
 
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
-  const classroomRef = doc(db, 'classrooms', classroomId);
-  const classroomDoc = await getDoc(classroomRef);
-  
-  if (!classroomDoc.exists()) {
-    throw new Error("Classroom not found");
-  }
-  
-  const classroom = classroomDoc.data() as Classroom;
-  const studentList = classroom.students || [];
-  
-  // Check if student is already in the classroom
-  if (!studentList.some((s) => s.id === studentId)) {
-    const newStudent: ClassroomStudent = {
-      id: studentId,
-      name: studentName,
-      joinedAt: Timestamp.now()
-    };
+  try {
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    const classroomDoc = await getDoc(classroomRef);
     
-    // Add student to classroom
-    await updateDoc(classroomRef, {
-      students: [...studentList, newStudent]
-    });
-  }
-  
-  // Also update user's classrooms list
-  const userRef = doc(db, 'users', studentId);
-  const userDoc = await getDoc(userRef);
-  
-  if (userDoc.exists()) {
-    const userData = userDoc.data();
-    const userClassrooms = userData.classrooms || [];
+    if (!classroomDoc.exists()) {
+      throw new Error("Classroom not found");
+    }
     
-    if (!userClassrooms.includes(classroomId)) {
-      await updateDoc(userRef, {
-        classrooms: [...userClassrooms, classroomId]
+    const classroom = classroomDoc.data() as Classroom;
+    const studentList = classroom.students || [];
+    
+    // Check if student is already in the classroom
+    if (!studentList.some((s) => s.id === studentId)) {
+      const newStudent: ClassroomStudent = {
+        id: studentId,
+        name: studentName,
+        joinedAt: Timestamp.now()
+      };
+      
+      // Add student to classroom
+      await updateDoc(classroomRef, {
+        students: [...studentList, newStudent]
       });
     }
+    
+    // Also update user's classrooms list
+    const userRef = doc(db, 'users', studentId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userClassrooms = userData.classrooms || [];
+      
+      if (!userClassrooms.includes(classroomId)) {
+        await updateDoc(userRef, {
+          classrooms: [...userClassrooms, classroomId]
+        });
+      }
+    }
+    
+    // Fetch the updated classroom data
+    const updatedClassroomDoc = await getDoc(classroomRef);
+    return { id: updatedClassroomDoc.id, ...updatedClassroomDoc.data() } as Classroom;
+  } catch (error) {
+    console.error("Error joining classroom:", error);
+    throw error;
   }
-  
-  // Fetch the updated classroom data
-  const updatedClassroomDoc = await getDoc(classroomRef);
-  return { id: updatedClassroomDoc.id, ...updatedClassroomDoc.data() } as Classroom;
 };
 
 export const getClassroomByCode = async (classCode: string) => {
-  const classroomsQuery = query(
-    collection(db, 'classrooms'), 
-    where('classCode', '==', classCode)
-  );
-  
-  const snapshot = await getDocs(classroomsQuery);
-  
-  if (snapshot.empty) {
-    return null;
+  try {
+    const classroomsQuery = query(
+      collection(db, 'classrooms'), 
+      where('classCode', '==', classCode)
+    );
+    
+    const snapshot = await getDocs(classroomsQuery);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+    
+    const classroomDoc = snapshot.docs[0];
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
+  } catch (error) {
+    console.error("Error getting classroom by code:", error);
+    throw error;
   }
-  
-  const classroomDoc = snapshot.docs[0];
-  return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
 };
 
 export const getClassrooms = async (teacherId?: string) => {
-  let classroomsQuery;
-  if (teacherId) {
-    classroomsQuery = query(collection(db, 'classrooms'), where('teacherId', '==', teacherId));
-  } else {
-    classroomsQuery = collection(db, 'classrooms');
+  try {
+    let classroomsQuery;
+    if (teacherId) {
+      classroomsQuery = query(collection(db, 'classrooms'), where('teacherId', '==', teacherId));
+    } else {
+      classroomsQuery = collection(db, 'classrooms');
+    }
+    
+    const snapshot = await getDocs(classroomsQuery);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Classroom[];
+  } catch (error) {
+    console.error("Error getting classrooms:", error);
+    return [];
   }
-  
-  const snapshot = await getDocs(classroomsQuery);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Classroom[];
 };
 
 export const getUserClassrooms = async (userId: string, role: string) => {
-  // For teachers, get classrooms they created
-  if (role === 'teacher') {
-    return getClassrooms(userId);
-  }
-  
-  // For students, get classrooms they've joined
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  if (!userDoc.exists()) {
+  try {
+    // For teachers, get classrooms they created
+    if (role === 'teacher') {
+      return getClassrooms(userId);
+    }
+    
+    // For students, get classrooms they've joined
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return [];
+    }
+    
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    // If user hasn't joined any classrooms yet
+    if (userClassrooms.length === 0) {
+      return [];
+    }
+    
+    // Get details for each classroom the user is in
+    const classroomPromises = userClassrooms.map(classroomId => getClassroom(classroomId));
+    const classrooms = await Promise.all(classroomPromises);
+    
+    // Filter out any null results (in case a classroom was deleted)
+    return classrooms.filter(Boolean) as Classroom[];
+  } catch (error) {
+    console.error("Error getting user classrooms:", error);
     return [];
   }
-  
-  const userData = userDoc.data();
-  const userClassrooms = userData.classrooms || [];
-  
-  // If user hasn't joined any classrooms yet
-  if (userClassrooms.length === 0) {
-    return [];
-  }
-  
-  // Get details for each classroom the user is in
-  const classroomPromises = userClassrooms.map(classroomId => getClassroom(classroomId));
-  const classrooms = await Promise.all(classroomPromises);
-  
-  // Filter out any null results (in case a classroom was deleted)
-  return classrooms.filter(Boolean) as Classroom[];
 };
 
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
