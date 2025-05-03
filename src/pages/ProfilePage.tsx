@@ -284,36 +284,49 @@ const ProfilePage: React.FC = () => {
                           {(defaultProfile.badges && defaultProfile.badges.length) || 0}/8
                         </span>
                       </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white/80">Badges Earned</span>
+                        <span className="font-mono text-white">
+                          {(defaultProfile.badges && defaultProfile.badges.length) || 0}/8
+                        </span>
+                      </div>
                       <Progress 
                         value={(defaultProfile.badges && defaultProfile.badges.length * 12.5) || 0} 
                         className="h-2 bg-white/10" 
                       />
                     </div>
                     
-                    <div className="bg-black/20 rounded-lg p-4 flex flex-col relative overflow-hidden">
-                      <img 
-                        src="https://images.unsplash.com/photo-1518495973542-4542c06a5843" 
-                        alt="Climate Council" 
-                        className="absolute inset-0 h-full w-full object-cover opacity-20"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-transparent"></div>
-                      <div className="relative z-10">
-                        <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                          <BarChart className="h-4 w-4 text-primary" />
-                          Climate Council
-                        </h3>
-                        <p className="text-white/80 text-sm mb-4">
-                          It is a BUG. It will be UPDATED SOON!!
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          className="bg-black/40 border-white/20 text-white hover:bg-white/10"
-                        >
-                          Learn More
-                        </Button>
+                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
+                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                        <BarChart className="h-4 w-4 text-primary" />
+                        Decision Metrics
+                      </h3>
+                      <div className="space-y-3 flex-grow">
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Analytical Decisions</span>
+                            <span className="font-mono">67%</span>
+                          </div>
+                          <Progress value={67} className="h-2 bg-white/10" />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Emotional Decisions</span>
+                            <span className="font-mono">42%</span>
+                          </div>
+                          <Progress value={42} className="h-2 bg-white/10" />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Risk-Taking</span>
+                            <span className="font-mono">58%</span>
+                          </div>
+                          <Progress value={58} className="h-2 bg-white/10" />
+                        </div>
                       </div>
                     </div>
                   </div>
+                  
                   
                   <div className="mt-6">
                     <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
