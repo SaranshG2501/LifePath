@@ -90,7 +90,7 @@ const AuthPage: React.FC = () => {
   }
   return <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
       <Card className="w-full max-w-md border-primary/20 bg-black/30 backdrop-blur-md shadow-xl">
-        <CardHeader className="text-center pb-2">
+        <CardHeader className="text-center pb-2 my-[15px]">
           <div className="mx-auto flex items-center justify-center mb-4 relative">
             <Gamepad2 className="h-12 w-12 text-primary animate-pulse-slow absolute" />
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-md"></div>
@@ -176,7 +176,7 @@ const AuthPage: React.FC = () => {
           </CardContent>
         </Tabs>
 
-        <CardFooter className="flex flex-col gap-4 pb-6">
+        <CardFooter className="flex flex-col gap-4 pb-6 my-0">
           <div className="relative flex items-center w-full">
             <div className="flex-grow border-t border-white/10"></div>
             <span className="mx-4 flex-shrink text-white/60 text-sm">or</span>
