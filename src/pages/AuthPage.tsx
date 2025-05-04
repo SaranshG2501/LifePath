@@ -22,11 +22,13 @@ const AuthPage: React.FC = () => {
   const [role, setRole] = useState<UserRole>('student');
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { setUserRole } = useGameContext();
+  const { setUserRole, userRole } = useGameContext();
   const { login, signup, userProfile, isLoading, loginWithGoogle, getUserProfile, createUserProfile } = useAuth();
 
   // Redirect when userProfile is loaded
   useEffect(() => {
+    console.log('User Profile:', userProfile);
+    console.log('Is Loading:', isLoading);
     if (userProfile && !isLoading) {
       navigate('/profile');
     }
@@ -47,6 +49,11 @@ const AuthPage: React.FC = () => {
       setUserRole(role);
     } catch (error) {
       console.error('Login error:', error);
+      toast({
+        title: 'Login failed',
+        description: (error as Error).message || 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -65,6 +72,11 @@ const AuthPage: React.FC = () => {
       setUserRole(role);
     } catch (error) {
       console.error('Signup error:', error);
+      toast({
+        title: 'Signup failed',
+        description: (error as Error).message || 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -80,7 +92,7 @@ const AuthPage: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       const result = await loginWithGoogle();
-    
+
       if ('needsRoleSelection' in result && result.needsRoleSelection) {
         const desiredRole = prompt('Please enter your role (student or teacher):');
         if (!desiredRole) {
@@ -91,7 +103,7 @@ const AuthPage: React.FC = () => {
           });
           return;
         }
-    
+
         const normalizedRole = desiredRole.trim().toLowerCase();
         if (normalizedRole !== 'student' && normalizedRole !== 'teacher') {
           toast({
@@ -101,9 +113,9 @@ const AuthPage: React.FC = () => {
           });
           return;
         }
-    
+
         const roleAsUserRole = normalizedRole as UserRole;
-    
+
         const existingProfile = await getUserProfile(result.uid);
         if (existingProfile) {
           await createUserProfile(result.uid, {
@@ -126,7 +138,6 @@ const AuthPage: React.FC = () => {
         variant: 'destructive',
       });
     }
-    
   };
 
   if (userProfile && !isLoading) {
@@ -275,14 +286,7 @@ const AuthPage: React.FC = () => {
           <Button
             variant="outline"
             className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
-            onClick={() => {
-              setUserRole('guest');
-              toast({
-                title: 'Guest access granted',
-                description: "You're now browsing as a guest. Some features are limited.",
-              });
-              navigate('/');
-            }}
+            onClick={handleGuestLogin}
           >
             Continue as Guest
             <ArrowRight className="ml-2 h-4 w-4" />
