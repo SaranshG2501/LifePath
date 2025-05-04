@@ -29,14 +29,14 @@ const ProfilePage: React.FC = () => {
   const [isJoinClassModalOpen, setIsJoinClassModalOpen] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  
+
   // Initialize decision metrics
   const [decisionMetrics, setDecisionMetrics] = useState({
     analytical: 67,
     emotional: 42,
-    riskTaking: 58
+    riskTaking: 58,
   });
-  
+
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isLoading && !userProfile) {
@@ -56,45 +56,46 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (userProfile && userProfile.history) {
       // Update decision metrics based on user history
-      const allChoices = userProfile.history.flatMap(h => h.choices || []);
+      const allChoices = userProfile.history.flatMap((h) => h.choices || []);
       if (allChoices.length > 0) {
-        const analyticalChoices = allChoices.filter(choice => 
-          choice.metricChanges?.knowledge && choice.metricChanges.knowledge > 0
+        const analyticalChoices = allChoices.filter(
+          (choice) => choice.metricChanges?.knowledge && choice.metricChanges.knowledge > 0
         ).length;
-        
-        const emotionalChoices = allChoices.filter(choice => 
-          choice.metricChanges?.happiness && choice.metricChanges.happiness > 0
+
+        const emotionalChoices = allChoices.filter(
+          (choice) => choice.metricChanges?.happiness && choice.metricChanges.happiness > 0
         ).length;
-        
-        const riskyChoices = allChoices.filter(choice => 
-          (choice.metricChanges?.money && choice.metricChanges.money < 0) ||
-          (choice.metricChanges?.health && choice.metricChanges.health < 0)
+
+        const riskyChoices = allChoices.filter(
+          (choice) =>
+            (choice.metricChanges?.money && choice.metricChanges.money < 0) ||
+            (choice.metricChanges?.health && choice.metricChanges.health < 0)
         ).length;
-        
+
         const totalChoices = allChoices.length;
-        
+
         if (totalChoices > 0) {
           setDecisionMetrics({
             analytical: Math.round((analyticalChoices / totalChoices) * 100),
             emotional: Math.round((emotionalChoices / totalChoices) * 100),
-            riskTaking: Math.round((riskyChoices / totalChoices) * 100)
+            riskTaking: Math.round((riskyChoices / totalChoices) * 100),
           });
         }
       }
     }
-  }, [userProfile?.history]); // Add history as a dependency
+  }, [userProfile?.history]);
 
   const handleLogout = async () => {
     try {
       await logout();
       navigate('/');
     } catch (error) {
-      console.error("Error logging out:", error);
+      console.error('Error logging out:', error);
     }
   };
-  
+
   const openHistoryDetail = (history: ScenarioHistory) => {
-    setSelectedHistory(history );
+    setSelectedHistory(history);
     setIsHistoryDetailOpen(true);
   };
 
@@ -114,7 +115,7 @@ const ProfilePage: React.FC = () => {
         return;
       }
       if (!userProfile) {
-        setJoinError('User  profile not loaded.');
+        setJoinError('User profile not loaded.');
         setIsJoining(false);
         return;
       }
@@ -127,7 +128,7 @@ const ProfilePage: React.FC = () => {
       setIsJoinClassModalOpen(false);
       setJoinClassCode('');
     } catch (error) {
-      console.error("Error joining classroom:", error);
+      console.error('Error joining classroom:', error);
       setJoinError('An error occurred while joining the classroom.');
     } finally {
       setIsJoining(false);
@@ -143,11 +144,11 @@ const ProfilePage: React.FC = () => {
   }
   
   if (!userProfile) {
-    return null; // Will redirect in useEffect
+    return null; // Redirecting handled in useEffect
   }
-  
+
   const defaultProfile = {
-    username: userProfile.username || 'User ',
+    username: userProfile.username || 'User',
     email: userProfile.email || '',
     role: userProfile.role || userRole || 'student',
     xp: userProfile.xp || 0,
@@ -156,12 +157,11 @@ const ProfilePage: React.FC = () => {
     badges: userProfile.badges || [],
     classrooms: userProfile.classrooms || [],
     history: userProfile.history || [],
-    id: userProfile.id || ''
+    id: userProfile.id || '',
   };
-  
+
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'Unknown';
-    
     try {
       if (timestamp.seconds) {
         return new Date(timestamp.seconds * 1000).toLocaleDateString();
@@ -171,7 +171,7 @@ const ProfilePage: React.FC = () => {
       }
       return 'Unknown';
     } catch (error) {
-      console.error("Error formatting date:", error);
+      console.error('Error formatting date:', error);
       return 'Unknown';
     }
   };
@@ -190,7 +190,7 @@ const ProfilePage: React.FC = () => {
                   {defaultProfile.role === 'teacher' ? (
                     <School className="h-5 w-5 text-primary animate-pulse-slow" />
                   ) : (
-                    <User  className="h-5 w-5 text-primary animate-pulse-slow" />
+                    <User className="h-5 w-5 text-primary animate-pulse-slow" />
                   )}
                 </div>
               </div>
@@ -206,7 +206,7 @@ const ProfilePage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <User  className="h-4 w-4" />
+                  <User className="h-4 w-4" />
                   Student
                 </>
               )}
@@ -220,11 +220,11 @@ const ProfilePage: React.FC = () => {
                   <span className="text-sm font-medium text-white/70">{defaultProfile.xp} XP</span>
                 </div>
                 <Progress value={xpProgress} className="h-2 bg-white/10" />
-                < div className="flex justify-end mt-1">
+                <div className="flex justify-end mt-1">
                   <span className="text-xs text-white/50">{Math.round(xpProgress)}% to Level {defaultProfile.level + 1}</span>
                 </div>
               </div>
-              
+
               <div className="bg-black/20 rounded-lg p-4">
                 <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
                   <Trophy className="h-4 w-4 text-primary" />
@@ -233,7 +233,7 @@ const ProfilePage: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   {defaultProfile.badges && defaultProfile.badges.length > 0 ? (
                     defaultProfile.badges.map((badge: any, index: number) => (
-                      <Badge 
+                      <Badge
                         key={index}
                         variant="outline"
                         className="bg-black/40 border-primary/30 text-white py-1"
@@ -246,7 +246,7 @@ const ProfilePage: React.FC = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="bg-black/20 rounded-lg p-4">
                 <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
                   <BookOpen className="h-4 w-4 text-primary" />
@@ -256,9 +256,9 @@ const ProfilePage: React.FC = () => {
                   {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0} scenarios completed
                 </div>
               </div>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
                 onClick={handleLogout}
               >
@@ -268,8 +268,8 @@ const ProfilePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
-        <div className="lg:col-span-2 space-y-6">
+
+      <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="dashboard" className="w-full">
             <TabsList className="w-full grid grid-cols-3 bg-black/20 border-white/10 p-1">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary/20">
@@ -604,9 +604,9 @@ const ProfilePage: React.FC = () => {
           </Tabs>
         </div>
       </div>
-      
+
       {selectedHistory && (
-        <ScenarioHistoryDetail 
+        <ScenarioHistoryDetail
           history={selectedHistory}
           open={isHistoryDetailOpen}
           onClose={() => setIsHistoryDetailOpen(false)}

@@ -1,44 +1,92 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  auth, 
-  createUserProfile, 
-  getUserProfile, 
-  loginUser, 
-  logoutUser,
-  createUser
+import {
+  auth,
+  getUserProfile as getUserProfileFromDB,
+  loginUser ,
+  logoutUser ,
+  createUser ,
+  createUserProfile,
+  ScenarioHistory,
 } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { UserRole } from '@/types/game';
 
+export interface UserProfileData {
+  displayName: string;
+  username: string;
+  email: string;
+  role?: UserRole | null;
+  xp: number;
+  level: number;
+  completedScenarios: string[];
+  badges: string[];
+  classrooms: string[];
+  history: ScenarioHistory[];
+  id: string;
+}
+
 interface AuthContextType {
   currentUser: any;
-  userProfile: any;
+  userProfile: UserProfileData | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
+  loginWithGoogle: () => Promise<
+    | { user: any; profile: UserProfileData }
+    | { user: any; needsRoleSelection: boolean; uid: string }
+  >;
+  getUserProfile: (uid: string) => Promise<UserProfileData | null>;
+  createUserProfile: (uid: string, data: UserProfileData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [currentUser , setCurrentUser ] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const mapToUserProfileData = (data: any): UserProfileData => ({
+    username: data.username || '',
+    email: data.email || '',
+    role: data.role || null,
+    xp: data.xp || 0,
+    level: data.level || 1,
+    completedScenarios: data.completedScenarios || [],
+    badges: data.badges || [],
+    classrooms: data.classrooms || [],
+    history: data.history || [],
+    id: data.id || '',
+    displayName: ''
+  });
+
+  const getUserProfile = async (uid: string): Promise<UserProfileData | null> => {
+    const data = await getUserProfileFromDB(uid);
+    if (data) {
+      return mapToUserProfileData(data);
+    }
+    return null;
+  };
+
+  const createUserProfileWrapper = async (uid: string, data: UserProfileData): Promise<void> => {
+    return await createUserProfile(uid, data);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+      setCurrentUser (user);
       if (user) {
         try {
-          const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
+          const profileData = await getUserProfile(user.uid);
+          setUserProfile(profileData);
         } catch (error) {
-          console.error("Error fetching user profile:", error);
+          console.error('Error fetching user profile:', error);
         }
       } else {
         setUserProfile(null);
@@ -50,12 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshUserProfile = async () => {
-    if (currentUser) {
+    if (currentUser ) {
       try {
-        const profile = await getUserProfile(currentUser.uid);
-        setUserProfile(profile);
+        const profileData = await getUserProfile(currentUser .uid);
+        setUserProfile(profileData);
       } catch (error) {
-        console.error("Error refreshing user profile:", error);
+        console.error('Error refreshing user profile:', error);
       }
     }
   };
@@ -63,18 +111,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { user } = await loginUser(email, password);
-      const profile = await getUserProfile(user.uid);
-      setUserProfile(profile);
+      const { user } = await loginUser (email, password);
+      const profileData = await getUserProfile(user.uid);
+      setUserProfile(profileData);
       toast({
-        title: "Login successful",
-        description: `Welcome back, ${profile?.username || ''}!`,
+        title: 'Login successful',
+        description: `Welcome back, ${profileData?.username || ''}!`,
       });
     } catch (error: any) {
       toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials",
-        variant: "destructive",
+        title: 'Login failed',
+        description: error.message || 'Please check your credentials',
+        variant: 'destructive',
       });
       throw error;
     } finally {
@@ -86,27 +134,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       const { user } = await createUser(email, password);
-      
-      // Create user profile
-      const userData = {
+
+      const userData: UserProfileData = {
         username,
         email,
         role,
+        xp: 0,
+        level: 1,
+        completedScenarios: [],
+        badges: [],
+        classrooms: [],
+        history: [],
+        id: user.uid,
+        displayName: ''
       };
-      
-      await createUserProfile(user.uid, userData);
-      const profile = await getUserProfile(user.uid);
-      setUserProfile(profile);
-      
+
+      await createUserProfileWrapper(user.uid, userData);
+      setUserProfile(userData);
       toast({
-        title: "Account created",
+        title: 'Account created',
         description: `Welcome to LifePath, ${username}!`,
       });
     } catch (error: any) {
       toast({
-        title: "Signup failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
+        title: 'Signup failed',
+        description: error.message || 'Please try again later',
+        variant: 'destructive',
       });
       throw error;
     } finally {
@@ -116,38 +169,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      setIsLoading(true);
       await logoutUser();
       setUserProfile(null);
       toast({
-        title: "Logged out",
-        description: "You have been successfully logged out",
+        title: 'Logged out',
+        description: 'You have been successfully logged out',
       });
     } catch (error: any) {
       toast({
-        title: "Logout failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
+        title: 'Logout failed',
+        description: error.message || 'Please try again',
+        variant: 'destructive',
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const value = {
+  const loginWithGoogle = async (): Promise<
+  | { user: any; profile: UserProfileData }
+  | { user: any; needsRoleSelection: boolean; uid: string }
+> => {
+  setIsLoading(true);
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    let profileData = await getUserProfile(user.uid);
+    if (!profileData) {
+      const userData: UserProfileData = {
+        username: user.displayName || user.email?.split('@')[0] || 'User ',
+        email: user.email || '',
+        role: null,
+        xp: 0,
+        level: 1,
+        completedScenarios: [],
+        badges: [],
+        classrooms: [],
+        history: [],
+        id: user.uid,
+        displayName: ''
+      };
+      await createUserProfileWrapper(user.uid, userData);
+      profileData = userData;
+      setUserProfile(profileData); // Update userProfile state here
+      return { user, needsRoleSelection: true, uid: user.uid };
+    }
+    if (!profileData.role) {
+      return { user, needsRoleSelection: true, uid: user.uid };
+    }
+    
+    setUserProfile(profileData); // Update userProfile state here
+    return { user, profile: profileData };
+  } catch (error: any) {
+    toast({
+      title: 'Google login failed',
+      description: error.message || 'Please try again.',
+      variant: 'destructive',
+    });
+    throw error;
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const value: AuthContextType = {
     currentUser,
     userProfile,
     isLoading,
     login,
     signup,
     logout,
-    refreshUserProfile
+    refreshUserProfile,
+    loginWithGoogle,
+    getUserProfile,
+    createUserProfile: createUserProfileWrapper,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
