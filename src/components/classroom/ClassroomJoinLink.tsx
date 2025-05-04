@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 const ClassroomJoinLink: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, refreshUserProfile } = useAuth();
   const { userRole, classroomId, setClassroomId, setGameMode } = useGameContext();
   
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -33,7 +32,6 @@ const ClassroomJoinLink: React.FC = () => {
         const classrooms = await getUserClassrooms(currentUser.uid, userProfile.role);
         setUserHasClassrooms(classrooms.length > 0);
         
-        // If user has classrooms but no active one set, use the first one
         if (classrooms.length > 0 && !classroomId) {
           setClassroomId(classrooms[0].id);
         }
@@ -45,7 +43,7 @@ const ClassroomJoinLink: React.FC = () => {
     checkUserClassrooms();
   }, [currentUser, userProfile, classroomId, setClassroomId]);
   
-  // For teachers, create classroom and navigate to teacher dashboard
+  // Teacher related handler
   const handleTeacherAction = () => {
     if (userHasClassrooms || classroomId) {
       navigate('/teacher');
@@ -54,6 +52,7 @@ const ClassroomJoinLink: React.FC = () => {
     }
   };
   
+  // Student related handler
   const handleStudentAction = () => {
     if (userHasClassrooms || classroomId) {
       navigate('/profile');
@@ -83,26 +82,20 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
-      console.log("Creating classroom with name:", className);
-      
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
         classDescription
       );
       
-      console.log("Classroom created:", newClassroom);
-      
       if (newClassroom && newClassroom.id) {
         setClassroomId(newClassroom.id);
         setGameMode("classroom");
         setUserHasClassrooms(true);
-        
         toast({
           title: "Classroom Created",
           description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
         });
-        
         setIsCreateModalOpen(false);
         setClassName('');
         setClassDescription('');
@@ -132,7 +125,9 @@ const ClassroomJoinLink: React.FC = () => {
       return;
     }
 
-    if (!classCode.trim()) {
+    const normalizedCode = classCode.trim().toUpperCase();
+
+    if (!normalizedCode) {
       toast({
         title: "Class Code Required",
         description: "Please enter a class code",
@@ -143,62 +138,57 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
-      console.log("Joining classroom with code:", classCode);
-      
-      // Validate class code
-      const classroom = await getClassroomByCode(classCode);
-      console.log("Found classroom:", classroom);
-      
+      console.log("Attempting to join classroom with code:", normalizedCode);
+
+      const classroom = await getClassroomByCode(normalizedCode);
       if (!classroom) {
         toast({
           title: "Invalid Code",
-          description: "The class code you entered does not exist",
+          description: `Classroom with code ${normalizedCode} does not exist.`,
           variant: "destructive",
         });
         setIsLoading(false);
         return;
       }
-      
-      // Join classroom
-      const displayName = userProfile?.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Student');
+      console.log("Classroom found:", classroom);
+
+      const displayName =
+        userProfile?.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "Student");
       console.log("Joining as:", displayName);
-      
-      const joinedClassroom = await joinClassroom(
-        classroom.id, 
-        currentUser.uid, 
-        displayName
-      );
-      
-      console.log("Joined classroom:", joinedClassroom);
-      
-      if (joinedClassroom) {
-        setClassroomId(joinedClassroom.id);
-        setGameMode("classroom");
-        setUserHasClassrooms(true);
-        
-        toast({
-          title: "Joined Classroom",
-          description: `You have joined ${joinedClassroom.name}!`,
-        });
-        
-        setIsJoinModalOpen(false);
-        setClassCode('');
-        navigate('/profile');
-      } else {
-        throw new Error("Failed to join classroom");
+
+      const joinedClassroom = await joinClassroom(classroom.id!, currentUser.uid, displayName);
+      console.log("Successfully joined classroom:", joinedClassroom);
+
+      // Refresh user profile to update classrooms list and reflect join in UI
+      if (refreshUserProfile) {
+        await refreshUserProfile();
       }
+
+      setClassroomId(joinedClassroom.id);
+      setGameMode("classroom");
+      setUserHasClassrooms(true);
+
+      toast({
+        title: "Joined Classroom",
+        description: `You have joined ${joinedClassroom.name}!`,
+      });
+
+      setIsJoinModalOpen(false);
+      setClassCode("");
+      navigate("/profile");
     } catch (error) {
-      console.error('Error joining classroom:', error);
+      console.error("Error joining classroom:", error);
       toast({
         title: "Error",
-        description: "Failed to join classroom. Please try again.",
+        description:
+          error instanceof Error ? error.message : "Failed to join classroom. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   if (userRole === 'teacher') {
     return (
       <>

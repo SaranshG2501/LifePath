@@ -80,10 +80,10 @@ const AuthPage: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       const result = await loginWithGoogle();
-
+    
       if ('needsRoleSelection' in result && result.needsRoleSelection) {
         const desiredRole = prompt('Please enter your role (student or teacher):');
-        if (!desiredRole || (desiredRole !== 'student' && desiredRole !== 'teacher')) {
+        if (!desiredRole) {
           toast({
             title: 'Role selection required',
             description: 'You must select a valid role: student or teacher.',
@@ -91,17 +91,31 @@ const AuthPage: React.FC = () => {
           });
           return;
         }
+    
+        const normalizedRole = desiredRole.trim().toLowerCase();
+        if (normalizedRole !== 'student' && normalizedRole !== 'teacher') {
+          toast({
+            title: 'Role selection required',
+            description: 'You must select a valid role: student or teacher.',
+            variant: 'destructive',
+          });
+          return;
+        }
+    
+        const roleAsUserRole = normalizedRole as UserRole;
+    
         const existingProfile = await getUserProfile(result.uid);
         if (existingProfile) {
           await createUserProfile(result.uid, {
             ...existingProfile,
-            role: desiredRole as UserRole,
+            role: roleAsUserRole,
           });
         }
-        setUserRole(desiredRole as UserRole);
+        setUserRole(roleAsUserRole);
         navigate('/profile');
       } else if ('profile' in result) {
-        setUserRole(result.profile.role || 'student');
+        const existingRole = result.profile.role?.toLowerCase() || 'student';
+        setUserRole(existingRole as UserRole);
         navigate('/profile');
       }
     } catch (error: any) {
@@ -112,6 +126,7 @@ const AuthPage: React.FC = () => {
         variant: 'destructive',
       });
     }
+    
   };
 
   if (userProfile && !isLoading) {

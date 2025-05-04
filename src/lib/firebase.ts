@@ -263,54 +263,49 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
+import { runTransaction } from "firebase/firestore";
+
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomDoc = await getDoc(classroomRef);
-    
-    if (!classroomDoc.exists()) {
-      throw new Error("Classroom not found");
-    }
-    
-    const classroom = classroomDoc.data() as Classroom;
-    const studentList = classroom.students || [];
-    
-    // Check if student is already in the classroom
-    if (!studentList.some((s) => s.id === studentId)) {
-      // Create new student object
+    const userRef = doc(db, 'users', studentId);
+
+    const result = await runTransaction(db, async (transaction) => {
+      const classroomDoc = await transaction.get(classroomRef);
+      if (!classroomDoc.exists()) throw new Error("Classroom not found");
+
+      const classroom = classroomDoc.data() as Classroom;
+      const students = classroom.students || [];
+
+      if (students.some(s => s.id === studentId)) {
+        // already a member, return classroom data
+        return { id: classroomDoc.id, ...classroom };
+      }
+
+      // Add new student
       const newStudent: ClassroomStudent = {
         id: studentId,
         name: studentName,
-        joinedAt: Timestamp.now()
+        joinedAt: Timestamp.now(),
       };
-      
-      // Create updated students array
-      const updatedStudents = [...studentList, newStudent];
-      
-      // Add student to classroom
-      await updateDoc(classroomRef, {
-        students: updatedStudents
-      });
-    }
-    
-    // Also update user's classrooms list
-    const userRef = doc(db, 'users', studentId);
-    const userDoc = await getDoc(userRef);
-    
-    if (userDoc.exists()) {
+      const updatedStudents = [...students, newStudent];
+      transaction.update(classroomRef, { students: updatedStudents });
+
+      // Update user's classrooms
+      const userDoc = await transaction.get(userRef);
+      if (!userDoc.exists()) throw new Error("User not found");
+
       const userData = userDoc.data();
       const userClassrooms = userData.classrooms || [];
-      
+
       if (!userClassrooms.includes(classroomId)) {
-        await updateDoc(userRef, {
-          classrooms: [...userClassrooms, classroomId]
-        });
+        transaction.update(userRef, { classrooms: [...userClassrooms, classroomId] });
       }
-    }
-    
-    // Fetch the updated classroom data
-    const updatedClassroomDoc = await getDoc(classroomRef);
-    return { id: updatedClassroomDoc.id, ...updatedClassroomDoc.data() } as Classroom;
+
+      return { id: classroomDoc.id, ...classroom, students: updatedStudents };
+    });
+
+    return result;
   } catch (error) {
     console.error("Error joining classroom:", error);
     throw error;
