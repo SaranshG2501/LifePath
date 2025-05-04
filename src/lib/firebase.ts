@@ -387,7 +387,9 @@ export const getUserClassrooms = async (userId: string, role: string) => {
 };
 
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
-  return updateDoc(doc(db, 'classrooms', classroomId), data as DocumentData);
+  // Fix the spread type error by converting data to DocumentData explicitly
+  const updateData = data as DocumentData;
+  return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
 // Classroom activity functions

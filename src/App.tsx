@@ -25,9 +25,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="min-h-screen bg-background flex flex-col">
+            <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] to-black flex flex-col">
               <AppHeader />
-              <main className="flex-1">
+              <main className="flex-1 pb-12">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/game" element={<GamePage />} />

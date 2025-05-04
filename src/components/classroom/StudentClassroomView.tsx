@@ -158,7 +158,6 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         });
         
         setClassCode('');
-        setIsJoinDialogOpen(false);
       } else {
         throw new Error("Failed to join classroom");
       }
@@ -189,7 +188,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
   
   return (
     <div className="space-y-6">
-      <Card className="bg-black/30 border-primary/20 overflow-hidden">
+      <Card className="bg-black/40 border-white/10 backdrop-blur-md overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -197,7 +196,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
               <CardTitle className="text-xl text-white">Classroom</CardTitle>
             </div>
             {classroom && (
-              <Badge className="bg-green-500/20 text-green-300 border-0">
+              <Badge className="bg-primary/20 text-primary border-0">
                 Joined
               </Badge>
             )}
@@ -211,7 +210,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         
         <CardContent>
           {!classroom ? (
-            <div className="bg-black/20 rounded-lg p-4 border border-white/10">
+            <div className="bg-black/30 rounded-lg p-4 border border-white/10">
               <h3 className="font-medium mb-3 text-white">Join a Classroom</h3>
               <div className="flex gap-2">
                 <Input 
@@ -239,7 +238,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-black/20 rounded-lg p-4 border border-white/10">
+              <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-medium text-white">{classroom.name}</h3>
@@ -279,7 +278,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                 )}
               </div>
               
-              <div className="bg-black/20 rounded-lg p-4 border border-white/10">
+              <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                 <h3 className="font-medium mb-3 text-white flex items-center gap-1">
                   <MessageSquare className="h-4 w-4 text-primary" />
                   Class Messages
@@ -312,7 +311,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       
       {/* Join Classroom Dialog */}
       <AlertDialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-        <AlertDialogContent className="bg-black/90 border border-primary/20">
+        <AlertDialogContent className="bg-black/90 border border-white/10 backdrop-blur-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
               {joinError ? "Classroom Not Found" : "Join Classroom"}

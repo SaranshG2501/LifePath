@@ -13,61 +13,73 @@ interface ScenarioCardProps {
 }
 
 const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick }) => {
-  // Add a specific image for Climate Council scenario
-  const isClimateCouncil = scenario.id === "climate-council" || scenario.title.toLowerCase().includes("climate");
+  // Add specific images for different scenarios
+  const getScenarioImage = () => {
+    switch(scenario.id) {
+      case "climate-council":
+        return "https://images.unsplash.com/photo-1518495973542-4542c06a5843";
+      case "college-choice":
+        return "https://images.unsplash.com/photo-1523050854058-8df90110c9f1";
+      case "first-job":
+        return "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40";
+      case "financial-emergency":
+        return "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e";
+      default:
+        return scenario.thumbnail;
+    }
+  };
+  
+  // Get scenario image
+  const scenarioImage = getScenarioImage();
   
   return (
-    <Card className="scenario-card overflow-hidden h-full flex flex-col animate-fade-in group">
-      <div className="h-48 overflow-hidden relative">
-        {scenario.thumbnail ? (
+    <Card className="overflow-hidden h-full flex flex-col bg-black/30 border-white/10 backdrop-blur-md hover:border-primary/30 transition-all duration-300">
+      <div className="relative h-44 overflow-hidden">
+        {scenarioImage ? (
           <img 
-            src={scenario.thumbnail} 
+            src={scenarioImage} 
             alt={scenario.title} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        ) : isClimateCouncil ? (
-          <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-teal-600 flex items-center justify-center">
-            <img 
-              src="https://images.unsplash.com/photo-1518495973542-4542c06a5843" 
-              alt="Climate Council"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
-            />
-          </div>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center">
-            <Image className="h-16 w-16 text-white/50" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-black/40 flex items-center justify-center">
+            <Image className="h-12 w-12 text-white/30" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
         <div className="absolute bottom-3 left-3 flex gap-2">
-          <Badge variant="outline" className="bg-primary/80 text-white border-none">
+          <Badge variant="outline" className="bg-primary/20 text-primary border-none">
             {scenario.category}
           </Badge>
+        </div>
+        <div className="absolute top-3 right-3">
           <Badge variant="outline" className="bg-black/60 text-white border-none flex items-center gap-1">
             <CalendarClock className="h-3 w-3" />
             Ages {scenario.ageGroup}
           </Badge>
         </div>
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-black/40 p-1 rounded-full backdrop-blur-sm animate-pulse-slow">
-            <Sparkles className="h-4 w-4 text-neon-yellow" />
-          </div>
-        </div>
       </div>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl text-white">{scenario.title}</CardTitle>
-        <CardDescription className="line-clamp-2 text-white/80">{scenario.description}</CardDescription>
+      
+      <CardHeader className="pb-2 space-y-1">
+        <CardTitle className="text-xl text-white flex items-center">
+          {scenario.title}
+          <Sparkles className="h-3 w-3 text-primary ml-2" />
+        </CardTitle>
+        <CardDescription className="line-clamp-2 text-white/70">{scenario.description}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
+      
+      <CardContent className="pb-4 pt-0">
         <div className="flex gap-2 flex-wrap">
           {Object.entries(scenario.initialMetrics).map(([key, value]) => {
+            if (value === 0) return null; // Don't show metrics that start at 0
+            
             let bgColor = "";
             switch(key) {
-              case "health": bgColor = "bg-neon-red/20 text-neon-red"; break;
-              case "money": bgColor = "bg-neon-green/20 text-neon-green"; break;
-              case "happiness": bgColor = "bg-neon-yellow/20 text-neon-yellow"; break;
-              case "knowledge": bgColor = "bg-neon-blue/20 text-neon-blue"; break;
-              case "relationships": bgColor = "bg-neon-purple/20 text-neon-purple"; break;
+              case "health": bgColor = "bg-red-500/20 text-red-300"; break;
+              case "money": bgColor = "bg-green-500/20 text-green-300"; break;
+              case "happiness": bgColor = "bg-yellow-500/20 text-yellow-300"; break;
+              case "knowledge": bgColor = "bg-blue-500/20 text-blue-300"; break;
+              case "relationships": bgColor = "bg-purple-500/20 text-purple-300"; break;
               default: bgColor = "bg-white/10 text-white/80";
             }
             return (
@@ -78,12 +90,13 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick 
           })}
         </div>
       </CardContent>
-      <CardFooter>
+      
+      <CardFooter className="mt-auto">
         <Button 
-          className="w-full rounded-xl bg-gradient-to-r from-primary to-secondary hover:shadow-lg hover:shadow-primary/20 group-hover:scale-105 transition-all"
+          className="w-full bg-black/40 hover:bg-primary/20 text-white border border-primary/30 hover:border-primary transition-all"
           onClick={() => onStart(scenario.id)}
         >
-          <Play className="w-4 h-4 mr-2" /> Start This Adventure
+          <Play className="w-4 h-4 mr-2" /> Start Adventure
         </Button>
       </CardFooter>
     </Card>
