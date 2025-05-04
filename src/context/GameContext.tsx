@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
@@ -159,8 +158,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    // Use user's saved metrics if available, otherwise use scenario defaults
-    const startingMetrics = userProfile?.metrics || { ...scenario.initialMetrics };
+    // Start with scenario's default metrics rather than user's saved metrics
+    const startingMetrics = { ...scenario.initialMetrics };
 
     // Reset scenario choices for new scenario
     setScenarioChoices([]);
@@ -233,14 +232,22 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Calculate new metrics
+    // Calculate new metrics - create a copy to prevent mutation
     const newMetrics = { ...gameState.metrics };
-    Object.entries(choice.metricChanges).forEach(([key, value]) => {
-      const metricKey = key as keyof Metrics;
-      if (value) {
-        newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
-      }
-    });
+    
+    // Process each metric change
+    if (choice.metricChanges) {
+      Object.entries(choice.metricChanges).forEach(([key, value]) => {
+        const metricKey = key as keyof Metrics;
+        // Check if the key exists in our metrics object
+        if (newMetrics.hasOwnProperty(metricKey) && typeof value === 'number') {
+          // Ensure we stay within 0-100 range
+          newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
+        }
+      });
+    }
+
+    console.log("Updated metrics:", newMetrics);
 
     // Find the next scene
     const nextScene = gameState.currentScenario.scenes.find(
@@ -325,19 +332,21 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setClassroomVotes({});
 
     // Show metrics changes toast
-    const metricChangesText = Object.entries(choice.metricChanges)
-      .filter(([_, value]) => value !== 0)
-      .map(([key, value]) => {
-        const sign = value && value > 0 ? '+' : '';
-        return `${key.charAt(0).toUpperCase() + key.slice(1)}: ${sign}${value}`;
-      })
-      .join(', ');
+    if (choice.metricChanges) {
+      const metricChangesText = Object.entries(choice.metricChanges)
+        .filter(([_, value]) => value !== 0)
+        .map(([key, value]) => {
+          const sign = value && value > 0 ? '+' : '';
+          return `${key.charAt(0).toUpperCase() + key.slice(1)}: ${sign}${value}`;
+        })
+        .join(', ');
 
-    if (metricChangesText) {
-      toast({
-        title: "Your stats have changed",
-        description: metricChangesText,
-      });
+      if (metricChangesText) {
+        toast({
+          title: "Your stats have changed",
+          description: metricChangesText,
+        });
+      }
     }
   };
 

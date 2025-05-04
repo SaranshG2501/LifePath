@@ -18,15 +18,13 @@ const AppHeader: React.FC = () => {
   const { userProfile } = useAuth();
 
   return (
-    <header className="border-b border-white/10 bg-black/50 backdrop-blur-md shadow-md sticky top-0 z-10">
+    <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2 relative animate-float group">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute -z-10 w-10 h-10 bg-primary/20 rounded-full group-hover:bg-primary/30 transition-all"></div>
-            <Gamepad2 className="h-6 w-6 text-primary animate-pulse-slow absolute" />
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex items-center justify-center">
+            <Gamepad2 className="h-6 w-6 text-indigo-300" />
           </div>
-          <span className="font-bold text-xl text-white gradient-heading ml-8">LifePath</span>
-          <Sparkles className="h-3 w-3 text-neon-yellow absolute -top-1 right-0 animate-pulse-slow" />
+          <span className="font-bold text-xl text-white ml-1">LifePath</span>
         </Link>
         
         <div className="flex items-center gap-2 md:gap-3">
@@ -56,7 +54,7 @@ const AppHeader: React.FC = () => {
                   onClick={() => setGameMode("individual")}
                   className="rounded-xl text-white hover:bg-white/10"
                 >
-                  <Users className="h-4 w-4 text-primary" />
+                  <Users className="h-4 w-4 text-indigo-300" />
                   <span className="hidden md:inline">Classroom</span>
                 </Button>
               ) : (
@@ -79,14 +77,14 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userProfile ? (
-                <Button variant="outline" size="sm" asChild className="rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20">
+                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
                   <Link to="/profile" className="flex items-center gap-1.5">
                     <User className="h-4 w-4" />
                     <span className="hidden md:inline">Profile</span>
                   </Link>
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" asChild className="rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20">
+                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
                   <Link to="/auth" className="flex items-center gap-1.5">
                     <User className="h-4 w-4" />
                     <span className="inline">Login</span>
@@ -97,7 +95,7 @@ const AppHeader: React.FC = () => {
           )}
           
           {isGameActive && (
-            <Button variant="outline" size="sm" onClick={resetGame} className="flex items-center gap-1.5 rounded-xl border-primary/30 bg-black/30 text-white hover:bg-primary/20">
+            <Button variant="outline" size="sm" onClick={resetGame} className="flex items-center gap-1.5 rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
               <LogOut className="h-4 w-4" />
               <span className="hidden md:inline">Exit Scenario</span>
               <span className="inline md:hidden">Exit</span>

@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -214,8 +215,11 @@ export const saveScenarioHistory = async (
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
   try {
-    // Remove 'id' from the data sent to Firestore
-    const classroomData: Omit<Classroom, 'id'> = {
+    // Generate a unique class code
+    const classCode = generateClassCode();
+    
+    // Create classroom data
+    const classroomData = {
       name,
       description: description || "",
       teacherId,
@@ -223,10 +227,11 @@ export const createClassroom = async (teacherId: string, name: string, descripti
       activeScenario: null,
       currentScene: null,
       createdAt: Timestamp.now(),
-      classCode: generateClassCode(),
+      classCode,
       isActive: true
     };
     
+    // Add to Firestore
     const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
     
     // Update teacher's profile to include the new classroom
@@ -272,15 +277,19 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Check if student is already in the classroom
     if (!studentList.some((s) => s.id === studentId)) {
+      // Create new student object
       const newStudent: ClassroomStudent = {
         id: studentId,
         name: studentName,
         joinedAt: Timestamp.now()
       };
       
+      // Create updated students array
+      const updatedStudents = [...studentList, newStudent];
+      
       // Add student to classroom
       await updateDoc(classroomRef, {
-        students: [...studentList, newStudent]
+        students: updatedStudents
       });
     }
     
@@ -340,9 +349,8 @@ export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> =>
     
     const snapshot = await getDocs(classroomsQuery);
     return snapshot.docs.map(doc => {
-      const data = doc.data() as Record<string, any>; // Assert data as an object
-      return { id: doc.id, ...data }; // Spread the data
-    }) as Classroom[];
+      return { id: doc.id, ...doc.data() } as Classroom;
+    });
   } catch (error) {
     console.error("Error getting classrooms:", error);
     return [];
@@ -383,7 +391,9 @@ export const getUserClassrooms = async (userId: string, role: string) => {
 };
 
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
-  return updateDoc(doc(db, 'classrooms', classroomId), data as DocumentData);
+  // Convert data to DocumentData explicitly to avoid type error
+  const updateData = data as DocumentData;
+  return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
 // Classroom activity functions
