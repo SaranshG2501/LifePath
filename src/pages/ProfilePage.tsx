@@ -445,7 +445,7 @@ const ProfilePage: React.FC = () => {
                         <Users className="h-5 w-5 text-primary" />
                       </div>
                       <h3 className="font-medium text-white">
-                        {userRole === 'teacher' ? 'Create New Class' : 'Join a Classroom'}
+                        {userRole === 'teacher' ? 'Create New Class using Teacher Dashboard' : 'Join a Classroom'}
                       </h3>
                       <p className="text-sm text-white/60 mt-1">
                         {userRole === 'teacher' 
