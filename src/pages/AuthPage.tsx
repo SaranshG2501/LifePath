@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,28 +11,34 @@ import { Gamepad2, LogIn, UserPlus, School, User, ArrowRight, Sparkles } from 'l
 import { UserRole } from '@/types/game';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-
 const AuthPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<UserRole>('student');
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const navigate = useNavigate();
-  const { setUserRole } = useGameContext();
-  const { login, signup, userProfile, isLoading } = useAuth();
-  
+  const {
+    setUserRole
+  } = useGameContext();
+  const {
+    login,
+    signup,
+    userProfile,
+    isLoading
+  } = useAuth();
+
   // Check if user is already logged in
   useEffect(() => {
     if (userProfile && !isLoading) {
       navigate('/profile');
     }
   }, [userProfile, isLoading, navigate]);
-  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (email && password) {
       try {
         await login(email, password);
@@ -47,14 +52,12 @@ const AuthPage: React.FC = () => {
       toast({
         title: "Login failed",
         description: "Please enter your email and password.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-  
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (email && password && username) {
       try {
         await signup(email, password, username, role);
@@ -68,16 +71,15 @@ const AuthPage: React.FC = () => {
       toast({
         title: "Signup failed",
         description: "Please fill in all required fields.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-  
   const handleGuestLogin = () => {
     setUserRole('guest');
     toast({
       title: "Guest access granted",
-      description: "You're now browsing as a guest. Some features are limited.",
+      description: "You're now browsing as a guest. Some features are limited."
     });
     navigate('/');
   };
@@ -86,9 +88,7 @@ const AuthPage: React.FC = () => {
   if (userProfile && !isLoading) {
     return null;
   }
-
-  return (
-    <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
+  return <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
       <Card className="w-full max-w-md border-primary/20 bg-black/30 backdrop-blur-md shadow-xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto flex items-center justify-center mb-4 relative">
@@ -96,7 +96,7 @@ const AuthPage: React.FC = () => {
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-md"></div>
           </div>
           <CardTitle className="text-2xl font-bold gradient-heading inline-flex items-center gap-1 relative">
-            <span className="text-white">Welcome to LifePath</span>
+            <span className="text-white font-semibold text-center mx-[90px]">Welcome to LifePath</span>
             <Sparkles className="h-4 w-4 text-neon-yellow absolute -top-2 -right-6 animate-pulse-slow" />
           </CardTitle>
           <CardDescription className="text-white/80">
@@ -104,7 +104,7 @@ const AuthPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
 
-        <Tabs defaultValue="login" value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
+        <Tabs defaultValue="login" value={activeTab} onValueChange={v => setActiveTab(v as 'login' | 'signup')}>
           <TabsList className="grid grid-cols-2 w-[80%] mx-auto mb-4">
             <TabsTrigger value="login" className="data-[state=active]:bg-primary/20">Login</TabsTrigger>
             <TabsTrigger value="signup" className="data-[state=active]:bg-primary/20">Sign Up</TabsTrigger>
@@ -116,24 +116,11 @@ const AuthPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-white">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="yourname@example.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
+                    <Input id="email" type="email" placeholder="yourname@example.com" value={email} onChange={e => setEmail(e.target.value)} className="bg-black/20 border-white/20 text-white" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-white">Password</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
+                    <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="bg-black/20 border-white/20 text-white" />
                   </div>
                   <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90">
                     <LogIn className="mr-2 h-4 w-4" />
@@ -148,44 +135,20 @@ const AuthPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="username" className="text-white">Username</Label>
-                    <Input 
-                      id="username" 
-                      placeholder="Choose a username" 
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
+                    <Input id="username" placeholder="Choose a username" value={username} onChange={e => setUsername(e.target.value)} className="bg-black/20 border-white/20 text-white" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email-signup" className="text-white">Email</Label>
-                    <Input 
-                      id="email-signup" 
-                      type="email" 
-                      placeholder="yourname@example.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
+                    <Input id="email-signup" type="email" placeholder="yourname@example.com" value={email} onChange={e => setEmail(e.target.value)} className="bg-black/20 border-white/20 text-white" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-signup" className="text-white">Password</Label>
-                    <Input 
-                      id="password-signup" 
-                      type="password" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
+                    <Input id="password-signup" type="password" value={password} onChange={e => setPassword(e.target.value)} className="bg-black/20 border-white/20 text-white" />
                   </div>
                   
                   <div className="space-y-2">
                     <Label className="text-white">I am a:</Label>
-                    <RadioGroup 
-                      defaultValue="student" 
-                      value={role}
-                      onValueChange={(value) => setRole(value as UserRole)}
-                      className="flex space-x-4"
-                    >
+                    <RadioGroup defaultValue="student" value={role} onValueChange={value => setRole(value as UserRole)} className="flex space-x-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="student" id="student" className="text-primary border-white/50" />
                         <Label htmlFor="student" className="flex items-center text-white">
@@ -220,18 +183,12 @@ const AuthPage: React.FC = () => {
             <div className="flex-grow border-t border-white/10"></div>
           </div>
           
-          <Button 
-            variant="outline" 
-            className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
-            onClick={handleGuestLogin}
-          >
+          <Button variant="outline" className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10" onClick={handleGuestLogin}>
             Continue as Guest
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default AuthPage;
