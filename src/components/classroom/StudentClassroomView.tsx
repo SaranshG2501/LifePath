@@ -189,7 +189,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
   
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
+      <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       
       {/* Join Classroom Dialog */}
       <AlertDialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-        <AlertDialogContent className="bg-gradient-to-br from-blue-900/80 to-purple-900/80 border border-white/10 backdrop-blur-md">
+        <AlertDialogContent className="bg-gradient-to-br from-indigo-900/80 to-purple-900/80 border border-white/10 backdrop-blur-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
               {joinError ? "Classroom Not Found" : "Join Classroom"}
@@ -330,7 +330,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
             {!joinError && (
               <AlertDialogAction
                 onClick={handleJoinClass}
-                className="bg-blue-500 text-white hover:bg-blue-600"
+                className="bg-indigo-600 text-white hover:bg-indigo-700"
                 disabled={isLoading}
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Class"}
