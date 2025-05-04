@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, School, Users, BookOpen, BarChart3, PlusCircle } from 'lucide-react';
+import { ArrowRight, School, Users, BookOpen, BarChart3, PlusCircle, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { getClassrooms, getUserClassrooms, createClassroom } from '@/lib/firebase';
+import { getClassrooms, getUserClassrooms, createClassroom, Classroom } from '@/lib/firebase';
 import ScenarioCard from '@/components/ScenarioCard';
 import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
 import { scenarios } from '@/data/scenarios';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 const TeacherDashboard = () => {
   const { userProfile, currentUser } = useAuth();
@@ -23,13 +26,14 @@ const TeacherDashboard = () => {
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState("classrooms");
-  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClassroom, setSelectedClassroom] = useState<any>(null);
+  const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [className, setClassName] = useState('');
   const [classDescription, setClassDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Fetch teacher's classrooms
   useEffect(() => {
@@ -153,6 +157,11 @@ const TeacherDashboard = () => {
     navigate('/game');
   };
   
+  // Filter classrooms based on search term
+  const filteredClassrooms = classrooms.filter(classroom => 
+    classroom.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (!currentUser) {
     navigate('/auth');
     return null;
@@ -161,13 +170,24 @@ const TeacherDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-          <School className="h-8 w-8 text-primary" />
-          Teacher Dashboard
-        </h1>
-        <p className="text-white/70 mt-2">
-          Manage your classrooms and track student progress
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <School className="h-8 w-8 text-primary" />
+              Teacher Dashboard
+            </h1>
+            <p className="text-white/70 mt-2">
+              Manage your classrooms and track student progress
+            </p>
+          </div>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-primary hover:bg-primary/90 hidden md:flex"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Classroom
+          </Button>
+        </div>
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -213,44 +233,73 @@ const TeacherDashboard = () => {
           
           <Card className="bg-black/30 border-primary/20">
             <CardHeader>
-              <CardTitle className="text-white">My Classrooms</CardTitle>
-              <CardDescription className="text-white/70">
-                Manage your virtual classes
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white">My Classrooms</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-white/20 bg-black/20 text-white hover:bg-white/10"
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative mt-2">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/50" />
+                <Input
+                  placeholder="Search classrooms..."
+                  className="pl-8 bg-black/20 border-white/20 text-white w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex justify-center py-4">
-                  <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <Loader2 className="h-6 w-6 text-primary animate-spin" />
                 </div>
-              ) : classrooms.length > 0 ? (
-                <div className="space-y-3">
-                  {classrooms.map((classroom) => (
-                    <Button 
-                      key={classroom.id} 
-                      variant="outline" 
-                      className={`w-full justify-between border-white/20 bg-black/20 hover:bg-white/10 ${
-                        selectedClassroom?.id === classroom.id ? 'border-primary text-primary' : 'text-white'
-                      }`}
-                      onClick={() => setSelectedClassroom(classroom)}
-                    >
-                      <span>{classroom.name}</span>
-                      <span className="text-xs opacity-70">
-                        {classroom.students?.length || 0} students
-                      </span>
-                    </Button>
-                  ))}
-                </div>
+              ) : filteredClassrooms.length > 0 ? (
+                <ScrollArea className="h-[300px] pr-4">
+                  <div className="space-y-3">
+                    {filteredClassrooms.map((classroom) => (
+                      <Button 
+                        key={classroom.id} 
+                        variant="outline" 
+                        className={`w-full justify-between border-white/20 bg-black/20 hover:bg-white/10 ${
+                          selectedClassroom?.id === classroom.id ? 'border-primary text-primary' : 'text-white'
+                        }`}
+                        onClick={() => setSelectedClassroom(classroom)}
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <span>{classroom.name}</span>
+                          <span className="text-xs opacity-70">
+                            Created: {classroom.createdAt ? new Date((classroom.createdAt as any).seconds * 1000).toLocaleDateString() : 'Recently'}
+                          </span>
+                        </div>
+                        <Badge className="bg-black/40 text-primary border-0">
+                          {classroom.students?.length || 0} students
+                        </Badge>
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-white/70 mb-3">No classrooms created yet</p>
-                  <Button 
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Classroom
-                  </Button>
+                  {searchTerm ? (
+                    <p className="text-white/70">No classrooms match your search</p>
+                  ) : (
+                    <>
+                      <p className="text-white/70 mb-3">No classrooms created yet</p>
+                      <Button 
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Classroom
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -281,7 +330,7 @@ const TeacherDashboard = () => {
                     disabled={loading}
                   >
                     {loading ? 
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 
+                      <Loader2 className="h-4 w-4 animate-spin" /> 
                       : "Refresh"
                     }
                   </Button>
@@ -381,7 +430,7 @@ const TeacherDashboard = () => {
               className="bg-primary hover:bg-primary/90"
             >
               {isCreating ? (
-                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>Create Classroom</>
               )}

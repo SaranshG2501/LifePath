@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { School, Play, Users, Book, LogIn, ArrowRight, MessageSquare } from 'lucide-react';
-import { getClassroomByCode, joinClassroom, onClassroomUpdated, getScenarioVotes } from '@/lib/firebase';
+import { School, Play, Users, Book, LogIn, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
+import { getClassroomByCode, joinClassroom, onClassroomUpdated, getScenarioVotes, Classroom } from '@/lib/firebase';
 import { scenarios } from '@/data/scenarios';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface StudentClassroomViewProps {
   onClassroomJoined?: (classroomId: string) => void;
@@ -31,10 +32,13 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
   const { classroomId, setClassroomId, startScenario, gameMode, setGameMode } = useGameContext();
   
   const [classCode, setClassCode] = useState('');
-  const [classroom, setClassroom] = useState<any>(null);
+  const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [activeScenario, setActiveScenario] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  const [classroomToJoin, setClassroomToJoin] = useState<any>(null);
   
   // Fetch classroom data if we already have an ID
   useEffect(() => {
@@ -76,7 +80,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
     fetchClassroom();
   }, [classroomId, toast]);
   
-  const handleJoinClass = async () => {
+  const handleCheckClassCode = async () => {
     if (!currentUser) {
       toast({
         title: "Login Required",
@@ -97,28 +101,42 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
     
     try {
       setIsLoading(true);
-      console.log("Joining classroom with code:", classCode);
+      console.log("Checking classroom with code:", classCode);
       
       // Validate class code
       const foundClassroom = await getClassroomByCode(classCode);
       console.log("Found classroom:", foundClassroom);
       
       if (!foundClassroom) {
-        toast({
-          title: "Invalid Class Code",
-          description: "The class code you entered does not exist.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
+        setJoinError("The class code you entered does not exist.");
+        setIsJoinDialogOpen(true);
         return;
       }
+      
+      // Store the classroom to join
+      setClassroomToJoin(foundClassroom);
+      setIsJoinDialogOpen(true);
+    } catch (error) {
+      console.error('Error checking classroom code:', error);
+      setJoinError("Failed to verify class code. Please try again.");
+      setIsJoinDialogOpen(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleJoinClass = async () => {
+    if (!classroomToJoin || !currentUser) return;
+    
+    try {
+      setIsLoading(true);
       
       // Join the classroom
       const displayName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Student';
       console.log("Joining as:", displayName);
       
       const joinedClassroom = await joinClassroom(
-        foundClassroom.id, 
+        classroomToJoin.id, 
         currentUser.uid, 
         displayName
       );
@@ -140,6 +158,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         });
         
         setClassCode('');
+        setIsJoinDialogOpen(false);
       } else {
         throw new Error("Failed to join classroom");
       }
@@ -152,6 +171,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       });
     } finally {
       setIsLoading(false);
+      setIsJoinDialogOpen(false);
     }
   };
   
@@ -203,11 +223,11 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                 />
                 <Button 
                   className="bg-primary hover:bg-primary/90"
-                  onClick={handleJoinClass}
+                  onClick={handleCheckClassCode}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-white/20 border-t-white rounded-full"></div>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
                       <LogIn className="mr-1 h-4 w-4" />
@@ -289,6 +309,36 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
           )}
         </CardContent>
       </Card>
+      
+      {/* Join Classroom Dialog */}
+      <AlertDialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+        <AlertDialogContent className="bg-black/90 border border-primary/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              {joinError ? "Classroom Not Found" : "Join Classroom"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
+              {joinError ? joinError : (
+                classroomToJoin && `You're about to join "${classroomToJoin.name}" class. Continue?`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-black/50 border-white/20 text-white hover:bg-black/30">
+              Cancel
+            </AlertDialogCancel>
+            {!joinError && (
+              <AlertDialogAction
+                onClick={handleJoinClass}
+                className="bg-primary text-white hover:bg-primary/90"
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Class"}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
