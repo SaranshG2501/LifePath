@@ -277,15 +277,19 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Check if student is already in the classroom
     if (!studentList.some((s) => s.id === studentId)) {
+      // Create new student object
       const newStudent: ClassroomStudent = {
         id: studentId,
         name: studentName,
         joinedAt: Timestamp.now()
       };
       
+      // Create updated students array
+      const updatedStudents = [...studentList, newStudent];
+      
       // Add student to classroom
       await updateDoc(classroomRef, {
-        students: [...studentList, newStudent]
+        students: updatedStudents
       });
     }
     
@@ -387,7 +391,7 @@ export const getUserClassrooms = async (userId: string, role: string) => {
 };
 
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
-  // Fix the spread type error by converting data to DocumentData explicitly
+  // Convert data to DocumentData explicitly to avoid type error
   const updateData = data as DocumentData;
   return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };

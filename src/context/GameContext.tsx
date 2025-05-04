@@ -159,8 +159,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    // Use user's saved metrics if available, otherwise use scenario defaults
-    const startingMetrics = userProfile?.metrics || { ...scenario.initialMetrics };
+    // Start with scenario's default metrics rather than user's saved metrics
+    const startingMetrics = { ...scenario.initialMetrics };
 
     // Reset scenario choices for new scenario
     setScenarioChoices([]);
@@ -233,14 +233,21 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Calculate new metrics
+    // Calculate new metrics - create a copy to prevent mutation
     const newMetrics = { ...gameState.metrics };
-    Object.entries(choice.metricChanges).forEach(([key, value]) => {
-      const metricKey = key as keyof Metrics;
-      if (value) {
-        newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
-      }
-    });
+    
+    // Process each metric change
+    if (choice.metricChanges) {
+      Object.entries(choice.metricChanges).forEach(([key, value]) => {
+        const metricKey = key as keyof Metrics;
+        if (typeof value === 'number' && metricKey in newMetrics) {
+          // Ensure we stay within 0-100 range
+          newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
+        }
+      });
+    }
+
+    console.log("Updated metrics:", newMetrics);
 
     // Find the next scene
     const nextScene = gameState.currentScenario.scenes.find(

@@ -33,22 +33,22 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick 
   const scenarioImage = getScenarioImage();
   
   return (
-    <Card className="overflow-hidden h-full flex flex-col bg-black/30 border-white/10 backdrop-blur-md hover:border-primary/30 transition-all duration-300">
+    <Card className="overflow-hidden h-full flex flex-col bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-white/10 backdrop-blur-md hover:border-blue-300/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10">
       <div className="relative h-44 overflow-hidden">
         {scenarioImage ? (
           <img 
             src={scenarioImage} 
             alt={scenario.title} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-black/40 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-black/40 flex items-center justify-center">
             <Image className="h-12 w-12 text-white/30" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
         <div className="absolute bottom-3 left-3 flex gap-2">
-          <Badge variant="outline" className="bg-primary/20 text-primary border-none">
+          <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-none">
             {scenario.category}
           </Badge>
         </div>
@@ -63,7 +63,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick 
       <CardHeader className="pb-2 space-y-1">
         <CardTitle className="text-xl text-white flex items-center">
           {scenario.title}
-          <Sparkles className="h-3 w-3 text-primary ml-2" />
+          <Sparkles className="h-3 w-3 text-blue-300 ml-2" />
         </CardTitle>
         <CardDescription className="line-clamp-2 text-white/70">{scenario.description}</CardDescription>
       </CardHeader>
@@ -93,7 +93,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick 
       
       <CardFooter className="mt-auto">
         <Button 
-          className="w-full bg-black/40 hover:bg-primary/20 text-white border border-primary/30 hover:border-primary transition-all"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transition-all"
           onClick={() => onStart(scenario.id)}
         >
           <Play className="w-4 h-4 mr-2" /> Start Adventure

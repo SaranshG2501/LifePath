@@ -17,7 +17,7 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-scale-in">
-      <Card className="mb-8 shadow-lg border-primary/20 overflow-hidden bg-black/30 backdrop-blur-md">
+      <Card className="mb-8 shadow-lg border-blue-500/20 overflow-hidden bg-gradient-to-br from-blue-900/30 to-purple-900/30 backdrop-blur-md">
         {scene.image && (
           <div className="w-full h-48 sm:h-64 overflow-hidden relative">
             <img 
@@ -27,7 +27,7 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
             <div className="absolute bottom-4 left-4 right-4">
-              <div className="bg-gradient-to-r from-primary/80 to-secondary/80 text-white px-4 py-2 rounded-xl shadow-md inline-block">
+              <div className="bg-gradient-to-r from-blue-500/80 to-purple-500/80 text-white px-4 py-2 rounded-xl shadow-md inline-block">
                 {scene.title}
               </div>
             </div>
@@ -35,7 +35,7 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
         )}
         <CardHeader className={`pb-2 relative ${scene.image ? 'pt-4' : 'pt-6'}`}>
           {!scene.image && (
-            <div className="absolute -top-6 left-6 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-xl shadow-md animate-float">
+            <div className="absolute -top-6 left-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-xl shadow-md animate-float">
               {scene.title}
             </div>
           )}
@@ -48,10 +48,10 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({ scene, onChoiceMade }) => {
           
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pt-2 pb-6">
-          <div className="w-full text-lg font-semibold mb-2 text-center gradient-heading flex justify-center items-center gap-2 animate-pulse-slow">
-            <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
-            What will you do?
-            <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
+          <div className="w-full text-lg font-semibold mb-2 text-center flex justify-center items-center gap-2 animate-pulse-slow">
+            <Sparkles className="h-5 w-5 text-blue-300 animate-pulse-slow" />
+            <span className="text-white">What will you do?</span>
+            <Sparkles className="h-5 w-5 text-blue-300 animate-pulse-slow" />
           </div>
           <div className="w-full space-y-3">
             {scene.choices.map((choice, index) => (
@@ -82,14 +82,14 @@ const ChoiceButton: React.FC<{
 
   const button = (
     <button
-      className="choice-button animate-slide-up group"
+      className="w-full text-left px-4 py-3 rounded-lg bg-gradient-to-r from-blue-900/60 to-purple-900/60 border border-white/10 hover:border-blue-300/30 hover:bg-blue-800/30 transition-all duration-300 flex items-center gap-3 animate-fade-in shadow-md hover:shadow-blue-500/10"
       onClick={onClick}
       style={buttonStyle}
     >
       {isMobile ? (
-        <ArrowRight className="text-primary flex-shrink-0 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+        <ArrowRight className="text-blue-300 flex-shrink-0 h-5 w-5 group-hover:translate-x-1 transition-transform" />
       ) : (
-        <ChevronRight className="text-primary flex-shrink-0 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+        <ChevronRight className="text-blue-300 flex-shrink-0 h-5 w-5 group-hover:translate-x-1 transition-transform" />
       )}
       <span className="text-white">{choice.text}</span>
     </button>
@@ -102,7 +102,7 @@ const ChoiceButton: React.FC<{
           <TooltipTrigger asChild>
             {button}
           </TooltipTrigger>
-          <TooltipContent className="bg-black/90 text-white border-primary/30 shadow-lg shadow-primary/20">
+          <TooltipContent className="bg-black/90 text-white border-blue-300/30 shadow-lg shadow-blue-500/20">
             <p>{choice.tooltip}</p>
           </TooltipContent>
         </Tooltip>

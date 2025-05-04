@@ -87,6 +87,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         description: "Please login to join a classroom.",
         variant: "destructive",
       });
+      navigate('/auth');
       return;
     }
     
@@ -158,6 +159,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         });
         
         setClassCode('');
+        setIsJoinDialogOpen(false);
       } else {
         throw new Error("Failed to join classroom");
       }
@@ -170,7 +172,6 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       });
     } finally {
       setIsLoading(false);
-      setIsJoinDialogOpen(false);
     }
   };
   
@@ -188,15 +189,15 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
   
   return (
     <div className="space-y-6">
-      <Card className="bg-black/40 border-white/10 backdrop-blur-md overflow-hidden">
+      <Card className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <School className="h-5 w-5 text-primary" />
+              <School className="h-5 w-5 text-blue-300" />
               <CardTitle className="text-xl text-white">Classroom</CardTitle>
             </div>
             {classroom && (
-              <Badge className="bg-primary/20 text-primary border-0">
+              <Badge className="bg-blue-500/30 text-blue-200 border-0">
                 Joined
               </Badge>
             )}
@@ -221,7 +222,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                   disabled={isLoading}
                 />
                 <Button 
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
                   onClick={handleCheckClassCode}
                   disabled={isLoading}
                 >
@@ -250,7 +251,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                   {classroom.activeScenario && (
                     <Button 
                       size="sm" 
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
                       onClick={handleStartScenario}
                     >
                       <Play className="mr-1 h-4 w-4" />
@@ -264,7 +265,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                 {activeScenario ? (
                   <div>
                     <div className="flex items-center gap-2 text-white mb-2">
-                      <Book className="h-4 w-4 text-primary" />
+                      <Book className="h-4 w-4 text-blue-300" />
                       <span className="font-medium">Current Activity:</span> {activeScenario.title}
                     </div>
                     <p className="text-sm text-white/70">
@@ -280,7 +281,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
               
               <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                 <h3 className="font-medium mb-3 text-white flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <MessageSquare className="h-4 w-4 text-blue-300" />
                   Class Messages
                 </h3>
                 
@@ -289,7 +290,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                     <div className="space-y-2">
                       {messages.map((msg, i) => (
                         <div key={i} className="bg-black/30 rounded p-2">
-                          <div className="flex items-center gap-1 text-primary/90 text-sm font-medium">
+                          <div className="flex items-center gap-1 text-blue-300 text-sm font-medium">
                             <span>Teacher</span>
                             <span className="text-white/50 text-xs">• {new Date(msg.timestamp).toLocaleTimeString()}</span>
                           </div>
@@ -311,7 +312,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       
       {/* Join Classroom Dialog */}
       <AlertDialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-        <AlertDialogContent className="bg-black/90 border border-white/10 backdrop-blur-md">
+        <AlertDialogContent className="bg-gradient-to-br from-blue-900/80 to-purple-900/80 border border-white/10 backdrop-blur-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
               {joinError ? "Classroom Not Found" : "Join Classroom"}
@@ -329,7 +330,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
             {!joinError && (
               <AlertDialogAction
                 onClick={handleJoinClass}
-                className="bg-primary text-white hover:bg-primary/90"
+                className="bg-blue-500 text-white hover:bg-blue-600"
                 disabled={isLoading}
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Class"}
