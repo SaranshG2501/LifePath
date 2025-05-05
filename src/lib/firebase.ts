@@ -8,7 +8,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User as FirebaseUser
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -264,14 +266,17 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// FIX: Restructured joinClassroom to avoid the transaction error
+// Modified joinClassroom to work with the Firestore security rules
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
+    console.log(`Student ${studentId} is attempting to join classroom ${classroomId}`);
+    
     // First, check if the classroom exists
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
     
     if (!classroomDoc.exists()) {
+      console.error("Classroom not found");
       throw new Error("Classroom not found");
     }
 
@@ -280,8 +285,9 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
 
     // Check if student is already a member
     if (students.some(s => s.id === studentId)) {
+      console.log("Student is already a member of this classroom");
       // Already a member, return classroom data
-      return { id: classroomDoc.id, ...classroom } as Classroom;
+      return { id: classroomId, ...classroom } as Classroom;
     }
 
     // Add new student
@@ -291,41 +297,45 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       joinedAt: Timestamp.now(),
     };
 
-    // Update classroom with the new student
-    const updatedStudents = [...students, newStudent];
-    await updateDoc(classroomRef, { 
-      students: updatedStudents 
+    // We need to directly update ONLY the students array to comply with the Firestore rules
+    // This is crucial to match the security rules which only allow students to update the students array
+    await updateDoc(classroomRef, {
+      students: arrayUnion(newStudent)
     });
-
-    // After classroom is updated, update the user's profile
-    const userRef = doc(db, 'users', studentId);
-    const userDoc = await getDoc(userRef);
     
-    if (!userDoc.exists()) {
-      throw new Error("User not found");
-    }
+    console.log(`Student ${studentId} successfully added to classroom ${classroomId}`);
 
-    const userData = userDoc.data();
-    const userClassrooms = userData.classrooms || [];
+    // After classroom is updated successfully, update the user's profile
+    try {
+      const userRef = doc(db, 'users', studentId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        console.error("User not found");
+        throw new Error("User not found");
+      }
 
-    if (!userClassrooms.includes(classroomId)) {
       await updateDoc(userRef, { 
         classrooms: arrayUnion(classroomId) 
       });
+      
+      console.log(`Classroom ${classroomId} added to user ${studentId}'s profile`);
+    } catch (userError) {
+      console.error("Error updating user profile:", userError);
+      // We don't throw here because the student was already added to the classroom
+      // This is a non-critical error
     }
 
-    // Return the updated classroom
+    // Get the updated classroom to return
+    const updatedClassroomDoc = await getDoc(classroomRef);
+    if (!updatedClassroomDoc.exists()) {
+      throw new Error("Failed to retrieve updated classroom");
+    }
+    
+    const updatedClassroom = updatedClassroomDoc.data() as Classroom;
     return { 
-      id: classroomDoc.id,
-      name: classroom.name,
-      description: classroom.description,
-      teacherId: classroom.teacherId,
-      students: updatedStudents,
-      activeScenario: classroom.activeScenario,
-      currentScene: classroom.currentScene,
-      createdAt: classroom.createdAt,
-      classCode: classroom.classCode,
-      isActive: classroom.isActive
+      id: classroomId,
+      ...updatedClassroom
     } as Classroom;
   } catch (error) {
     console.error("Error joining classroom:", error);
@@ -407,8 +417,7 @@ export const getUserClassrooms = async (userId: string, role: string) => {
 };
 
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
-  // Convert data to DocumentData explicitly to avoid type error
-  const updateData = data as DocumentData;
+  const updateData = { ...data } as DocumentData;
   return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
@@ -483,6 +492,11 @@ export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => 
   });
   
   return unsubscribe;
+};
+
+export const signInWithGoogle = () => {
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider);
 };
 
 export { auth, db, Timestamp };

@@ -1,16 +1,17 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   auth,
   getUserProfile as getUserProfileFromDB,
-  loginUser ,
-  logoutUser ,
-  createUser ,
-  createUserProfile,
+  loginUser,
+  logoutUser,
+  createUser,
+  createUserProfile as createUserProfileInDB,
   ScenarioHistory,
 } from '@/lib/firebase';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { UserRole } from '@/types/game';
 
@@ -36,10 +37,6 @@ interface AuthContextType {
   signup: (email: string, password: string, username: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
-  loginWithGoogle: () => Promise<
-    | { user: any; profile: UserProfileData }
-    | { user: any; needsRoleSelection: boolean; uid: string }
-  >;
   getUserProfile: (uid: string) => Promise<UserProfileData | null>;
   createUserProfile: (uid: string, data: UserProfileData) => Promise<void>;
 }
@@ -47,7 +44,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser , setCurrentUser ] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -63,24 +60,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     classrooms: data.classrooms || [],
     history: data.history || [],
     id: data.id || '',
-    displayName: ''
+    displayName: data.displayName || ''
   });
 
   const getUserProfile = async (uid: string): Promise<UserProfileData | null> => {
     const data = await getUserProfileFromDB(uid);
     if (data) {
-      return mapToUserProfileData(data);
+      return mapToUserProfileData({ ...data, id: uid });
     }
     return null;
   };
 
-  const createUserProfileWrapper = async (uid: string, data: UserProfileData): Promise<void> => {
-    return await createUserProfile(uid, data);
+  const createUserProfile = async (uid: string, data: UserProfileData): Promise<void> => {
+    return await createUserProfileInDB(uid, data);
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser (user);
+      setCurrentUser(user);
       if (user) {
         try {
           const profileData = await getUserProfile(user.uid);
@@ -98,9 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshUserProfile = async () => {
-    if (currentUser ) {
+    if (currentUser) {
       try {
-        const profileData = await getUserProfile(currentUser .uid);
+        const profileData = await getUserProfile(currentUser.uid);
         setUserProfile(profileData);
       } catch (error) {
         console.error('Error refreshing user profile:', error);
@@ -111,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { user } = await loginUser (email, password);
+      const { user } = await loginUser(email, password);
       const profileData = await getUserProfile(user.uid);
       setUserProfile(profileData);
       toast({
@@ -146,10 +143,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         classrooms: [],
         history: [],
         id: user.uid,
-        displayName: ''
+        displayName: username
       };
 
-      await createUserProfileWrapper(user.uid, userData);
+      await createUserProfile(user.uid, userData);
       setUserProfile(userData);
       toast({
         title: 'Account created',
@@ -188,54 +185,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (): Promise<
-  | { user: any; profile: UserProfileData }
-  | { user: any; needsRoleSelection: boolean; uid: string }
-> => {
-  setIsLoading(true);
-  try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    let profileData = await getUserProfile(user.uid);
-    if (!profileData) {
-      const userData: UserProfileData = {
-        username: user.displayName || user.email?.split('@')[0] || 'User ',
-        email: user.email || '',
-        role: null,
-        xp: 0,
-        level: 1,
-        completedScenarios: [],
-        badges: [],
-        classrooms: [],
-        history: [],
-        id: user.uid,
-        displayName: ''
-      };
-      await createUserProfileWrapper(user.uid, userData);
-      profileData = userData;
-      setUserProfile(profileData); // Update userProfile state here
-      return { user, needsRoleSelection: true, uid: user.uid };
-    }
-    if (!profileData.role) {
-      return { user, needsRoleSelection: true, uid: user.uid };
-    }
-    
-    setUserProfile(profileData); // Update userProfile state here
-    return { user, profile: profileData };
-  } catch (error: any) {
-    toast({
-      title: 'Google login failed',
-      description: error.message || 'Please try again.',
-      variant: 'destructive',
-    });
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
-
   const value: AuthContextType = {
     currentUser,
     userProfile,
@@ -244,9 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signup,
     logout,
     refreshUserProfile,
-    loginWithGoogle,
     getUserProfile,
-    createUserProfile: createUserProfileWrapper,
+    createUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

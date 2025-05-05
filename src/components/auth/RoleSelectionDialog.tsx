@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { School, User, BookOpen } from 'lucide-react';
+import { School, User, BookOpen, X } from 'lucide-react';
 
 interface RoleSelectionDialogProps {
   open: boolean;
@@ -17,8 +17,16 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gradient-to-br from-indigo-900/80 to-purple-900/80 border border-white/10 backdrop-blur-md">
-        <DialogHeader>
+      <DialogContent className="bg-gradient-to-br from-indigo-900/80 to-purple-900/80 border border-white/10 backdrop-blur-md max-w-md mx-auto">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+        >
+          <X className="h-4 w-4 text-white" />
+          <span className="sr-only">Close</span>
+        </button>
+        
+        <DialogHeader className="pb-2">
           <DialogTitle className="text-white text-xl text-center">Select Your Role</DialogTitle>
           <DialogDescription className="text-white/70 text-center">
             Choose your role to personalize your LifePath experience
@@ -27,7 +35,7 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           <div
-            className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 transition-all"
+            className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 hover:bg-black/40 transition-all"
             onClick={() => onSelectRole('student')}
           >
             <div className="p-3 bg-blue-500/20 rounded-full w-16 h-16 flex items-center justify-center mb-3">
@@ -40,7 +48,7 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
           </div>
           
           <div
-            className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 transition-all"
+            className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 hover:bg-black/40 transition-all"
             onClick={() => onSelectRole('teacher')}
           >
             <div className="p-3 bg-blue-500/20 rounded-full w-16 h-16 flex items-center justify-center mb-3">

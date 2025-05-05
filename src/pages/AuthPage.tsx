@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { LogIn, UserPlus, AtSign } from 'lucide-react';
+import { LogIn, UserPlus, AtSign, Github, Mail } from 'lucide-react';
 import RoleSelectionDialog from '@/components/auth/RoleSelectionDialog';
+import { signInWithGoogle } from '@/lib/firebase';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -18,11 +18,13 @@ const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [signupData, setSignupData] = useState<{email: string; password: string; displayName: string} | null>(null);
+  const [isGoogleSignup, setIsGoogleSignup] = useState(false);
+  const [googleUserData, setGoogleUserData] = useState<any>(null);
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { loginWithEmailAndPassword, signupWithEmailAndPassword, loginAsGuest } = useAuth();
   const { setGameMode } = useGameContext();
+  const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile } = useAuth();
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,7 @@ const AuthPage: React.FC = () => {
     
     try {
       setIsLoading(true);
-      await loginWithEmailAndPassword(email, password);
+      await login(email, password);
       
       toast({
         title: "Welcome back!",
@@ -71,26 +73,50 @@ const AuthPage: React.FC = () => {
     
     // Store the signup data and show the role selection dialog
     setSignupData({ email, password, displayName });
+    setIsGoogleSignup(false);
     setShowRoleDialog(true);
   };
 
   const handleSignupComplete = async (selectedRole: string) => {
-    if (!signupData) return;
+    setIsLoading(true);
     
     try {
-      setIsLoading(true);
-      await signupWithEmailAndPassword(signupData.email, signupData.password, signupData.displayName, selectedRole);
-      
-      toast({
-        title: "Account created",
-        description: "Your account has been created successfully.",
-      });
-      
-      if (selectedRole === 'teacher') {
-        setGameMode('classroom');
-        navigate('/teacher');
-      } else {
-        navigate('/profile');
+      if (isGoogleSignup && googleUserData) {
+        // Google signup flow
+        const uid = googleUserData.uid;
+        
+        await createUserProfile(uid, {
+          displayName: googleUserData.displayName || '',
+          email: googleUserData.email || '',
+          role: selectedRole
+        });
+        
+        toast({
+          title: "Account created",
+          description: "Your Google account has been set up successfully.",
+        });
+        
+        if (selectedRole === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
+      } else if (signupData) {
+        // Email/password signup flow
+        await signup(signupData.email, signupData.password, signupData.displayName, selectedRole);
+        
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully.",
+        });
+        
+        if (selectedRole === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
       }
     } catch (error: any) {
       toast({
@@ -101,29 +127,61 @@ const AuthPage: React.FC = () => {
     } finally {
       setIsLoading(false);
       setShowRoleDialog(false);
+      setGoogleUserData(null);
     }
   };
   
-  const handleGuestLogin = async () => {
+  const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
-      await loginAsGuest();
       
-      toast({
-        title: "Welcome, Guest!",
-        description: "You're now using LifePath as a guest.",
-      });
+      const result = await signInWithGoogle();
+      const user = result.user;
       
-      navigate('/');
+      // Check if the user already has a profile
+      const profile = await getUserProfile(user.uid);
+      
+      if (!profile || !profile.role) {
+        // New user or existing user without role - show role selection dialog
+        setGoogleUserData({
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email
+        });
+        setIsGoogleSignup(true);
+        setShowRoleDialog(true);
+      } else {
+        // Existing user - proceed to appropriate page
+        toast({
+          title: "Welcome!",
+          description: `You're logged in as ${profile.displayName || profile.email}`,
+        });
+        
+        if (profile.role === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
+      }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to continue as guest. Please try again.",
+        title: "Google login failed",
+        description: error.message || "Failed to log in with Google. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleGuestLogin = async () => {
+    // Guest login functionality would go here
+    toast({
+      title: "Guest Login",
+      description: "Guest login is not implemented yet.",
+    });
+    navigate('/');
   };
   
   return (
@@ -252,23 +310,52 @@ const AuthPage: React.FC = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col">
-          <div className="relative w-full mb-3">
+        <CardFooter className="flex flex-col space-y-3">
+          <div className="relative w-full mb-2">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-black/70 px-2 text-white/50">or</span>
+              <span className="bg-black/70 px-2 text-white/50">or continue with</span>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            className="w-full border-white/20 text-white bg-black/30 hover:bg-white/10"
-            onClick={handleGuestLogin}
-            disabled={isLoading}
-          >
-            Continue as Guest
-          </Button>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <Button 
+              variant="outline" 
+              className="border-white/20 text-white bg-black/30 hover:bg-white/10"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2" aria-hidden="true">
+                <path
+                  d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
+                  fill="#EA4335"
+                />
+                <path
+                  d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12.0004 24C15.2404 24 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24 12.0004 24Z"
+                  fill="#34A853"
+                />
+              </svg>
+              Google
+            </Button>
+            <Button 
+              variant="outline" 
+              className="border-white/20 text-white bg-black/30 hover:bg-white/10"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+            >
+              <Mail className="h-5 w-5 mr-2" />
+              Guest
+            </Button>
+          </div>
         </CardFooter>
       </Card>
 
@@ -276,7 +363,10 @@ const AuthPage: React.FC = () => {
       <RoleSelectionDialog 
         open={showRoleDialog} 
         onSelectRole={handleSignupComplete}
-        onClose={() => setShowRoleDialog(false)}
+        onClose={() => {
+          setShowRoleDialog(false);
+          setGoogleUserData(null);
+        }}
       />
     </div>
   );
