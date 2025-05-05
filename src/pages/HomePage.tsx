@@ -245,7 +245,7 @@ const HomePage = () => {
               className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all"
             >
               <Play className="h-4 w-4 mr-2" />
-              Join a Classroom
+              Play in a Classroom
             </Button>
           )}
         </div>
