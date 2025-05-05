@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -266,12 +265,12 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Modified joinClassroom to work with the Firestore security rules
+// Fixed joinClassroom function to work with Firestore security rules
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} is attempting to join classroom ${classroomId}`);
     
-    // First, check if the classroom exists
+    // First fetch the classroom data
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
     
@@ -286,6 +285,17 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     // Check if student is already a member
     if (students.some(s => s.id === studentId)) {
       console.log("Student is already a member of this classroom");
+      
+      // Still need to update the user profile to ensure classroom is in their list
+      try {
+        const userRef = doc(db, 'users', studentId);
+        await updateDoc(userRef, { 
+          classrooms: arrayUnion(classroomId) 
+        });
+      } catch (userError) {
+        console.error("Error updating user profile:", userError);
+      }
+      
       // Already a member, return classroom data
       return { id: classroomId, ...classroom } as Classroom;
     }
@@ -297,8 +307,8 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       joinedAt: Timestamp.now(),
     };
 
-    // We need to directly update ONLY the students array to comply with the Firestore rules
-    // This is crucial to match the security rules which only allow students to update the students array
+    // This is the critical update that needs to match the security rules:
+    // ONLY update the students array - nothing else in the document
     await updateDoc(classroomRef, {
       students: arrayUnion(newStudent)
     });
@@ -308,13 +318,6 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     // After classroom is updated successfully, update the user's profile
     try {
       const userRef = doc(db, 'users', studentId);
-      const userDoc = await getDoc(userRef);
-      
-      if (!userDoc.exists()) {
-        console.error("User not found");
-        throw new Error("User not found");
-      }
-
       await updateDoc(userRef, { 
         classrooms: arrayUnion(classroomId) 
       });
@@ -332,7 +335,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       throw new Error("Failed to retrieve updated classroom");
     }
     
-    const updatedClassroom = updatedClassroomDoc.data() as Classroom;
+    const updatedClassroom = updatedClassroomDoc.data() as unknown as Classroom;
     return { 
       id: classroomId,
       ...updatedClassroom

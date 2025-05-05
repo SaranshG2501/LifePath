@@ -3,10 +3,11 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { School, User, BookOpen, X } from 'lucide-react';
+import { UserRole } from '@/types/game';
 
 interface RoleSelectionDialogProps {
   open: boolean;
-  onSelectRole: (role: string) => void;
+  onSelectRole: (role: UserRole) => void;
   onClose: () => void;
 }
 
@@ -37,6 +38,9 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
           <div
             className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 hover:bg-black/40 transition-all"
             onClick={() => onSelectRole('student')}
+            aria-label="Select Student Role"
+            role="button"
+            tabIndex={0}
           >
             <div className="p-3 bg-blue-500/20 rounded-full w-16 h-16 flex items-center justify-center mb-3">
               <BookOpen className="text-blue-300 h-8 w-8" />
@@ -50,6 +54,9 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
           <div
             className="bg-black/30 border border-white/10 rounded-lg p-5 flex flex-col items-center cursor-pointer hover:border-blue-300/50 hover:bg-black/40 transition-all"
             onClick={() => onSelectRole('teacher')}
+            aria-label="Select Teacher Role"
+            role="button"
+            tabIndex={0}
           >
             <div className="p-3 bg-blue-500/20 rounded-full w-16 h-16 flex items-center justify-center mb-3">
               <School className="text-blue-300 h-8 w-8" />

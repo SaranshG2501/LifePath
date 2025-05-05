@@ -38,7 +38,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   getUserProfile: (uid: string) => Promise<UserProfileData | null>;
-  createUserProfile: (uid: string, data: UserProfileData) => Promise<void>;
+  createUserProfile: (uid: string, data: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   const mapToUserProfileData = (data: any): UserProfileData => ({
-    username: data.username || '',
+    username: data.username || data.displayName || '',
     email: data.email || '',
     role: data.role || null,
     xp: data.xp || 0,
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     classrooms: data.classrooms || [],
     history: data.history || [],
     id: data.id || '',
-    displayName: data.displayName || ''
+    displayName: data.displayName || data.username || ''
   });
 
   const getUserProfile = async (uid: string): Promise<UserProfileData | null> => {
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   };
 
-  const createUserProfile = async (uid: string, data: UserProfileData): Promise<void> => {
+  const createUserProfile = async (uid: string, data: any): Promise<void> => {
     return await createUserProfileInDB(uid, data);
   };
 
@@ -99,10 +99,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profileData = await getUserProfile(currentUser.uid);
         setUserProfile(profileData);
+        return profileData;
       } catch (error) {
         console.error('Error refreshing user profile:', error);
       }
     }
+    return null;
   };
 
   const login = async (email: string, password: string) => {
@@ -113,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserProfile(profileData);
       toast({
         title: 'Login successful',
-        description: `Welcome back, ${profileData?.username || ''}!`,
+        description: `Welcome back, ${profileData?.displayName || ''}!`,
       });
     } catch (error: any) {
       toast({

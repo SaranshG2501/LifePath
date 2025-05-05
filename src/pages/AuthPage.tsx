@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { LogIn, UserPlus, AtSign, Github, Mail } from 'lucide-react';
 import RoleSelectionDialog from '@/components/auth/RoleSelectionDialog';
 import { signInWithGoogle } from '@/lib/firebase';
+import { UserRole } from '@/types/game';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +26,19 @@ const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setGameMode } = useGameContext();
-  const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile } = useAuth();
+  const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile, refreshUserProfile } = useAuth();
+  
+  // If user becomes authenticated during the process, automatically redirect
+  useEffect(() => {
+    if (currentUser && userProfile && !showRoleDialog) {
+      if (userProfile.role === 'teacher') {
+        setGameMode('classroom');
+        navigate('/teacher');
+      } else {
+        navigate('/profile');
+      }
+    }
+  }, [currentUser, userProfile, showRoleDialog, navigate, setGameMode]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +61,7 @@ const AuthPage: React.FC = () => {
         description: "You've successfully logged in.",
       });
       
-      navigate('/profile');
+      // Navigation is handled by the useEffect
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -77,7 +91,7 @@ const AuthPage: React.FC = () => {
     setShowRoleDialog(true);
   };
 
-  const handleSignupComplete = async (selectedRole: string) => {
+  const handleSignupComplete = async (selectedRole: UserRole) => {
     setIsLoading(true);
     
     try {
@@ -87,9 +101,13 @@ const AuthPage: React.FC = () => {
         
         await createUserProfile(uid, {
           displayName: googleUserData.displayName || '',
+          username: googleUserData.displayName || '',
           email: googleUserData.email || '',
           role: selectedRole
         });
+        
+        // Refresh the user profile to get the latest data
+        await refreshUserProfile();
         
         toast({
           title: "Account created",
@@ -156,6 +174,9 @@ const AuthPage: React.FC = () => {
           title: "Welcome!",
           description: `You're logged in as ${profile.displayName || profile.email}`,
         });
+        
+        // Ensure user profile is loaded correctly
+        await refreshUserProfile();
         
         if (profile.role === 'teacher') {
           setGameMode('classroom');
