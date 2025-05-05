@@ -302,7 +302,19 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
         transaction.update(userRef, { classrooms: [...userClassrooms, classroomId] });
       }
 
-      return { id: classroomDoc.id, ...classroom, students: updatedStudents };
+      // Return the updated classroom with a properly typed structure 
+      return { 
+        id: classroomDoc.id,
+        name: classroom.name,
+        description: classroom.description,
+        teacherId: classroom.teacherId,
+        students: updatedStudents,
+        activeScenario: classroom.activeScenario,
+        currentScene: classroom.currentScene,
+        createdAt: classroom.createdAt,
+        classCode: classroom.classCode,
+        isActive: classroom.isActive
+      };
     });
 
     return result;

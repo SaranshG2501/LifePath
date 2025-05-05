@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
@@ -145,11 +146,14 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       
       console.log("Joined classroom:", joinedClassroom);
       
-      if (joinedClassroom) {
+      // Check if joinedClassroom is properly defined
+      if (joinedClassroom && joinedClassroom.id) {
+        // Update local state
         setClassroom(joinedClassroom);
         setClassroomId(joinedClassroom.id);
         setGameMode("classroom");
         
+        // Trigger callback if provided
         if (onClassroomJoined) {
           onClassroomJoined(joinedClassroom.id);
         }
@@ -159,16 +163,17 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
           description: `You have joined ${joinedClassroom.name}!`,
         });
         
+        // Reset form
         setClassCode('');
         setIsJoinDialogOpen(false);
       } else {
-        throw new Error("Failed to join classroom");
+        throw new Error("Failed to join classroom - incomplete response");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining classroom:', error);
       toast({
         title: 'Error',
-        description: 'Failed to join classroom. Please try again.',
+        description: error.message || 'Failed to join classroom. Please try again.',
         variant: 'destructive',
       });
     } finally {

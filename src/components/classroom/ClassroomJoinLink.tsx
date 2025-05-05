@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ const ClassroomJoinLink: React.FC = () => {
   const [classDescription, setClassDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userHasClassrooms, setUserHasClassrooms] = useState(false);
+  const [joinError, setJoinError] = useState('');
   
   // Check if user already has classrooms
   useEffect(() => {
@@ -138,10 +140,12 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
+      setJoinError('');
       console.log("Attempting to join classroom with code:", normalizedCode);
 
       const classroom = await getClassroomByCode(normalizedCode);
       if (!classroom) {
+        setJoinError(`Classroom with code ${normalizedCode} does not exist.`);
         toast({
           title: "Invalid Code",
           description: `Classroom with code ${normalizedCode} does not exist.`,
@@ -158,6 +162,11 @@ const ClassroomJoinLink: React.FC = () => {
 
       const joinedClassroom = await joinClassroom(classroom.id!, currentUser.uid, displayName);
       console.log("Successfully joined classroom:", joinedClassroom);
+
+      // Verify we have a valid result
+      if (!joinedClassroom || !joinedClassroom.id) {
+        throw new Error("Failed to join classroom - no valid response received");
+      }
 
       // Refresh user profile to update classrooms list and reflect join in UI
       if (refreshUserProfile) {
@@ -178,6 +187,7 @@ const ClassroomJoinLink: React.FC = () => {
       navigate("/profile");
     } catch (error) {
       console.error("Error joining classroom:", error);
+      setJoinError(error instanceof Error ? error.message : "Failed to join classroom");
       toast({
         title: "Error",
         description:
@@ -285,13 +295,19 @@ const ClassroomJoinLink: React.FC = () => {
                 placeholder="e.g., LIFE-1234"
                 className="bg-black/40 border-white/20 text-white"
               />
+              {joinError && (
+                <p className="text-red-400 text-sm mt-1">{joinError}</p>
+              )}
             </div>
           </div>
           
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setIsJoinModalOpen(false)}
+              onClick={() => {
+                setIsJoinModalOpen(false);
+                setJoinError('');
+              }}
               className="border-white/20 text-white hover:bg-white/10"
             >
               Cancel
