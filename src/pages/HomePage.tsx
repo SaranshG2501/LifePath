@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -89,6 +88,15 @@ const HomePage = () => {
             >
               <Info size={16} className="text-blue-300" />
               Learn More
+            </Button>
+
+            <Button 
+              onClick={() => navigate('/avatar')}
+              variant="outline"
+              className="flex items-center gap-2 border-white/20 bg-black/20 text-white hover:bg-black/40"
+            >
+              <User size={16} className="text-blue-300" />
+              Try 3D Avatar
             </Button>
           </div>
           
