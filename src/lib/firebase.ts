@@ -27,7 +27,8 @@ import {
   onSnapshot,
   DocumentData,
   Timestamp,
-  FieldValue
+  FieldValue,
+  arrayUnion
 } from 'firebase/firestore';
 import { Metrics } from '@/types/game';
 
@@ -263,61 +264,69 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-import { runTransaction } from "firebase/firestore";
-
+// FIX: Restructured joinClassroom to avoid the transaction error
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
+    // First, check if the classroom exists
     const classroomRef = doc(db, 'classrooms', classroomId);
-    const userRef = doc(db, 'users', studentId);
+    const classroomDoc = await getDoc(classroomRef);
+    
+    if (!classroomDoc.exists()) {
+      throw new Error("Classroom not found");
+    }
 
-    const result = await runTransaction(db, async (transaction) => {
-      const classroomDoc = await transaction.get(classroomRef);
-      if (!classroomDoc.exists()) throw new Error("Classroom not found");
+    const classroom = classroomDoc.data() as Classroom;
+    const students = classroom.students || [];
 
-      const classroom = classroomDoc.data() as Classroom;
-      const students = classroom.students || [];
+    // Check if student is already a member
+    if (students.some(s => s.id === studentId)) {
+      // Already a member, return classroom data
+      return { id: classroomDoc.id, ...classroom } as Classroom;
+    }
 
-      if (students.some(s => s.id === studentId)) {
-        // already a member, return classroom data
-        return { id: classroomDoc.id, ...classroom };
-      }
+    // Add new student
+    const newStudent: ClassroomStudent = {
+      id: studentId,
+      name: studentName,
+      joinedAt: Timestamp.now(),
+    };
 
-      // Add new student
-      const newStudent: ClassroomStudent = {
-        id: studentId,
-        name: studentName,
-        joinedAt: Timestamp.now(),
-      };
-      const updatedStudents = [...students, newStudent];
-      transaction.update(classroomRef, { students: updatedStudents });
-
-      // Update user's classrooms
-      const userDoc = await transaction.get(userRef);
-      if (!userDoc.exists()) throw new Error("User not found");
-
-      const userData = userDoc.data();
-      const userClassrooms = userData.classrooms || [];
-
-      if (!userClassrooms.includes(classroomId)) {
-        transaction.update(userRef, { classrooms: [...userClassrooms, classroomId] });
-      }
-
-      // Return the updated classroom with a properly typed structure 
-      return { 
-        id: classroomDoc.id,
-        name: classroom.name,
-        description: classroom.description,
-        teacherId: classroom.teacherId,
-        students: updatedStudents,
-        activeScenario: classroom.activeScenario,
-        currentScene: classroom.currentScene,
-        createdAt: classroom.createdAt,
-        classCode: classroom.classCode,
-        isActive: classroom.isActive
-      };
+    // Update classroom with the new student
+    const updatedStudents = [...students, newStudent];
+    await updateDoc(classroomRef, { 
+      students: updatedStudents 
     });
 
-    return result;
+    // After classroom is updated, update the user's profile
+    const userRef = doc(db, 'users', studentId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error("User not found");
+    }
+
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+
+    if (!userClassrooms.includes(classroomId)) {
+      await updateDoc(userRef, { 
+        classrooms: arrayUnion(classroomId) 
+      });
+    }
+
+    // Return the updated classroom
+    return { 
+      id: classroomDoc.id,
+      name: classroom.name,
+      description: classroom.description,
+      teacherId: classroom.teacherId,
+      students: updatedStudents,
+      activeScenario: classroom.activeScenario,
+      currentScene: classroom.currentScene,
+      createdAt: classroom.createdAt,
+      classCode: classroom.classCode,
+      isActive: classroom.isActive
+    } as Classroom;
   } catch (error) {
     console.error("Error joining classroom:", error);
     throw error;

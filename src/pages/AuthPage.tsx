@@ -1,298 +1,283 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/components/ui/use-toast';
-import { Gamepad2, LogIn, UserPlus, School, User, ArrowRight, Sparkles } from 'lucide-react';
-import { UserRole } from '@/types/game';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { RiGoogleFill } from '@remixicon/react';
+import { LogIn, UserPlus, AtSign } from 'lucide-react';
+import RoleSelectionDialog from '@/components/auth/RoleSelectionDialog';
 
 const AuthPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
-  const { toast } = useToast();
+  const [displayName, setDisplayName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [signupData, setSignupData] = useState<{email: string; password: string; displayName: string} | null>(null);
+  
   const navigate = useNavigate();
-  const { setUserRole, userRole } = useGameContext();
-  const { login, signup, userProfile, isLoading, loginWithGoogle, getUserProfile, createUserProfile } = useAuth();
-
-  // Redirect when userProfile is loaded
-  useEffect(() => {
-    console.log('User Profile:', userProfile);
-    console.log('Is Loading:', isLoading);
-    if (userProfile && !isLoading) {
-      navigate('/profile');
-    }
-  }, [userProfile, isLoading, navigate]);
-
+  const { toast } = useToast();
+  const { loginWithEmailAndPassword, signupWithEmailAndPassword, loginAsGuest } = useAuth();
+  const { setGameMode } = useGameContext();
+  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password) {
       toast({
-        title: 'Login failed',
-        description: 'Please enter your email and password.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter your email and password.",
+        variant: "destructive",
       });
       return;
     }
+    
     try {
-      await login(email, password);
-      setUserRole(role);
-    } catch (error) {
-      console.error('Login error:', error);
+      setIsLoading(true);
+      await loginWithEmailAndPassword(email, password);
+      
       toast({
-        title: 'Login failed',
-        description: (error as Error).message || 'Please try again.',
-        variant: 'destructive',
+        title: "Welcome back!",
+        description: "You've successfully logged in.",
       });
+      
+      navigate('/profile');
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleSignup = async (e: React.FormEvent) => {
+  
+  const handleSignupStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !username) {
+    
+    if (!email || !password || !displayName) {
       toast({
-        title: 'Signup failed',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please fill in all fields.",
+        variant: "destructive",
       });
       return;
     }
+    
+    // Store the signup data and show the role selection dialog
+    setSignupData({ email, password, displayName });
+    setShowRoleDialog(true);
+  };
+
+  const handleSignupComplete = async (selectedRole: string) => {
+    if (!signupData) return;
+    
     try {
-      await signup(email, password, username, role);
-      setUserRole(role);
-    } catch (error) {
-      console.error('Signup error:', error);
+      setIsLoading(true);
+      await signupWithEmailAndPassword(signupData.email, signupData.password, signupData.displayName, selectedRole);
+      
       toast({
-        title: 'Signup failed',
-        description: (error as Error).message || 'Please try again.',
-        variant: 'destructive',
+        title: "Account created",
+        description: "Your account has been created successfully.",
       });
-    }
-  };
-
-  const handleGuestLogin = () => {
-    setUserRole('guest');
-    toast({
-      title: 'Guest access granted',
-      description: "You're now browsing as a guest. Some features are limited.",
-    });
-    navigate('/');
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      const result = await loginWithGoogle();
-
-      if ('needsRoleSelection' in result && result.needsRoleSelection) {
-        const desiredRole = prompt('Please enter your role (student or teacher):');
-        if (!desiredRole) {
-          toast({
-            title: 'Role selection required',
-            description: 'You must select a valid role: student or teacher.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const normalizedRole = desiredRole.trim().toLowerCase();
-        if (normalizedRole !== 'student' && normalizedRole !== 'teacher') {
-          toast({
-            title: 'Role selection required',
-            description: 'You must select a valid role: student or teacher.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const roleAsUserRole = normalizedRole as UserRole;
-
-        const existingProfile = await getUserProfile(result.uid);
-        if (existingProfile) {
-          await createUserProfile(result.uid, {
-            ...existingProfile,
-            role: roleAsUserRole,
-          });
-        }
-        setUserRole(roleAsUserRole);
-        navigate('/profile');
-      } else if ('profile' in result) {
-        const existingRole = result.profile.role?.toLowerCase() || 'student';
-        setUserRole(existingRole as UserRole);
+      
+      if (selectedRole === 'teacher') {
+        setGameMode('classroom');
+        navigate('/teacher');
+      } else {
         navigate('/profile');
       }
     } catch (error: any) {
-      console.error('Google login error:', error);
       toast({
-        title: 'Google login failed',
-        description: error.message || 'Please try again.',
-        variant: 'destructive',
+        title: "Signup failed",
+        description: error.message || "Failed to create your account. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+      setShowRoleDialog(false);
     }
   };
-
-  if (userProfile && !isLoading) {
-    // Already logged in, prevent showing auth page
-    return null;
-  }
-
+  
+  const handleGuestLogin = async () => {
+    try {
+      setIsLoading(true);
+      await loginAsGuest();
+      
+      toast({
+        title: "Welcome, Guest!",
+        description: "You're now using LifePath as a guest.",
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to continue as guest. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return (
-    <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
-      <Card className="w-full max-w-md border-primary/20 bg-black/30 backdrop-blur-md shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto flex items-center justify-center mb-4 relative">
-            <Gamepad2 className="h-12 w-12 text-primary animate-pulse-slow absolute" />
-            <div className="absolute inset-0 bg-primary/20 rounded-full blur-md" />
-          </div>
-          <CardTitle className="text-2xl font-bold gradient-heading inline-flex items-center gap-1 relative">
-            <span className="text-white">Welcome to LifePath</span>
-            <Sparkles className="h-4 w-4 text-neon-yellow absolute -top-2 -right-6 animate-pulse-slow" />
-          </CardTitle>
-          <CardDescription className="text-white/80">
-            Continue your journey of decision-making
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-md border-none bg-black/40 backdrop-blur shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center text-white">Welcome to LifePath</CardTitle>
+          <CardDescription className="text-center text-white/70">
+            Sign in or create an account to track your progress
           </CardDescription>
         </CardHeader>
-
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
-          <TabsList className="grid grid-cols-2 w-[80%] mx-auto mb-4">
-            <TabsTrigger value="login" className="data-[state=active]:bg-primary/20">Login</TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-primary/20">Sign Up</TabsTrigger>
-          </TabsList>
-
-          <CardContent>
+        <CardContent>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4 bg-black/20 border-white/10">
+              <TabsTrigger value="login" className="data-[state=active]:bg-primary/20">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-primary/20">Sign Up</TabsTrigger>
+            </TabsList>
+            
             <TabsContent value="login">
-              <form onSubmit={handleLogin}>
-                <div className="space-y-4">
-                  <Label htmlFor="email" className="text-white">Email</Label>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="login-email" className="text-sm font-medium text-white">Email</label>
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-2.5 h-5 w-5 text-white/40" />
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10 bg-black/20 border-white/20 text-white placeholder:text-white/30"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="login-password" className="text-sm font-medium text-white">Password</label>
+                    <a href="#" className="text-sm text-primary hover:text-primary/80">
+                      Forgot password?
+                    </a>
+                  </div>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="yourname@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white"
-                  />
-
-                  <Label htmlFor="password" className="text-white">Password</Label>
-                  <Input
-                    id="password"
+                    id="login-password"
                     type="password"
-                    placeholder="********"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white"
+                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
                   />
-
-                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login
-                  </Button>
                 </div>
-              </form>
-
-              <div className="mt-6 flex flex-col gap-2">
-                <Button
-                  className="bg-[#DB4437] text-white after:flex-1 hover:bg-[#DB4437]/90"
-                  onClick={handleGoogleLogin}
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary hover:bg-primary/90"
+                  disabled={isLoading}
                 >
-                  <span className="pointer-events-none me-2 flex-1">
-                    <RiGoogleFill className="opacity-60" size={16} aria-hidden="true" />
-                  </span>
-                  Login with Google
+                  {isLoading ? (
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Sign In
+                    </>
+                  )}
                 </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup}>
-                <div className="space-y-4">
-                  <Label htmlFor="username" className="text-white">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white"
-                  />
-
-                  <Label htmlFor="email-signup" className="text-white">Email</Label>
-                  <Input
-                    id="email-signup"
-                    type="email"
-                    placeholder="yourname@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white"
-                  />
-
-                  <Label htmlFor="password-signup" className="text-white">Password</Label>
-                  <Input
-                    id="password-signup"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white"
-                  />
-
-                  <Label className="text-white">I am a:</Label>
-                  <RadioGroup
-                    defaultValue="student"
-                    value={role}
-                    onValueChange={(value) => setRole(value as UserRole)}
-                    className="flex space-x-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" className="text-primary border-white/50" />
-                      <Label htmlFor="student" className="flex items-center text-white">
-                        <User className="mr-1 h-4 w-4" />
-                        Student
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="teacher" id="teacher" className="text-primary border-white/50" />
-                      <Label htmlFor="teacher" className="flex items-center text-white">
-                        <School className="mr-1 h-4 w-4" />
-                        Teacher
-                      </Label>
-                    </div>
-                  </RadioGroup>
-
-                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Create Account
-                  </Button>
-                </div>
               </form>
             </TabsContent>
-          </CardContent>
-        </Tabs>
-
-        <CardFooter className="flex flex-col gap-4 pb-6">
-          <div className="relative flex items-center w-full">
-            <div className="flex-grow border-t border-white/10" />
-            <span className="mx-4 flex-shrink text-white/60 text-sm">or</span>
-            <div className="flex-grow border-t border-white/10" />
+            
+            <TabsContent value="signup">
+              <form onSubmit={handleSignupStart} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="signup-name" className="text-sm font-medium text-white">Display Name</label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Your Name"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="signup-email" className="text-sm font-medium text-white">Email</label>
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-2.5 h-5 w-5 text-white/40" />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10 bg-black/20 border-white/20 text-white placeholder:text-white/30"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="signup-password" className="text-sm font-medium text-white">Password</label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary hover:bg-primary/90"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Account
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter className="flex flex-col">
+          <div className="relative w-full mb-3">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-black/70 px-2 text-white/50">or</span>
+            </div>
           </div>
-
-          <Button
-            variant="outline"
-            className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
+          <Button 
+            variant="outline" 
+            className="w-full border-white/20 text-white bg-black/30 hover:bg-white/10"
             onClick={handleGuestLogin}
+            disabled={isLoading}
           >
             Continue as Guest
-            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Role selection dialog */}
+      <RoleSelectionDialog 
+        open={showRoleDialog} 
+        onSelectRole={handleSignupComplete}
+        onClose={() => setShowRoleDialog(false)}
+      />
     </div>
   );
 };

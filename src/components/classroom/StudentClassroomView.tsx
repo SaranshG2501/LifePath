@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -104,6 +104,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
     
     try {
       setIsLoading(true);
+      setJoinError('');
       console.log("Checking classroom with code:", classCode);
       
       // Validate class code
@@ -133,6 +134,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
     
     try {
       setIsLoading(true);
+      setJoinError('');
       
       // Join the classroom
       const displayName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Student';
@@ -171,6 +173,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       }
     } catch (error: any) {
       console.error('Error joining classroom:', error);
+      setJoinError(error.message || 'Failed to join classroom');
       toast({
         title: 'Error',
         description: error.message || 'Failed to join classroom. Please try again.',
@@ -330,7 +333,10 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-black/50 border-white/20 text-white hover:bg-black/30">
+            <AlertDialogCancel 
+              className="bg-black/50 border-white/20 text-white hover:bg-black/30"
+              onClick={() => setJoinError('')}
+            >
               Cancel
             </AlertDialogCancel>
             {!joinError && (
