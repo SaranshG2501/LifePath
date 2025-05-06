@@ -26,7 +26,6 @@ const GamePage = () => {
     mirrorMomentsEnabled,
     toggleMirrorMoments
   } = useGameContext();
-  
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -166,27 +165,22 @@ const GamePage = () => {
       </div>
 
       {/* Main game content */}
-      <div className="relative">
-        {/* Game content */}
-        <div className="game-content">
-          {gameState.currentScene.isEnd ? (
-            <ResultsSummary 
-              gameState={gameState} 
-              onPlayAgain={handlePlayAgain} 
-              onReturnHome={handleReturnHome} 
-            />
-          ) : showMirrorMoment ? (
-            <MirrorMoment />
-          ) : gameMode === "classroom" ? (
-            <EnhancedClassroomVoting scene={gameState.currentScene} />
-          ) : (
-            <SceneDisplay 
-              scene={gameState.currentScene} 
-              onChoiceMade={handleChoiceMade} 
-            />
-          )}
-        </div>
-      </div>
+      {gameState.currentScene.isEnding ? (
+        <ResultsSummary 
+          gameState={gameState} 
+          onPlayAgain={handlePlayAgain} 
+          onReturnHome={handleReturnHome} 
+        />
+      ) : showMirrorMoment ? (
+        <MirrorMoment />
+      ) : gameMode === "classroom" ? (
+        <EnhancedClassroomVoting scene={gameState.currentScene} />
+      ) : (
+        <SceneDisplay 
+          scene={gameState.currentScene} 
+          onChoiceMade={handleChoiceMade} 
+        />
+      )}
     </div>
   );
 };
