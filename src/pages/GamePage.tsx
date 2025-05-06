@@ -68,16 +68,18 @@ const GamePage = () => {
   // Have avatar react to new scenes
   useEffect(() => {
     if (gameState.currentScene) {
-      // Set initial scene reaction
-      const sceneMood = gameState.currentScene.positivityLevel > 0.7 ? 'happy' : 
-                      gameState.currentScene.positivityLevel < 0.3 ? 'sad' : 'neutral';
+      // Set initial scene reaction based on scene content
+      const sceneMood = gameState.currentScene.description.includes("challenge") || 
+                      gameState.currentScene.description.includes("difficult") ? 'stressed' :
+                      gameState.currentScene.description.includes("happy") || 
+                      gameState.currentScene.description.includes("success") ? 'happy' : 'neutral';
       
       triggerReaction(
         sceneMood, 
         'idle', 
-        gameState.currentScene.isDecision ? 
+        gameState.currentScene.choices.length > 0 ? 
           "What will you choose?" : 
-          gameState.currentScene.isEnding ?
+          gameState.currentScene.isEnd ?
             "This is the end of your journey. Let's see how you did!" :
             "Here's what happened next..."
       );
@@ -88,8 +90,8 @@ const GamePage = () => {
     const choice = gameState.currentScene?.choices.find(c => c.id === choiceId);
     if (choice) {
       // React to user choice
-      const choiceMood = choice.positivityDelta > 0 ? 'excited' : 
-                        choice.positivityDelta < 0 ? 'stressed' : 'thinking';
+      const choiceMood = choice.description.includes("positive") ? 'excited' : 
+                        choice.description.includes("negative") ? 'stressed' : 'thinking';
       
       triggerReaction(choiceMood, 'nod', "Let's see what happens next!");
       
@@ -228,7 +230,7 @@ const GamePage = () => {
         
         {/* Game content */}
         <div className={`game-content ${isMobile ? 'mt-4' : 'ml-0'}`}>
-          {gameState.currentScene.isEnding ? (
+          {gameState.currentScene.isEnd ? (
             <ResultsSummary 
               gameState={gameState} 
               onPlayAgain={handlePlayAgain} 

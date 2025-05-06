@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Smile, User, Palette, Brush, Shirt, Package, 
-  ChevronRight, ChevronLeft, Check
+  Check
 } from 'lucide-react';
 import { AvatarCustomization } from './AvatarTypes';
 import { 
@@ -72,12 +72,12 @@ export const AvatarControls: React.FC<AvatarControlsProps> = ({
                 <button
                   key={tone.value}
                   className={`h-8 w-8 rounded-full border-2 ${
-                    customization.skinTone === tone.value
+                    customization.skinTone === tone.id
                       ? 'border-white scale-110'
                       : 'border-transparent'
                   }`}
                   style={{ backgroundColor: tone.value }}
-                  onClick={() => updateCustomization('skinTone', tone.value)}
+                  onClick={() => updateCustomization('skinTone', tone.id)}
                   title={tone.name}
                 />
               ))}

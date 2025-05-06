@@ -57,6 +57,7 @@
     "firebase": "^11.6.0",
     "framer-motion": "^12.6.5",
     "input-otp": "^1.2.4",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.462.0",
     "react": "^19.1.0",
     "react-day-picker": "^8.10.1",

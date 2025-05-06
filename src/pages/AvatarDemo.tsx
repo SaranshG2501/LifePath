@@ -130,7 +130,7 @@ const AvatarDemo = () => {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white flex items-center">
               <User className="h-6 w-6 text-indigo-300 mr-2" />
-              3D Avatar System
+              LifePath Avatar System
             </h1>
             <p className="text-white/70">
               A customizable, expressive avatar for the LifePath educational app
@@ -438,17 +438,19 @@ const MyComponent = () => {
         </div>
         
         <div className="bg-black/30 p-4 rounded-lg">
-          <h3 className="text-white font-medium mb-2">Avatar Model Requirements</h3>
+          <h3 className="text-white font-medium mb-2">Avatar System Features</h3>
           <p className="text-white/70 text-sm mb-4">
-            The avatar system requires a GLB model with specific morph targets and animations.
-            See the README.md file in the public/models directory for detailed requirements.
+            The avatar system includes customization options, emotional expressions, and animations.
+            Use the AvatarProvider context to manage avatar state throughout your application.
           </p>
           
-          <Button variant="outline" className="w-full sm:w-auto">
-            <a href="https://readyplayer.me/" target="_blank" rel="noopener noreferrer" className="flex items-center">
-              Create Custom Avatar
-            </a>
-          </Button>
+          <ul className="text-white/70 text-sm list-disc pl-5">
+            <li>8 emotional states (happy, sad, thinking, etc.)</li>
+            <li>8 pose animations (wave, thumbs up, clap, etc.)</li>
+            <li>Speech bubble with typing animation</li>
+            <li>Multiple size and position options</li>
+            <li>Context API for global state management</li>
+          </ul>
         </div>
       </div>
     </div>

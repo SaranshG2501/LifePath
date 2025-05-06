@@ -23,7 +23,7 @@ interface AvatarContextProps {
 }
 
 const defaultCustomization: AvatarCustomization = {
-  skinTone: '#FFDBAC',
+  skinTone: 'default',
   hairStyle: 'short',
   outfit: 'casual',
   accessories: []

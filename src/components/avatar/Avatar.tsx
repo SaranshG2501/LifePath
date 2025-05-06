@@ -1,12 +1,8 @@
 
-import React, { useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, useAnimations, Environment, ContactShadows } from '@react-three/drei';
-import * as THREE from 'three';
-import { AvatarModel } from './AvatarModel';
+import React, { useEffect, useState } from 'react';
 import { SpeechBubble } from './SpeechBubble';
-import { AvatarControls } from './AvatarControls';
 import { AvatarCustomization } from './AvatarTypes';
+import { cn } from '@/lib/utils';
 
 export type AvatarMood = 'happy' | 'sad' | 'stressed' | 'excited' | 'thinking' | 'confused' | 'surprised' | 'neutral';
 export type AvatarPose = 'clap' | 'nod' | 'thumbsUp' | 'shrug' | 'facepalm' | 'crossArms' | 'idle' | 'wave' | 'pointing';
@@ -22,8 +18,6 @@ export interface AvatarProps {
   speechText?: string;
   customization?: AvatarCustomization;
   onAvatarReact?: () => void;
-  onUserChoice?: (choice: string) => void;
-  onSummaryStage?: () => void;
   className?: string;
   fallback?: React.ReactNode;
 }
@@ -40,21 +34,53 @@ const Avatar: React.FC<AvatarProps> = ({
   className,
   fallback,
 }) => {
-  const [isWebGLSupported, setIsWebGLSupported] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [animationClass, setAnimationClass] = useState<string>('');
 
   useEffect(() => {
-    // Check if WebGL is supported
-    try {
-      const canvas = document.createElement('canvas');
-      setIsWebGLSupported(!!(
-        window.WebGLRenderingContext && 
-        (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
-      ));
-    } catch (e) {
-      setIsWebGLSupported(false);
-    }
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Apply animation based on pose
+    switch (pose) {
+      case 'clap':
+        setAnimationClass('animate-clap');
+        break;
+      case 'nod':
+        setAnimationClass('animate-nod');
+        break;
+      case 'thumbsUp':
+        setAnimationClass('animate-thumbs-up');
+        break;
+      case 'shrug':
+        setAnimationClass('animate-shrug');
+        break;
+      case 'facepalm':
+        setAnimationClass('animate-facepalm');
+        break;
+      case 'crossArms':
+        setAnimationClass('animate-cross-arms');
+        break;
+      case 'wave':
+        setAnimationClass('animate-wave');
+        break;
+      case 'pointing':
+        setAnimationClass('animate-pointing');
+        break;
+      default:
+        setAnimationClass('animate-idle');
+    }
+
+    if (onAvatarReact) {
+      onAvatarReact();
+    }
+  }, [pose, onAvatarReact]);
 
   // Calculate avatar dimensions based on size prop
   const getDimensions = () => {
@@ -92,20 +118,49 @@ const Avatar: React.FC<AvatarProps> = ({
   const dimensions = getDimensions();
   const positionStyles = getPositionStyles();
 
-  if (!isWebGLSupported) {
-    // Fallback for browsers without WebGL support
-    return fallback ? (
+  // Get the avatar image based on mood and customization
+  const getAvatarImage = () => {
+    const moodPrefix = mood || 'neutral';
+    const skinTone = customization?.skinTone || 'default';
+    const hairStyle = customization?.hairStyle || 'default';
+    
+    return `/images/avatars/${moodPrefix}_${skinTone}_${hairStyle}.png`;
+  };
+
+  // Fallback placeholder if image doesn't exist
+  const renderPlaceholderAvatar = () => (
+    <div className={cn(
+      "flex flex-col items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4",
+      {
+        "w-24 h-24": size === 'mini',
+        "w-32 h-32": size === 'half',
+        "w-40 h-40": size === 'full',
+      }
+    )}>
+      <span className="text-2xl mb-1">
+        {mood === 'happy' && "😄"}
+        {mood === 'sad' && "😢"}
+        {mood === 'stressed' && "😰"}
+        {mood === 'excited' && "🤩"}
+        {mood === 'thinking' && "🤔"}
+        {mood === 'confused' && "😕"}
+        {mood === 'surprised' && "😲"}
+        {(mood === 'neutral' || !mood) && "😐"}
+      </span>
+      <span className="text-xs text-center">Avatar</span>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
       <div style={{ ...dimensions, ...positionStyles }} className={className}>
-        {fallback}
-      </div>
-    ) : (
-      <div 
-        style={{ ...dimensions, ...positionStyles }} 
-        className={`bg-gradient-to-br from-indigo-900/30 to-purple-900/30 rounded-lg flex items-center justify-center border border-white/10 ${className || ''}`}
-      >
-        <div className="text-white text-center p-4">
-          <p className="text-lg font-bold">3D Avatar</p>
-          <p className="text-sm opacity-70">Your browser doesn't support 3D graphics</p>
+        <div className="w-full h-full flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-white/10">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-10 w-10 rounded-full bg-indigo-500/30 flex items-center justify-center mb-2">
+              <div className="h-6 w-6 rounded-full bg-indigo-500 animate-bounce" />
+            </div>
+            <div className="text-white text-sm">Loading avatar...</div>
+          </div>
         </div>
       </div>
     );
@@ -114,65 +169,17 @@ const Avatar: React.FC<AvatarProps> = ({
   return (
     <div className="avatar-container" style={{ ...dimensions, ...positionStyles }}>
       <div 
-        className={`relative w-full h-full rounded-lg overflow-hidden bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-white/10 ${className || ''}`}
+        className={cn(
+          "relative w-full h-full rounded-lg overflow-hidden bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-white/10",
+          className
+        )}
       >
-        <Canvas
-          shadows
-          camera={{ position: [0, 0, 2], fov: 50 }}
-          style={{ touchAction: 'none' }}
-        >
-          <Suspense fallback={
-            <mesh>
-              <sphereGeometry args={[0.5, 16, 16]} />
-              <meshBasicMaterial wireframe color="#7c3aed" />
-            </mesh>
-          }>
-            <ambientLight intensity={0.6} />
-            <directionalLight
-              position={[10, 10, 10]}
-              intensity={1}
-              castShadow
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-            />
-            <AvatarModel 
-              mood={mood} 
-              pose={pose} 
-              customization={customization} 
-              onLoad={() => setIsLoading(false)}
-              onAvatarReact={onAvatarReact}
-            />
-            <ContactShadows
-              opacity={0.4}
-              scale={10}
-              blur={2}
-              far={10}
-              resolution={256}
-              color="#000000"
-            />
-            <Environment preset="sunset" />
-            <OrbitControls
-              enablePan={false}
-              enableZoom={false}
-              minPolarAngle={Math.PI / 2 - 0.5}
-              maxPolarAngle={Math.PI / 2 + 0.5}
-            />
-          </Suspense>
-        </Canvas>
+        <div className={cn("w-full h-full flex items-center justify-center", animationClass)}>
+          {renderPlaceholderAvatar()}
+        </div>
         
         {showSpeechBubble && speechText && !isLoading && (
           <SpeechBubble text={speechText} position={position} />
-        )}
-        
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="animate-pulse flex flex-col items-center">
-              <div className="h-10 w-10 rounded-full bg-indigo-500/30 flex items-center justify-center mb-2">
-                <div className="h-6 w-6 rounded-full bg-indigo-500 animate-bounce" />
-              </div>
-              <div className="text-white text-sm">Loading avatar...</div>
-            </div>
-          </div>
         )}
       </div>
     </div>
