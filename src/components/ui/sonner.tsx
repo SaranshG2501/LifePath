@@ -1,9 +1,9 @@
 
 import { useTheme } from "@/components/ui/theme-provider";
 import { Toaster as Sonner } from "sonner";
+import * as React from "react";
 
-interface ToasterProps {
-  ...React.ComponentProps<typeof Sonner>;
+interface ToasterProps extends React.ComponentProps<typeof Sonner> {
   theme?: "light" | "dark" | "system";
 }
 

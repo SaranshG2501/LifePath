@@ -1,8 +1,6 @@
 
-# Avatar Images
+# Project Models
 
-This directory previously contained 3D models for the avatar system, but is now deprecated.
+This directory is for storing 3D models, assets, or other resources that may be used in the application.
 
-The avatar system now uses a simplified approach with 2D images and CSS animations.
-
-Please see `/public/images/avatars/README.md` for information about the new avatar system.
+Currently, the application uses a simplified design without 3D models.
