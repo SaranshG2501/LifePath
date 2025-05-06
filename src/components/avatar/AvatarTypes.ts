@@ -1,9 +1,9 @@
 
 export interface AvatarCustomization {
-  skinTone?: string;
-  hairStyle?: string;
-  outfit?: string;
-  accessories?: string[];
+  skinTone: string;
+  hairStyle: string;
+  outfit: string;
+  accessories: string[];
 }
 
 export interface CustomizationOption {
@@ -11,4 +11,16 @@ export interface CustomizationOption {
   name: string;
   value?: string;
   emoji?: string;
+}
+
+export interface AvatarReaction {
+  mood: string;
+  gesture: string;
+  text?: string;
+}
+
+export interface AvatarConfig {
+  stage: 'onboarding' | 'story' | 'reflection';
+  size: 'full' | 'half' | 'mini';
+  position: 'left' | 'right' | 'center';
 }
