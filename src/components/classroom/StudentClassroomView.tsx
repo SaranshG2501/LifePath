@@ -30,7 +30,7 @@ interface ClassroomStudent {
 const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroomJoined }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userProfile, currentUser } = useAuth();
+  const { userProfile, currentUser, refreshUserProfile } = useAuth();
   const { classroomId, setClassroomId, startScenario, gameMode, setGameMode } = useGameContext();
   
   const [classCode, setClassCode] = useState('');
@@ -154,6 +154,11 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         setClassroom(joinedClassroom);
         setClassroomId(joinedClassroom.id);
         setGameMode("classroom");
+        
+        // Refresh user profile to get updated classrooms list
+        if (refreshUserProfile) {
+          await refreshUserProfile();
+        }
         
         // Trigger callback if provided
         if (onClassroomJoined) {
