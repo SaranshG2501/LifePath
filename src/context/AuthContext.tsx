@@ -94,17 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  const refreshUserProfile = async () => {
+  const refreshUserProfile = async (): Promise<void> => {
     if (currentUser) {
       try {
         const profileData = await getUserProfile(currentUser.uid);
         setUserProfile(profileData);
-        return profileData;
       } catch (error) {
         console.error('Error refreshing user profile:', error);
       }
     }
-    return null;
   };
 
   const login = async (email: string, password: string) => {

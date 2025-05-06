@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
@@ -97,7 +98,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     checkClassroomStatus();
-  }, [currentUser, userProfile, classroomId]);
+  }, [currentUser, userProfile, classroomId, setClassroomId]);
 
   // Set game mode to individual if user has no classroom
   useEffect(() => {
@@ -330,24 +331,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setShowMirrorMoment(false);
     setRevealVotes(false);
     setClassroomVotes({});
-
-    // Show metrics changes toast
-    if (choice.metricChanges) {
-      const metricChangesText = Object.entries(choice.metricChanges)
-        .filter(([_, value]) => value !== 0)
-        .map(([key, value]) => {
-          const sign = value && value > 0 ? '+' : '';
-          return `${key.charAt(0).toUpperCase() + key.slice(1)}: ${sign}${value}`;
-        })
-        .join(', ');
-
-      if (metricChangesText) {
-        toast({
-          title: "Your stats have changed",
-          description: metricChangesText,
-        });
-      }
-    }
+    
+    // Removed the metrics changes toast
   };
 
   const resetGame = () => {

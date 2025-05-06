@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -265,7 +266,7 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Fixed joinClassroom function to work with Firestore security rules
+// Completely rewritten joinClassroom function to avoid using arrayUnion
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} is attempting to join classroom ${classroomId}`);
@@ -280,7 +281,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     }
 
     const classroom = classroomDoc.data() as Classroom;
-    const students = classroom.students || [];
+    let students = classroom.students || [];
 
     // Check if student is already a member
     if (students.some(s => s.id === studentId)) {
@@ -289,9 +290,18 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       // Still need to update the user profile to ensure classroom is in their list
       try {
         const userRef = doc(db, 'users', studentId);
-        await updateDoc(userRef, { 
-          classrooms: arrayUnion(classroomId) 
-        });
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          let userClassrooms = userData.classrooms || [];
+          
+          // Only add if not already present
+          if (!userClassrooms.includes(classroomId)) {
+            userClassrooms.push(classroomId);
+            await updateDoc(userRef, { classrooms: userClassrooms });
+          }
+        }
       } catch (userError) {
         console.error("Error updating user profile:", userError);
       }
@@ -307,26 +317,33 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       joinedAt: Timestamp.now(),
     };
 
-    // This is the critical update that needs to match the security rules:
-    // ONLY update the students array - nothing else in the document
-    await updateDoc(classroomRef, {
-      students: arrayUnion(newStudent)
-    });
+    // Add student to classroom
+    students.push(newStudent);
+    
+    // Update the classroom with new students array
+    await updateDoc(classroomRef, { students });
     
     console.log(`Student ${studentId} successfully added to classroom ${classroomId}`);
 
-    // After classroom is updated successfully, update the user's profile
+    // Update the user's profile with the classroom ID
     try {
       const userRef = doc(db, 'users', studentId);
-      await updateDoc(userRef, { 
-        classrooms: arrayUnion(classroomId) 
-      });
+      const userDoc = await getDoc(userRef);
       
-      console.log(`Classroom ${classroomId} added to user ${studentId}'s profile`);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        let userClassrooms = userData.classrooms || [];
+        
+        // Only add if not already present
+        if (!userClassrooms.includes(classroomId)) {
+          userClassrooms.push(classroomId);
+          await updateDoc(userRef, { classrooms: userClassrooms });
+        }
+        
+        console.log(`Classroom ${classroomId} added to user ${studentId}'s profile`);
+      }
     } catch (userError) {
       console.error("Error updating user profile:", userError);
-      // We don't throw here because the student was already added to the classroom
-      // This is a non-critical error
     }
 
     // Get the updated classroom to return
@@ -335,10 +352,9 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       throw new Error("Failed to retrieve updated classroom");
     }
     
-    const updatedClassroom = updatedClassroomDoc.data() as unknown as Classroom;
     return { 
       id: classroomId,
-      ...updatedClassroom
+      ...updatedClassroomDoc.data() 
     } as Classroom;
   } catch (error) {
     console.error("Error joining classroom:", error);
