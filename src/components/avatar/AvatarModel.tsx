@@ -121,11 +121,12 @@ export const AvatarModel: React.FC<AvatarModelProps> = ({
     setCurrentPose(animationName);
     
     // Reset all animations
-    Object.values(actions).forEach(action => action.stop());
+    Object.values(actions).forEach((action: any) => action.stop());
     
     // Play the new animation
     if (actions[animationName]) {
-      actions[animationName]
+      const currentAction = actions[animationName] as THREE.AnimationAction;
+      currentAction
         .reset()
         .setEffectiveTimeScale(1)
         .setEffectiveWeight(1)
@@ -133,11 +134,12 @@ export const AvatarModel: React.FC<AvatarModelProps> = ({
         
       // For non-looping animations, go back to idle afterwards
       if (pose !== 'idle') {
-        const duration = actions[animationName].getClip().duration;
+        const duration = currentAction.getClip().duration;
         setTimeout(() => {
-          Object.values(actions).forEach(action => action.stop());
+          Object.values(actions).forEach((action: any) => action.stop());
           setCurrentPose(POSE_ANIMATIONS.idle);
-          actions[POSE_ANIMATIONS.idle]
+          const idleAction = actions[POSE_ANIMATIONS.idle] as THREE.AnimationAction;
+          idleAction
             .reset()
             .setEffectiveTimeScale(1)
             .setEffectiveWeight(1)

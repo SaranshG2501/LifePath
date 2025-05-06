@@ -124,7 +124,7 @@ const Avatar: React.FC<AvatarProps> = ({
           <Suspense fallback={
             <mesh>
               <sphereGeometry args={[0.5, 16, 16]} />
-              <meshBasicMaterial color="#7c3aed" wireframe />
+              <meshBasicMaterial wireframe color="#7c3aed" />
             </mesh>
           }>
             <ambientLight intensity={0.6} />

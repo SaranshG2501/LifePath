@@ -11,6 +11,8 @@ import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight } from 'lucide-
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import Avatar from '@/components/avatar/Avatar';
+import { useAvatar } from '@/components/avatar/AvatarProvider';
 
 const GamePage = () => {
   const { 
@@ -26,6 +28,18 @@ const GamePage = () => {
     mirrorMomentsEnabled,
     toggleMirrorMoments
   } = useGameContext();
+  
+  const {
+    mood,
+    pose,
+    size,
+    position,
+    customization,
+    showSpeechBubble,
+    speechText,
+    triggerReaction
+  } = useAvatar();
+  
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -51,8 +65,41 @@ const GamePage = () => {
     }
   }, [gameMode, classroomId, userRole, toast, setGameMode]);
 
+  // Have avatar react to new scenes
+  useEffect(() => {
+    if (gameState.currentScene) {
+      // Set initial scene reaction
+      const sceneMood = gameState.currentScene.positivityLevel > 0.7 ? 'happy' : 
+                      gameState.currentScene.positivityLevel < 0.3 ? 'sad' : 'neutral';
+      
+      triggerReaction(
+        sceneMood, 
+        'idle', 
+        gameState.currentScene.isDecision ? 
+          "What will you choose?" : 
+          gameState.currentScene.isEnding ?
+            "This is the end of your journey. Let's see how you did!" :
+            "Here's what happened next..."
+      );
+    }
+  }, [gameState.currentScene, triggerReaction]);
+
   const handleChoiceMade = (choiceId: string) => {
-    makeChoice(choiceId);
+    const choice = gameState.currentScene?.choices.find(c => c.id === choiceId);
+    if (choice) {
+      // React to user choice
+      const choiceMood = choice.positivityDelta > 0 ? 'excited' : 
+                        choice.positivityDelta < 0 ? 'stressed' : 'thinking';
+      
+      triggerReaction(choiceMood, 'nod', "Let's see what happens next!");
+      
+      // Short delay for avatar reaction before changing scene
+      setTimeout(() => {
+        makeChoice(choiceId);
+      }, 1000);
+    } else {
+      makeChoice(choiceId);
+    }
   };
 
   const handleReturnHome = () => {
@@ -164,23 +211,41 @@ const GamePage = () => {
         </div>
       </div>
 
-      {/* Main game content */}
-      {gameState.currentScene.isEnding ? (
-        <ResultsSummary 
-          gameState={gameState} 
-          onPlayAgain={handlePlayAgain} 
-          onReturnHome={handleReturnHome} 
-        />
-      ) : showMirrorMoment ? (
-        <MirrorMoment />
-      ) : gameMode === "classroom" ? (
-        <EnhancedClassroomVoting scene={gameState.currentScene} />
-      ) : (
-        <SceneDisplay 
-          scene={gameState.currentScene} 
-          onChoiceMade={handleChoiceMade} 
-        />
-      )}
+      {/* Main game content with Avatar */}
+      <div className="relative">
+        {/* Avatar display */}
+        <div className={`${isMobile ? 'absolute bottom-0 z-10' : 'absolute bottom-0 z-10'} ${position}`}>
+          <Avatar
+            mood={mood}
+            pose={pose}
+            size={size}
+            position={position}
+            customization={customization}
+            showSpeechBubble={showSpeechBubble}
+            speechText={speechText}
+          />
+        </div>
+        
+        {/* Game content */}
+        <div className={`game-content ${isMobile ? 'mt-4' : 'ml-0'}`}>
+          {gameState.currentScene.isEnding ? (
+            <ResultsSummary 
+              gameState={gameState} 
+              onPlayAgain={handlePlayAgain} 
+              onReturnHome={handleReturnHome} 
+            />
+          ) : showMirrorMoment ? (
+            <MirrorMoment />
+          ) : gameMode === "classroom" ? (
+            <EnhancedClassroomVoting scene={gameState.currentScene} />
+          ) : (
+            <SceneDisplay 
+              scene={gameState.currentScene} 
+              onChoiceMade={handleChoiceMade} 
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };

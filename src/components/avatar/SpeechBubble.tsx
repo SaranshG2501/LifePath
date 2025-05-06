@@ -62,7 +62,8 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({ text, position }) =>
           {isTyping && <span className="typing-cursor">|</span>}
         </div>
         
-        <style jsx>{`
+        <style>
+          {`
           /* Custom CSS for speech bubble tails */
           .speech-bubble-left:after {
             content: "";
@@ -104,7 +105,8 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({ text, position }) =>
               opacity: 0;
             }
           }
-        `}</style>
+          `}
+        </style>
       </motion.div>
     </AnimatePresence>
   );
