@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -22,15 +23,10 @@ export interface UserProfileData {
   xp: number;
   level: number;
   completedScenarios: string[];
-  badges: Array<{
-    id: string;
-    title: string;
-    awardedAt: any;
-  }>;
+  badges: string[];
   classrooms: string[];
   history: ScenarioHistory[];
   id: string;
-  metrics?: Record<string, number>;
 }
 
 interface AuthContextType {

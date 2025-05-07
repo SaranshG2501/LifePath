@@ -1,112 +1,85 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import AchievementBadge, { AchievementType } from './AchievementBadge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Trophy, Award, BadgeCheck, Medal, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AchievementSectionProps {
-  userProfile: {
-    badges?: Array<{
-      id: string;
-      title: string;
-      awardedAt: any;
-    }>;
-  };
+  earnedAchievements: AchievementType[];
 }
 
-const AchievementSection: React.FC<AchievementSectionProps> = ({ userProfile }) => {
-  const badges = userProfile?.badges || [];
+const ALL_ACHIEVEMENTS: AchievementType[] = [
+  'first-scenario',
+  'five-scenarios',
+  'ten-scenarios',
+  'knowledge-master',
+  'health-guru',
+  'money-manager',
+  'happiness-expert',
+  'relationships-pro',
+  'classroom-joined',
+  'classroom-active'
+];
+
+const AchievementSection: React.FC<AchievementSectionProps> = ({ earnedAchievements = [] }) => {
+  const [showAll, setShowAll] = useState(false);
+  const progress = Math.round((earnedAchievements.length / ALL_ACHIEVEMENTS.length) * 100);
   
-  // Map badge IDs to icons and descriptions
-  const badgeDetails: Record<string, { icon: React.ReactNode; description: string; color: string }> = {
-    'first-scenario': {
-      icon: <Trophy className="h-5 w-5" />,
-      description: 'Completed your first scenario',
-      color: 'from-amber-500 to-yellow-500'
-    },
-    'perfect-score': {
-      icon: <Star className="h-5 w-5" />,
-      description: 'Achieved a perfect score in a scenario',
-      color: 'from-blue-500 to-indigo-500'
-    },
-    'classroom-joined': {
-      icon: <Award className="h-5 w-5" />,
-      description: 'Joined a classroom',
-      color: 'from-green-500 to-emerald-500'
-    },
-    'master-student': {
-      icon: <Medal className="h-5 w-5" />,
-      description: 'Completed 5+ scenarios',
-      color: 'from-purple-500 to-pink-500'
-    }
-  };
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Recently';
-    
-    try {
-      if (timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toLocaleDateString();
-      }
-      if (timestamp instanceof Date) {
-        return timestamp.toLocaleDateString();
-      }
-      return 'Recently';
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Recently';
-    }
-  };
-
   return (
-    <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
+    <Card className="bg-black/30 border-primary/20 mb-6">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-indigo-300" />
-          Achievements
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-400" />
+            Achievements
+          </CardTitle>
+          <div className="text-white/70 text-sm">
+            {earnedAchievements.length}/{ALL_ACHIEVEMENTS.length} Earned
+          </div>
+        </div>
         <CardDescription className="text-white/70">
-          Badges and awards earned
+          Track your progress through various life challenges
         </CardDescription>
+        
+        {/* Progress bar */}
+        <div className="mt-2">
+          <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <p className="text-right text-xs text-white/50 mt-1">{progress}% complete</p>
+        </div>
       </CardHeader>
       
       <CardContent>
-        {badges.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3">
-            {badges.map((badge, index) => {
-              const details = badgeDetails[badge.id] || {
-                icon: <BadgeCheck className="h-5 w-5" />,
-                description: 'Achievement unlocked',
-                color: 'from-gray-500 to-slate-500'
-              };
-              
-              return (
-                <div 
-                  key={badge.id || index}
-                  className="bg-black/20 rounded-lg p-3 flex items-center gap-3"
-                >
-                  <div className={`rounded-full p-2 bg-gradient-to-r ${details.color}`}>
-                    {details.icon}
-                  </div>
-                  <div>
-                    <div className="text-white font-medium">{badge.title}</div>
-                    <div className="text-xs text-white/70">{details.description}</div>
-                    <div className="text-xs text-white/50 mt-0.5">
-                      Awarded {formatDate(badge.awardedAt)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-black/20 rounded-lg p-6 text-center">
-            <Trophy className="mx-auto h-10 w-10 text-white/30 mb-2" />
-            <h3 className="text-white font-medium">No Badges Yet</h3>
-            <p className="text-white/70 text-sm mt-1">
-              Complete scenarios to earn achievements and badges
-            </p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {ALL_ACHIEVEMENTS
+            .slice(0, showAll ? ALL_ACHIEVEMENTS.length : 6)
+            .map(achievement => (
+              <AchievementBadge
+                key={achievement}
+                type={achievement}
+                earned={earnedAchievements.includes(achievement)}
+              />
+            ))}
+        </div>
+        
+        {ALL_ACHIEVEMENTS.length > 6 && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mt-4 text-primary w-full hover:bg-white/10"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? (
+              <><ChevronUp className="h-4 w-4 mr-1" /> Show Less</>
+            ) : (
+              <><ChevronDown className="h-4 w-4 mr-1" /> Show All Achievements</>
+            )}
+          </Button>
         )}
       </CardContent>
     </Card>

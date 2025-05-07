@@ -1,37 +1,41 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-useless-catch */
 
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
-  onAuthStateChanged, 
+  createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
 import { 
   getFirestore, 
   doc, 
-  getDoc, 
   setDoc, 
-  updateDoc, 
-  collection, 
-  query, 
-  where, 
+  getDoc, 
+  updateDoc,
+  collection,
+  query,
+  where,
   getDocs,
   addDoc,
-  onSnapshot,
-  arrayUnion,
-  Timestamp,
   serverTimestamp,
+  deleteDoc,
   orderBy,
-  limit
+  onSnapshot,
+  DocumentData,
+  Timestamp,
+  arrayUnion,
+  FieldValue
 } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
+import { Metrics } from '@/types/game';
 
-// Firebase configuration
+// Your web app's Firebase configuration
+// Replace with your actual Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
   authDomain: "lifepath-3ff8f.firebaseapp.com",
@@ -44,267 +48,289 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-let analytics; // Declare the variable
-try {
-  analytics = getAnalytics(app); // Assign the value inside the try block
-} catch (error) {
-  console.log("Analytics failed to initialize:", error);
-}
-
-// Export the analytics variable after the try-catch block
-export { analytics };
-
-// Types
+// Define types
 export interface ClassroomStudent {
   id: string;
   name: string;
-  joinedAt: Timestamp;
+  joinedAt: Timestamp | Date;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  email?: string;
 }
 
 export interface Classroom {
-  id: string;
+  id?: string;
   name: string;
+  description?: string;
   teacherId: string;
-  teacherName: string;
+  teacherName?: string;
   students: ClassroomStudent[];
   activeScenario?: string | null;
   currentScene?: string | null;
-  createdAt: Timestamp;
+  createdAt: any;
   classCode: string;
   isActive: boolean;
-  messages?: {
-    text: string;
-    sender: string;
-    sentAt: Timestamp;
-  }[];
+  messages?: any[];
 }
 
+export interface UserProfileData {
+  displayName?: string;
+  email?: string;
+  role?: string;
+  xp?: number;
+  level?: number;
+  completedScenarios?: string[];
+  badges?: Array<{id: string; title: string; awardedAt: any}>;
+  history?: ScenarioHistory[];
+  metrics?: Metrics;
+  classrooms?: string[];
+  createdAt?: Date | Timestamp;
+}
+
+// New type for scenario history
 export interface ScenarioHistory {
-  id: string;
   scenarioId: string;
-  scenarioTitle: string;
-  completedAt: Timestamp;
-  choices: Array<{
-    sceneId: string;
-    choiceId: string;
-    choiceText?: string;
-    timestamp: Date;
-    metricChanges?: Record<string, number>;
-  }>;
-  finalMetrics: Record<string, number>;
+  scenarioTitle?: string;
+  startedAt: Timestamp | Date;
+  completedAt?: Timestamp | Date;
+  choices: ScenarioChoice[];
+  finalMetrics?: Metrics;
   classroomId?: string;
 }
 
+export interface ScenarioChoice {
+  sceneId: string;
+  choiceId: string;
+  choiceText?: string;
+  timestamp: Timestamp | Date;
+  metricChanges?: Record<string, number>;
+}
+
 // Auth functions
-export const loginUser = async (email: string, password: string) => {
-  try {
-    return await signInWithEmailAndPassword(auth, email, password);
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const createUser = async (email: string, password: string) => {
-  try {
-    return await createUserWithEmailAndPassword(auth, email, password);
-  } catch (error) {
-    throw error;
-  }
+  return createUserWithEmailAndPassword(auth, email, password);
 };
 
-export const signInWithGoogle = async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    return await signInWithPopup(auth, provider);
-  } catch (error) {
-    throw error;
-  }
+export const loginUser = async (email: string, password: string) => {
+  return signInWithEmailAndPassword(auth, email, password);
 };
 
 export const logoutUser = async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    throw error;
-  }
+  return signOut(auth);
 };
 
-// User profile functions
-export const createUserProfile = async (uid: string, data: any) => {
-  try {
-    await setDoc(doc(db, 'users', uid), {
-      ...data,
-      createdAt: serverTimestamp(),
-    });
-  } catch (error) {
-    throw error;
-  }
+export const getCurrentUser = () => {
+  return auth.currentUser;
+};
+
+// Firestore functions
+export const createUserProfile = async (uid: string, userData: UserProfileData) => {
+  // Initialize metrics at 0
+  const initialMetrics: Metrics = {
+    health: 0,
+    money: 0,
+    happiness: 0,
+    knowledge: 0,
+    relationships: 0
+  };
+  
+  const defaultData: UserProfileData = {
+    xp: 0,
+    level: 1,
+    completedScenarios: [],
+    badges: [],
+    history: [],
+    metrics: initialMetrics,
+    classrooms: [],
+    createdAt: Timestamp.now()
+  };
+  
+  // Merge the default data with provided user data
+  const mergedData = {
+    ...defaultData,
+    ...userData
+  };
+  
+  return setDoc(doc(db, 'users', uid), mergedData);
 };
 
 export const getUserProfile = async (uid: string) => {
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (userDoc.exists()) {
+    return userDoc.data();
+  }
+  return null;
+};
+
+export const updateUserProfile = async (uid: string, data: Record<string, any>) => {
+  return updateDoc(doc(db, 'users', uid), data);
+};
+
+// Award a badge to a user
+export const awardBadge = async (userId: string, badgeId: string, badgeTitle: string) => {
   try {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
     
-    if (docSnap.exists()) {
-      return { id: uid, ...docSnap.data() };
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userBadges = userData.badges || [];
+      
+      // Check if user already has this badge
+      if (userBadges.some((badge: any) => badge.id === badgeId)) {
+        console.log("User already has this badge:", badgeId);
+        return false;
+      }
+      
+      // Add new badge with timestamp
+      const newBadge = {
+        id: badgeId,
+        title: badgeTitle,
+        awardedAt: Timestamp.now()
+      };
+      
+      await updateDoc(userRef, {
+        badges: [...userBadges, newBadge],
+        xp: (userData.xp || 0) + 25 // Award XP for getting a badge
+      });
+      
+      console.log("Badge awarded:", badgeId);
+      return true;
     }
-    return null;
+    return false;
   } catch (error) {
-    throw error;
+    console.error("Error awarding badge:", error);
+    return false;
   }
 };
 
-// Badge functions
-export const awardBadge = async (userId: string, badgeId: string, title: string) => {
+// Scenario History functions
+export const saveScenarioHistory = async (
+  userId: string, 
+  scenarioId: string, 
+  scenarioTitle: string, 
+  choices: ScenarioChoice[], 
+  finalMetrics: Metrics,
+  classroomId?: string
+) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      const existingBadges = userData.badges || [];
-      
-      if (!existingBadges.some((badge: any) => badge.id === badgeId)) {
-        await updateDoc(userRef, {
-          badges: arrayUnion({
-            id: badgeId,
-            title: title,
-            awardedAt: Timestamp.now()
-          })
-        });
-        return true;
-      }
+    // Get user's current profile
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error("User not found");
     }
-    return false;
+    
+    const userData = userDoc.data();
+    const history = userData.history || [];
+    
+    // Create new history entry
+    const historyEntry: ScenarioHistory = {
+      scenarioId,
+      scenarioTitle,
+      startedAt: choices.length > 0 ? choices[0].timestamp : Timestamp.now(),
+      completedAt: Timestamp.now(),
+      choices,
+      finalMetrics,
+      classroomId
+    };
+    
+    // Add to history array
+    const updatedHistory = [...history, historyEntry];
+    
+    // Update completed scenarios
+    const completedScenarios = userData.completedScenarios || [];
+    if (!completedScenarios.includes(scenarioId)) {
+      completedScenarios.push(scenarioId);
+    }
+    
+    // Update user profile
+    await updateDoc(doc(db, 'users', userId), {
+      history: updatedHistory,
+      completedScenarios,
+      metrics: finalMetrics,
+      xp: (userData.xp || 0) + 50 // Award XP for completion
+    });
+    
+    // If this was a classroom scenario, update classroom data
+    if (classroomId) {
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const studentProgressRef = doc(db, 'classrooms', classroomId, 'progress', userId);
+      
+      await setDoc(studentProgressRef, {
+        userId,
+        scenarioId,
+        completedAt: Timestamp.now(),
+        metrics: finalMetrics,
+      });
+    }
+    
+    return historyEntry;
   } catch (error) {
-    console.error('Error awarding badge:', error);
-    return false;
+    console.error('Error saving scenario history:', error);
+    throw error;
   }
 };
 
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, teacherName: string, description?: string) => {
   try {
-    // Generate a unique 6-digit code
-    const classCode = `LIFE-${Math.floor(100000 + Math.random() * 900000)}`;
+    // Generate a unique class code
+    const classCode = generateClassCode();
     
+    // Create classroom data
     const classroomData = {
       name,
-      description: description || '',
+      description: description || "",
       teacherId,
-      teacherName: teacherName || 'Teacher',
+      teacherName: teacherName || "Teacher",
       students: [],
+      activeScenario: null,
+      currentScene: null,
       createdAt: Timestamp.now(),
       classCode,
       isActive: true,
-      activeScenario: null,
-      currentScene: null,
       messages: []
     };
     
-    // Add to classrooms collection
+    // Add to Firestore
     const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
     
-    // Create a class code reference for easy lookup
-    await setDoc(doc(db, 'classCodes', classCode), {
-      classroomId: docRef.id
-    });
-    
-    // Add the classroom to teacher's profile
+    // Update teacher's profile to include the new classroom
     const teacherRef = doc(db, 'users', teacherId);
-    await updateDoc(teacherRef, {
-      classrooms: arrayUnion(docRef.id)
-    });
+    const teacherDoc = await getDoc(teacherRef);
     
-    // Return the created classroom with its ID
-    return {
-      id: docRef.id,
-      ...classroomData
-    };
-  } catch (error) {
-    console.error('Error creating classroom:', error);
-    throw error;
-  }
-};
-
-export const getClassroomByCode = async (code: string) => {
-  try {
-    // First get the classroom ID from the code
-    const codeRef = doc(db, 'classCodes', code);
-    const codeSnap = await getDoc(codeRef);
-    
-    if (!codeSnap.exists()) {
-      return null;
-    }
-    
-    const { classroomId } = codeSnap.data();
-    
-    // Then get the actual classroom
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomSnap = await getDoc(classroomRef);
-    
-    if (!classroomSnap.exists()) {
-      return null;
-    }
-    
-    return {
-      id: classroomId,
-      ...classroomSnap.data()
-    };
-  } catch (error) {
-    console.error('Error getting classroom by code:', error);
-    throw error;
-  }
-};
-
-export const getUserClassrooms = async (userId: string, role: string) => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) {
-      throw new Error("User not found");
-    }
-    
-    const userData = userSnap.data();
-    const userClassrooms = userData.classrooms || [];
-    
-    if (userClassrooms.length === 0) {
-      return [];
-    }
-    
-    // Get all classrooms where the user is a member or teacher
-    const classrooms = [];
-    for (const classroomId of userClassrooms) {
-      const classroomRef = doc(db, 'classrooms', classroomId);
-      const classroomSnap = await getDoc(classroomRef);
+    if (teacherDoc.exists()) {
+      const userData = teacherDoc.data();
+      const teacherClassrooms = userData.classrooms || [];
       
-      if (classroomSnap.exists()) {
-        // Check if user is teacher or student
-        const classroomData = classroomSnap.data();
-        
-        if ((role === 'teacher' && classroomData.teacherId === userId) || 
-            (role === 'student' && classroomData.students && classroomData.students.some((s: any) => s.id === userId))) {
-          classrooms.push({
-            id: classroomId,
-            ...classroomData
-          });
-        }
-      }
+      await updateDoc(teacherRef, {
+        classrooms: [...teacherClassrooms, docRef.id]
+      });
     }
     
-    return classrooms;
+    // Return the classroom object with the generated id
+    return { id: docRef.id, ...classroomData };
   } catch (error) {
-    console.error('Error getting user classrooms:', error);
+    console.error("Error creating classroom:", error);
     throw error;
   }
 };
 
-// The joinClassroom function with fixed export error
+export const getClassroom = async (classroomId: string) => {
+  const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+  if (classroomDoc.exists()) {
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
+  }
+  return null;
+};
+
+// Completely rewritten joinClassroom function with a direct update approach
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
@@ -327,27 +353,24 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Get current data
     const userData = userSnap.data();
-    const userClassrooms = userData.classrooms || [];
+    let userClassrooms = userData.classrooms || [];
     
     // Check if user already has this classroom
     if (!userClassrooms.includes(classroomId)) {
-      // Create a new array instead of using spread to avoid type error
-      const updatedClassrooms = [...userClassrooms];
-      updatedClassrooms.push(classroomId);
-      
+      userClassrooms = [...userClassrooms, classroomId];
       // Update user document
-      await updateDoc(userRef, { classrooms: updatedClassrooms });
+      await updateDoc(userRef, { classrooms: userClassrooms });
       console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
       
       // Award badge for joining first classroom if this is their first one
-      if (updatedClassrooms.length === 1) {
+      if (userClassrooms.length === 1) {
         await awardBadge(studentId, "classroom-joined", "Joined First Classroom");
       }
     }
     
     // Step 3: Now update the classroom document
     const classroomData = classroomSnap.data() as Classroom;
-    const classroomStudents = classroomData.students || [];
+    let classroomStudents = classroomData.students || [];
     
     // Check if student is already in this classroom
     const existingStudent = classroomStudents.find(s => s.id === studentId);
@@ -359,11 +382,9 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
         joinedAt: Timestamp.now()
       };
       
-      // Create a new array with the new student
-      const updatedStudents = [...classroomStudents, newStudent];
-      
+      classroomStudents = [...classroomStudents, newStudent];
       // Update classroom document
-      await updateDoc(classroomRef, { students: updatedStudents });
+      await updateDoc(classroomRef, { students: classroomStudents });
       console.log(`Added student ${studentId} to classroom ${classroomId}`);
     }
     
@@ -384,177 +405,180 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
   }
 };
 
-export const startClassroomScenario = async (classroomId: string, scenarioId: string, initialSceneId: string) => {
+export const getClassroomByCode = async (classCode: string) => {
   try {
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    await updateDoc(classroomRef, {
-      activeScenario: scenarioId,
-      currentScene: initialSceneId
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error starting classroom scenario:', error);
-    return false;
-  }
-};
-
-export const addClassroomMessage = async (classroomId: string, message: { text: string; sentAt: Date; sender: string }) => {
-  try {
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    await updateDoc(classroomRef, {
-      messages: arrayUnion({
-        ...message,
-        sentAt: Timestamp.fromDate(message.sentAt)
-      })
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error adding classroom message:', error);
-    return false;
-  }
-};
-
-export const recordStudentVote = async (classroomId: string, studentId: string, choiceId: string) => {
-  try {
-    const voteData = {
-      studentId,
-      choiceId,
-      timestamp: Timestamp.now()
-    };
-    
-    await addDoc(collection(db, 'classrooms', classroomId, 'votes'), voteData);
-    return true;
-  } catch (error) {
-    console.error('Error recording vote:', error);
-    return false;
-  }
-};
-
-export const getScenarioVotes = async (classroomId: string) => {
-  try {
-    const votesQuery = query(
-      collection(db, 'classrooms', classroomId, 'votes'),
-      orderBy('timestamp', 'desc')
+    const classroomsQuery = query(
+      collection(db, 'classrooms'), 
+      where('classCode', '==', classCode)
     );
     
-    const votesSnapshot = await getDocs(votesQuery);
-    const votes = votesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const snapshot = await getDocs(classroomsQuery);
     
-    return votes;
-  } catch (error) {
-    console.error('Error getting votes:', error);
-    return [];
-  }
-};
-
-export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => void) => {
-  const votesQuery = query(
-    collection(db, 'classrooms', classroomId, 'votes'),
-    orderBy('timestamp', 'desc')
-  );
-  
-  return onSnapshot(votesQuery, (snapshot) => {
-    const votes = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    callback(votes);
-  }, (error) => {
-    console.error('Error in votes listener:', error);
-  });
-};
-
-export const onClassroomUpdated = (classroomId: string, callback: (classroom: any) => void) => {
-  const classroomRef = doc(db, 'classrooms', classroomId);
-  
-  return onSnapshot(classroomRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const classroom = {
-        id: snapshot.id,
-        ...snapshot.data()
-      };
-      
-      callback(classroom);
-    }
-  }, (error) => {
-    console.error('Error in classroom listener:', error);
-  });
-};
-
-export const getStudentProgress = async (classroomId: string) => {
-  try {
-    // In a real app, this would fetch student progress from a specific collection
-    // For now, we'll return a mock implementation
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomSnap = await getDoc(classroomRef);
-    
-    if (!classroomSnap.exists()) {
-      return [];
+    if (snapshot.empty) {
+      return null;
     }
     
-    const classroom = classroomSnap.data();
-    const students = classroom.students || [];
-    
-    // Create mock progress data
-    return students.map((student: ClassroomStudent) => ({
-      studentId: student.id,
-      name: student.name,
-      progress: Math.floor(Math.random() * 100), // Random progress for now
-      completed: Math.random() > 0.5
-    }));
+    const classroomDoc = snapshot.docs[0];
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
   } catch (error) {
-    console.error('Error getting student progress:', error);
-    return [];
-  }
-};
-
-export const saveScenarioHistory = async (
-  userId: string,
-  scenarioId: string,
-  scenarioTitle: string,
-  choices: any[],
-  finalMetrics: any,
-  classroomId?: string
-) => {
-  try {
-    const historyData = {
-      userId,
-      scenarioId,
-      scenarioTitle,
-      completedAt: Timestamp.now(),
-      choices,
-      finalMetrics,
-      classroomId
-    };
-    
-    // Add to history collection
-    const historyRef = await addDoc(collection(db, 'history'), historyData);
-    
-    // Update user document with this history
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      completedScenarios: arrayUnion(scenarioId),
-      history: arrayUnion({
-        id: historyRef.id,
-        scenarioId,
-        scenarioTitle,
-        completedAt: Timestamp.now(),
-        finalMetrics
-      }),
-      // Update user metrics based on final metrics
-      metrics: finalMetrics
-    });
-    
-    return historyRef.id;
-  } catch (error) {
-    console.error('Error saving scenario history:', error);
+    console.error("Error getting classroom by code:", error);
     throw error;
   }
 };
 
+export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> => {
+  try {
+    let classroomsQuery;
+    if (teacherId) {
+      classroomsQuery = query(collection(db, 'classrooms'), where('teacherId', '==', teacherId));
+    } else {
+      classroomsQuery = collection(db, 'classrooms');
+    }
+    
+    const snapshot = await getDocs(classroomsQuery);
+    return snapshot.docs.map(doc => {
+      return { id: doc.id, ...doc.data() } as Classroom;
+    });
+  } catch (error) {
+    console.error("Error getting classrooms:", error);
+    return [];
+  }
+};
+
+export const getUserClassrooms = async (userId: string, role: string) => {
+  try {
+    // For teachers, get classrooms they created
+    if (role === 'teacher') {
+      return getClassrooms(userId);
+    }
+    
+    // For students, get classrooms they've joined
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return [];
+    }
+    
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    // If user hasn't joined any classrooms yet
+    if (userClassrooms.length === 0) {
+      return [];
+    }
+    
+    // Get details for each classroom the user is in
+    const classroomPromises = userClassrooms.map(classroomId => getClassroom(classroomId));
+    const classrooms = await Promise.all(classroomPromises);
+    
+    // Filter out any null results (in case a classroom was deleted)
+    return classrooms.filter(Boolean) as Classroom[];
+  } catch (error) {
+    console.error("Error getting user classrooms:", error);
+    return [];
+  }
+};
+
+export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
+  const updateData = { ...data };
+  if ('id' in updateData) {
+    delete updateData.id; // Remove id property if present
+  }
+  return updateDoc(doc(db, 'classrooms', classroomId), updateData as DocumentData);
+};
+
+// Classroom activity functions
+export const startClassroomScenario = async (classroomId: string, scenarioId: string, initialScene: string) => {
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    activeScenario: scenarioId,
+    currentScene: initialScene,
+    startedAt: Timestamp.now()
+  });
+};
+
+export const recordStudentVote = async (classroomId: string, studentId: string, choiceId: string) => {
+  const voteRef = doc(db, 'classrooms', classroomId, 'votes', studentId);
+  return setDoc(voteRef, { 
+    choiceId, 
+    timestamp: Timestamp.now() 
+  });
+};
+
+export const getScenarioVotes = async (classroomId: string) => {
+  const votesQuery = collection(db, 'classrooms', classroomId, 'votes');
+  const snapshot = await getDocs(votesQuery);
+  return snapshot.docs.map(doc => ({ studentId: doc.id, ...doc.data() }));
+};
+
+export const advanceClassroomScene = async (classroomId: string, nextSceneId: string) => {
+  // Clear previous votes and set new scene
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  const votesSnapshot = await getDocs(votesRef);
+  
+  // Delete previous votes
+  const deletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+  await Promise.all(deletePromises);
+  
+  // Set new scene
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    currentScene: nextSceneId,
+    lastUpdated: Timestamp.now()
+  });
+};
+
+export const getStudentProgress = async (classroomId: string) => {
+  const progressRef = collection(db, 'classrooms', classroomId, 'progress');
+  const snapshot = await getDocs(progressRef);
+  return snapshot.docs.map(doc => ({ studentId: doc.id, ...doc.data() }));
+};
+
+export const addClassroomMessage = async (classroomId: string, message: any) => {
+  const classroomRef = doc(db, 'classrooms', classroomId);
+  const classroomDoc = await getDoc(classroomRef);
+  
+  if (classroomDoc.exists()) {
+    const classroom = classroomDoc.data();
+    const messages = classroom.messages || [];
+    const newMessages = [message, ...messages].slice(0, 100); // Keep only most recent 100 messages
+    
+    return updateDoc(classroomRef, { messages: newMessages });
+  }
+};
+
+// Helper to generate a random class code
+const generateClassCode = () => {
+  const prefix = 'LIFE';
+  const randomDigits = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+  return `${prefix}-${randomDigits}`;
+};
+
+// Real-time listeners
+export const onClassroomUpdated = (classroomId: string, callback: (classroom: Classroom) => void) => {
+  const unsubscribe = onSnapshot(doc(db, 'classrooms', classroomId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as Classroom);
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => void) => {
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  
+  const unsubscribe = onSnapshot(votesRef, (snapshot) => {
+    const votes = snapshot.docs.map(doc => ({ 
+      studentId: doc.id, 
+      ...doc.data() 
+    }));
+    callback(votes);
+  });
+  
+  return unsubscribe;
+};
+
+export const signInWithGoogle = () => {
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider);
+};
+
+export { auth, db, Timestamp };

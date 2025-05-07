@@ -1,250 +1,184 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGameContext } from '@/context/GameContext';
-import { useAuth } from '@/context/AuthContext';
 import SceneDisplay from '@/components/SceneDisplay';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
-import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import MirrorMoment from '@/components/MirrorMoment';
-import ClassroomJoinLink from '@/components/classroom/ClassroomJoinLink';
-import StudentClassroomView from '@/components/classroom/StudentClassroomView';
-import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
-import { onClassroomUpdated } from '@/lib/firebase';
-import { ArrowLeft, LayoutDashboard, UsersRound } from 'lucide-react';
+import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
+import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 
-// Type Definition
-interface TeacherClassroomManagerProps {
-  classroom: any;
-  onRefresh: () => void;
-}
-
-const GamePage: React.FC = () => {
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [classroomData, setClassroomData] = useState<any>(null);
-  
-  const navigate = useNavigate();
-  const { userProfile } = useAuth();
+const GamePage = () => {
   const { 
     gameState, 
+    makeChoice, 
     resetGame, 
-    makeChoice,
-    startScenario,
-    isGameActive,
-    showMirrorMoment,
-    setShowMirrorMoment,
+    isGameActive, 
+    showMirrorMoment, 
     gameMode,
+    setGameMode,
     userRole,
     classroomId,
-    setClassroomId
+    mirrorMomentsEnabled,
+    toggleMirrorMoments
   } = useGameContext();
-  
-  // Effect to fetch scenario if in classroom mode
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+
   useEffect(() => {
-    // Initialize classroom scenario if necessary
-    if (gameMode === 'classroom' && classroomId) {
-      // Listen for classroom updates
-      const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
-        // Store classroom data
-        setClassroomData(classroom);
-        
-        // If a new scenario gets activated, load it
-        if (classroom?.activeScenario && !isGameActive && isFirstLoad) {
-          startScenario(classroom.activeScenario);
-          setIsFirstLoad(false);
-        }
+    // If no active game, redirect to home
+    if (!isGameActive) {
+      navigate('/');
+    }
+  }, [isGameActive, navigate]);
+  
+  // Prevent using classroom mode without joining a classroom
+  useEffect(() => {
+    if (gameMode === "classroom" && !classroomId) {
+      toast({
+        title: "Classroom Required",
+        description: userRole === 'teacher' 
+          ? "Please create a classroom before starting a scenario in classroom mode." 
+          : "Please join a classroom before starting a scenario in classroom mode.",
+        variant: "destructive",
       });
-      
-      return () => {
-        unsubscribe();
-      };
+      setGameMode("individual");
     }
-  }, [gameMode, classroomId, isGameActive, isFirstLoad, startScenario]);
-  
-  const handleReturnHome = () => {
-    resetGame();
-    if (userProfile?.role === 'teacher') {
-      navigate('/teacher');
-    } else {
-      navigate('/profile');
-    }
-  };
-  
-  const handlePlayAgain = () => {
-    // Reset and restart the same scenario if one was active
-    if (gameState.currentScenario) {
-      const scenarioId = gameState.currentScenario.id;
-      resetGame();
-      startScenario(scenarioId);
-    } else {
-      // Otherwise just go to profile
-      navigate('/profile');
-    }
-  };
-  
-  const handleRefreshClassroom = () => {
-    // Refresh classroom data
-    console.log("Refreshing classroom data");
+  }, [gameMode, classroomId, userRole, toast, setGameMode]);
+
+  const handleChoiceMade = (choiceId: string) => {
+    makeChoice(choiceId);
   };
 
-  // Handle classroom mode
-  if (gameMode === 'classroom') {
-    // Show teacher view
-    if (userRole === 'teacher') {
-      return (
-        <div className="container mx-auto max-w-6xl px-4 py-8">
-          <div className="mb-6 flex justify-between">
-            <Button variant="outline" onClick={() => navigate('/teacher')}>
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-            <ClassroomJoinLink />
-          </div>
-          
-          {classroomData && (
-            <TeacherClassroomManager 
-              classroom={classroomData} 
-              onRefresh={handleRefreshClassroom}
-            />
-          )}
-          
-          {gameState.currentScene && !gameState.currentScene.isEnding && (
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              <Card className="bg-black/40 backdrop-blur-md border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-white">Current Scene</CardTitle>
-                  <CardDescription>Students are viewing this scene</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SceneDisplay 
-                    scene={gameState.currentScene} 
-                  />
-                </CardContent>
-              </Card>
-              
-              {gameState.currentScene.choices && (
-                <EnhancedClassroomVoting 
-                  sceneId={gameState.currentScene.id}
-                  choices={gameState.currentScene.choices}
-                />
-              )}
-            </div>
-          )}
-          
-          {gameState.currentScene && gameState.currentScene.isEnding && (
-            <div className="mt-8">
-              <ResultsSummary 
-                scenario={gameState.currentScenario}
-                scene={gameState.currentScene} 
-                metrics={gameState.metrics}
-                choices={gameState.choices}
-                isClassroom={true}
-                onPlayAgain={handlePlayAgain}
-                onReturnHome={handleReturnHome}
-              />
-            </div>
-          )}
-        </div>
-      );
+  const handleReturnHome = () => {
+    resetGame();
+    navigate('/');
+  };
+
+  const handlePlayAgain = () => {
+    if (gameState.currentScenario) {
+      resetGame();
+      // Need to wait for reset before starting new scenario
+      setTimeout(() => {
+        navigate('/');
+        navigate('/game');
+      }, 100);
     }
-    
-    // Student view
+  };
+  
+  const toggleGameMode = () => {
+    if (gameMode === "classroom") {
+      setGameMode("individual");
+      toast({
+        title: "Individual Mode",
+        description: "You're now playing in individual mode.",
+      });
+    } else {
+      if (!classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: userRole === 'teacher' 
+            ? "Please create a classroom first." 
+            : "Please join a classroom first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setGameMode("classroom");
+      toast({
+        title: "Classroom Mode",
+        description: "You're now playing in classroom mode.",
+      });
+    }
+  };
+
+  if (!gameState.currentScenario || !gameState.currentScene) {
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        <Button variant="outline" className="mb-6" onClick={() => navigate('/profile')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Profile
-        </Button>
-        
-        <StudentClassroomView />
-        
-        {gameState.currentScene && (
-          <div className="mt-8">
-            <SceneDisplay 
-              scene={gameState.currentScene} 
-            />
-            
-            {gameState.currentScene.choices && !gameState.currentScene.isEnding && (
-              <div className="mt-8">
-                <EnhancedClassroomVoting
-                  sceneId={gameState.currentScene.id}
-                  choices={gameState.currentScene.choices}
-                />
-              </div>
-            )}
-            
-            {gameState.currentScene.isEnding && (
-              <div className="mt-8">
-                <ResultsSummary 
-                  scenario={gameState.currentScenario}
-                  scene={gameState.currentScene} 
-                  metrics={gameState.metrics}
-                  choices={gameState.choices}
-                  isClassroom={true}
-                  onPlayAgain={handlePlayAgain}
-                  onReturnHome={handleReturnHome}
-                />
-              </div>
-            )}
+      <div className="container mx-auto px-4 py-8 text-center flex justify-center items-center min-h-[50vh]">
+        <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 p-8 rounded-xl animate-pulse flex flex-col items-center gap-4 max-w-md w-full border border-white/10 shadow-lg">
+          <div className="relative">
+            <Sparkles className="text-indigo-300 h-10 w-10" />
+            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
           </div>
-        )}
+          <Loader2 className="h-8 w-8 text-indigo-300 animate-spin" />
+          <p className="text-white text-lg">Loading your adventure...</p>
+        </div>
       </div>
     );
   }
 
-  // Individual mode - normal game flow
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      {!isGameActive && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Card className="w-full max-w-lg bg-black/40 backdrop-blur-md border-white/10">
-            <CardHeader>
-              <CardTitle className="text-center text-white">No Active Scenario</CardTitle>
-              <CardDescription className="text-center text-white/70">
-                Please select a scenario from your profile to start
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="flex justify-center">
-              <Button onClick={() => navigate('/profile')}>
-                Go to Profile
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-      
-      {isGameActive && gameState.currentScene && !gameState.currentScene.isEnding && (
-        <div className="space-y-8">
-          <div className="lg:flex gap-6 space-y-6 lg:space-y-0">
-            <div className="lg:flex-1">
-              <SceneDisplay 
-                scene={gameState.currentScene} 
-              />
-            </div>
+    <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+      {/* Header with scenario title, mode and metrics */}
+      <div className="mb-6 md:mb-8">
+        <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 rounded-xl p-4 border border-white/10 shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-300" />
+              {gameState.currentScenario.title}
+            </h1>
             
-            <div className="lg:w-64">
-              <MetricsDisplay metrics={gameState.metrics} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
+                onClick={toggleMirrorMoments}
+              >
+                {mirrorMomentsEnabled ? (
+                  <ToggleRight className="h-4 w-4 text-indigo-300" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4 text-white/50" />
+                )}
+                Mirror Moments
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
+                onClick={toggleGameMode}
+                disabled={!classroomId && gameMode === "individual"}
+              >
+                {gameMode === "classroom" ? (
+                  <>
+                    <Users className="h-4 w-4 text-indigo-300" />
+                    Classroom Mode
+                  </>
+                ) : (
+                  <>
+                    <User className="h-4 w-4 text-white/50" />
+                    Individual Mode
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-          
-          {showMirrorMoment && (
-            <MirrorMoment 
-              onClose={() => setShowMirrorMoment(false)} 
-            />
-          )}
+          <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
         </div>
-      )}
-      
-      {isGameActive && gameState.currentScene && gameState.currentScene.isEnding && (
+      </div>
+
+      {/* Main game content */}
+      {gameState.currentScene.isEnding ? (
         <ResultsSummary 
-          scenario={gameState.currentScenario}
+          gameState={gameState} 
+          onPlayAgain={handlePlayAgain} 
+          onReturnHome={handleReturnHome} 
+        />
+      ) : showMirrorMoment ? (
+        <MirrorMoment />
+      ) : gameMode === "classroom" ? (
+        <EnhancedClassroomVoting scene={gameState.currentScene} />
+      ) : (
+        <SceneDisplay 
           scene={gameState.currentScene} 
-          metrics={gameState.metrics}
-          choices={gameState.choices}
-          onPlayAgain={handlePlayAgain}
-          onReturnHome={handleReturnHome}
+          onChoiceMade={handleChoiceMade} 
         />
       )}
     </div>

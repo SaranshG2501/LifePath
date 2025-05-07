@@ -15,7 +15,7 @@ export type Choice = {
   id: string;
   text: string;
   nextSceneId: string;
-  metricChanges?: MetricChange;
+  metricChanges: MetricChange;
   tooltip?: string;
 };
 
@@ -26,6 +26,7 @@ export type Scene = {
   image?: string;
   choices: Choice[];
   isEnding?: boolean;
+  isEndScene?: boolean;
 };
 
 export type Scenario = {
@@ -43,15 +44,11 @@ export type GameState = {
   currentScenario: Scenario | null;
   currentScene: Scene | null;
   metrics: Metrics;
-  choices: {
+  history: {
     sceneId: string;
     choiceId: string;
-    text?: string;
-    timestamp: Date;
-    metricChanges?: Record<string, number>;
+    metricChanges: MetricChange;
   }[];
-  isActive: boolean;
-  startTime: Date | null;
 };
 
 export type GameMode = "individual" | "classroom";
@@ -62,36 +59,26 @@ export type Badge = {
   name: string;
   description: string;
   icon: string;
+  criteria: (gameState: GameState) => boolean;
 };
 
 export type UserProfile = {
   id: string;
-  displayName: string;
+  username: string;
   email: string;
   role: UserRole;
   xp: number;
-  level: number;
   completedScenarios: string[];
-  badges: Array<{id: string; title: string; awardedAt: any}>;
-  classrooms?: string[];
-  metrics?: Metrics;
+  badges: string[];
+  classrooms: string[];
 };
 
 export type Classroom = {
   id: string;
   name: string;
   teacherId: string;
-  teacherName: string;
-  students: Array<{
-    id: string;
-    name: string;
-    joinedAt: any;
-  }>;
-  activeScenario?: string | null;
-  currentScene?: string | null;
-  createdAt: any;
-  classCode: string;
-  isActive: boolean;
+  students: string[];
+  activeScenario?: string;
 };
 
 export type VoteStats = {
@@ -100,6 +87,7 @@ export type VoteStats = {
   percentage: number;
 };
 
-export interface ScenarioHistoryDetailProps {
-  history: any;
+export interface ScenarioCardProps {
+  scenario: Scenario;
+  onClick?: () => void;
 }
