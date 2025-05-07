@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { School, Play, Users, Book, LogIn, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
 import { getClassroomByCode, joinClassroom, onClassroomUpdated, getScenarioVotes, Classroom } from '@/lib/firebase';
@@ -136,7 +135,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       setIsLoading(true);
       setJoinError('');
       
-      // Join the classroom
+      // Join the classroom with our new implementation
       const displayName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Student';
       console.log("Joining as:", displayName);
       

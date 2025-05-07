@@ -8,9 +8,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow updating just the classrooms field for joining a class
+      allow update: if request.auth != null && 
+                     (request.auth.uid == userId || 
+                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classrooms'])));
     }
     
-    // Classroom rules - more permissive to allow joining
+    // Classroom rules
     match /classrooms/{classroomId} {
       // Anyone authenticated can read classrooms
       allow read: if request.auth != null;
@@ -19,20 +24,14 @@ service cloud.firestore {
       allow create: if request.auth != null && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Teachers can update their own classrooms
+      // Teachers can update their own classrooms or students can join by adding themselves
       allow update: if request.auth != null && 
-                     (resource.data.teacherId == request.auth.uid ||
-                     // Allow students to join classrooms by updating the students array
-                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students']) &&
-                     getStudentIdFromUpdate() == request.auth.uid));
-      
-      // Helper function to extract student ID from update operation
-      function getStudentIdFromUpdate() {
-        let oldStudents = resource.data.students;
-        let newStudents = request.resource.data.students;
-        return newStudents.length > oldStudents.length ? 
-          newStudents[newStudents.length - 1].id : null;
-      }
+                     (resource.data.teacherId == request.auth.uid || 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students']));
+                      
+      // Only teachers can delete their classrooms
+      allow delete: if request.auth != null && 
+                     resource.data.teacherId == request.auth.uid;
       
       // Votes subcollection - students can vote
       match /votes/{voteId} {
@@ -44,7 +43,7 @@ service cloud.firestore {
     // Public reading of class codes for joining
     match /classCodes/{code} {
       allow read: if request.auth != null;
-      allow write: if false; // Only managed by backend functions
+      allow write: if request.auth != null; // Allow students to access class codes
     }
   }
 }

@@ -29,6 +29,7 @@ import {
   onSnapshot,
   DocumentData,
   Timestamp,
+  arrayUnion,
   FieldValue
 } from 'firebase/firestore';
 import { Metrics } from '@/types/game';
@@ -162,6 +163,44 @@ export const updateUserProfile = async (uid: string, data: Record<string, any>) 
   return updateDoc(doc(db, 'users', uid), data);
 };
 
+// Award a badge to a user
+export const awardBadge = async (userId: string, badgeId: string, badgeTitle: string) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userBadges = userData.badges || [];
+      
+      // Check if user already has this badge
+      if (userBadges.some((badge: any) => badge.id === badgeId)) {
+        console.log("User already has this badge:", badgeId);
+        return false;
+      }
+      
+      // Add new badge with timestamp
+      const newBadge = {
+        id: badgeId,
+        title: badgeTitle,
+        awardedAt: Timestamp.now()
+      };
+      
+      await updateDoc(userRef, {
+        badges: [...userBadges, newBadge],
+        xp: (userData.xp || 0) + 25 // Award XP for getting a badge
+      });
+      
+      console.log("Badge awarded:", badgeId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error awarding badge:", error);
+    return false;
+  }
+};
+
 // Scenario History functions
 export const saveScenarioHistory = async (
   userId: string, 
@@ -265,74 +304,71 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Completely rewritten joinClassroom function using a direct approach
+// Completely rewritten joinClassroom function with a more reliable approach
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
     
-    // Get classroom reference and document
+    // Step 1: Get the classroom document
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
     
     if (!classroomDoc.exists()) {
+      console.error("Classroom not found");
       throw new Error("Classroom not found");
     }
     
+    // Step 2: Get current classroom data
     const classroomData = classroomDoc.data() as Classroom;
+    const currentStudents = classroomData.students || [];
     
-    // Check if student is already in the classroom
-    const existingStudentIndex = classroomData.students?.findIndex(s => s.id === studentId);
-    const isAlreadyMember = existingStudentIndex !== undefined && existingStudentIndex >= 0;
+    // Step 3: Check if student is already in the classroom
+    const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
     
-    if (!isAlreadyMember) {
-      // Add student to classroom
+    if (existingStudentIndex === -1) {
+      // Student is not in the classroom yet, add them
       const newStudent = {
         id: studentId,
         name: studentName,
         joinedAt: Timestamp.now()
       };
       
-      const updatedStudents = [...(classroomData.students || []), newStudent];
+      // Create a new students array with the new student
+      const updatedStudents = [...currentStudents, newStudent];
       
-      // Update classroom document
-      await updateDoc(classroomRef, {
-        students: updatedStudents
-      });
-      
-      console.log(`Student ${studentId} added to classroom ${classroomId}`);
+      // Update the classroom document with the new students array
+      await updateDoc(classroomRef, { students: updatedStudents });
+      console.log(`Added student ${studentId} to classroom ${classroomId}`);
     } else {
-      console.log(`Student ${studentId} is already a member of classroom ${classroomId}`);
+      console.log(`Student ${studentId} is already in classroom ${classroomId}`);
     }
     
-    // Now update the user's profile to include this classroom
+    // Step 4: Update the student's profile to include this classroom
     const userRef = doc(db, 'users', studentId);
     const userDoc = await getDoc(userRef);
     
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      const userClassrooms = userData.classrooms || [];
-      
-      // Only add if not already in the list
-      if (!userClassrooms.includes(classroomId)) {
-        const updatedClassrooms = [...userClassrooms, classroomId];
-        
-        await updateDoc(userRef, {
-          classrooms: updatedClassrooms
-        });
-        
-        console.log(`Classroom ${classroomId} added to user ${studentId}'s profile`);
-      }
-    } else {
+    if (!userDoc.exists()) {
       console.error(`User ${studentId} not found`);
       throw new Error("User not found");
     }
     
-    // Get the updated classroom and return it
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    // Only add classroom ID if it's not already in the user's classrooms
+    if (!userClassrooms.includes(classroomId)) {
+      const updatedClassrooms = [...userClassrooms, classroomId];
+      await updateDoc(userRef, { classrooms: updatedClassrooms });
+      console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
+    }
+    
+    // Step 5: Get the updated classroom data and return it
     const updatedClassroomDoc = await getDoc(classroomRef);
     return {
       id: classroomId,
       ...updatedClassroomDoc.data()
     } as Classroom;
+    
   } catch (error) {
     console.error("Error joining classroom:", error);
     throw error;

@@ -1,5 +1,4 @@
 
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -13,6 +12,7 @@ import AuthPage from "@/pages/AuthPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import NotFound from "@/pages/NotFound";
+import { Toaster } from "@/components/ui/toaster";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +21,6 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <GameProvider>
-          <Toaster />
           <BrowserRouter>
             <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-[#1A1F2C] to-purple-900 flex flex-col">
               <AppHeader />
@@ -38,6 +37,7 @@ const App = () => (
               </main>
             </div>
           </BrowserRouter>
+          <Toaster />
         </GameProvider>
       </AuthProvider>
     </TooltipProvider>

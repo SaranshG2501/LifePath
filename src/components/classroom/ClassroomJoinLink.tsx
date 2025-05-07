@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { School, Users, LogIn } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -143,32 +143,39 @@ const ClassroomJoinLink: React.FC = () => {
       setJoinError('');
       console.log("Attempting to join classroom with code:", normalizedCode);
 
+      // First get the classroom by code
       const classroom = await getClassroomByCode(normalizedCode);
-      if (!classroom) {
-        setJoinError(`Classroom with code ${normalizedCode} does not exist.`);
+      if (!classroom || !classroom.id) {
+        setJoinError(`No classroom found with code ${normalizedCode}.`);
         toast({
           title: "Invalid Code",
-          description: `Classroom with code ${normalizedCode} does not exist.`,
+          description: `No classroom found with code ${normalizedCode}.`,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
       console.log("Classroom found:", classroom);
 
-      const displayName =
-        userProfile?.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "Student");
+      // Determine the display name for the student
+      const displayName = userProfile?.displayName || 
+                         (currentUser.email ? currentUser.email.split("@")[0] : "Student");
+      
       console.log("Joining as:", displayName);
+      
+      // Join the classroom with our improved function
+      const joinedClassroom = await joinClassroom(
+        classroom.id,
+        currentUser.uid,
+        displayName
+      );
+      
+      console.log("Join classroom result:", joinedClassroom);
 
-      const joinedClassroom = await joinClassroom(classroom.id!, currentUser.uid, displayName);
-      console.log("Successfully joined classroom:", joinedClassroom);
-
-      // Verify we have a valid result
       if (!joinedClassroom || !joinedClassroom.id) {
         throw new Error("Failed to join classroom - no valid response received");
       }
 
-      // Refresh user profile to update classrooms list and reflect join in UI
+      // Refresh user profile to update classrooms list
       if (refreshUserProfile) {
         await refreshUserProfile();
       }
@@ -178,7 +185,7 @@ const ClassroomJoinLink: React.FC = () => {
       setUserHasClassrooms(true);
 
       toast({
-        title: "Joined Classroom",
+        title: "Success!",
         description: `You have joined ${joinedClassroom.name}!`,
       });
 
