@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Metrics, Scenario, Scene } from '@/types/game';
+import { Metrics, Scenario, Scene, Choice } from '@/types/game';
 import { scenarios } from '@/data/scenarios';
-import { awardBadge, saveScenarioHistory } from '@/lib/firebase';
+import { awardBadge, saveScenarioHistory, recordStudentVote, onVotesUpdated } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface GameState {
@@ -15,7 +16,7 @@ interface GameState {
     choiceId: string;
     text?: string;
     timestamp: Date;
-    effects?: Record<string, number>;
+    metricChanges?: Record<string, number>;
   }[];
   isActive: boolean;
   startTime: Date | null;
@@ -56,6 +57,7 @@ interface GameContextProps {
   mirrorMomentsEnabled: boolean;
   toggleMirrorMoments: () => void;
   showMirrorMoment: boolean;
+  setShowMirrorMoment: (show: boolean) => void;
   userRole: string;
   gameMode: 'individual' | 'classroom';
   setGameMode: (mode: 'individual' | 'classroom') => void;
@@ -63,6 +65,11 @@ interface GameContextProps {
   setClassroomId: (classroomId: string | null) => void;
   classroomVotes: any[];
   setClassroomVotes: (votes: any[]) => void;
+  revealVotes: boolean;
+  setRevealVotes: (reveal: boolean) => void;
+  submitVote: (choiceId: string) => void;
+  currentMirrorQuestion: string | null;
+  scenarios: Scenario[];
 }
 
 interface GameProviderProps {
@@ -79,6 +86,7 @@ const GameContext = createContext<GameContextProps>({
   mirrorMomentsEnabled: true,
   toggleMirrorMoments: () => {},
   showMirrorMoment: false,
+  setShowMirrorMoment: () => {},
   userRole: 'student',
   gameMode: 'individual',
   setGameMode: () => {},
@@ -86,6 +94,11 @@ const GameContext = createContext<GameContextProps>({
   setClassroomId: () => {},
   classroomVotes: [],
   setClassroomVotes: () => {},
+  revealVotes: false,
+  setRevealVotes: () => {},
+  submitVote: () => {},
+  currentMirrorQuestion: null,
+  scenarios: scenarios,
 });
 
 export const useGameContext = () => useContext(GameContext);
@@ -95,6 +108,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [sceneHistory, setSceneHistory] = useState<SceneHistoryEntry[]>([]);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState(true);
   const [showMirrorMoment, setShowMirrorMoment] = useState(false);
+  const [currentMirrorQuestion, setCurrentMirrorQuestion] = useState<string | null>(null);
 
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
   const { toast } = useToast();
@@ -102,18 +116,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const userRole = userProfile?.role || 'student';
 
-  const [metricChangePopup, setMetricChangePopup] = useState<{
-    show: boolean;
-    changes: Record<string, number> | null;
-  }>({
-    show: false,
-    changes: null
-  });
-
   // Game mode state
   const [gameMode, setGameMode] = useState<'individual' | 'classroom'>('individual');
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<any[]>([]);
+  const [revealVotes, setRevealVotes] = useState(false);
 
   useEffect(() => {
     if (classroomId) {
@@ -129,9 +136,23 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, [gameMode]);
 
+  useEffect(() => {
+    // Set up votes listener if in classroom mode
+    if (gameMode === 'classroom' && classroomId && gameState.currentScene) {
+      const unsubscribe = onVotesUpdated(classroomId, (votes) => {
+        setClassroomVotes(votes);
+      });
+      
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [gameMode, classroomId, gameState.currentScene]);
+
   const resetGame = () => {
     setGameState(initialGameState);
     setSceneHistory([]);
+    setRevealVotes(false);
   };
   
   // Initialize game with a scenario
@@ -143,8 +164,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       return;
     }
 
-    // Find the initial scene
-    const initialScene = scenario.scenes.find(scene => scene.isStart);
+    // Find the initial scene - look for a scene marked as start or just use the first scene
+    const initialScene = scenario.scenes.find(s => s.id.includes('start') || s.id.includes('intro')) || scenario.scenes[0];
     if (!initialScene) {
       console.error("Initial scene not found for scenario:", scenarioId);
       return;
@@ -172,6 +193,29 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     ]);
   };
 
+  // Submit vote in classroom mode
+  const submitVote = async (choiceId: string) => {
+    if (!classroomId || !currentUser || !gameState.currentScene) {
+      console.error("Cannot submit vote: missing required data");
+      return;
+    }
+
+    try {
+      await recordStudentVote(classroomId, currentUser.uid, choiceId);
+      toast({
+        title: "Vote Submitted",
+        description: "Your vote has been recorded.",
+      });
+    } catch (error) {
+      console.error("Error submitting vote:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit your vote.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle choice selection
   const makeChoice = (choiceId: string) => {
     if (!gameState.currentScene || !gameState.currentScenario) return;
@@ -184,24 +228,21 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     // Calculate metrics changes
     const newMetrics = { ...gameState.metrics };
-    if (choice.effects) {
-      Object.entries(choice.effects).forEach(([metric, value]) => {
-        if (metric in newMetrics) {
+    if (choice.metricChanges) {
+      Object.entries(choice.metricChanges).forEach(([metric, value]) => {
+        if (metric in newMetrics && typeof value === 'number') {
           newMetrics[metric as keyof Metrics] += value;
         }
       });
     }
-
-    // Instead of showing the metrics popup, update state directly
-    const changes = choice.effects || {};
     
     // Find the next scene
     const nextScene = gameState.currentScenario.scenes.find(
-      scene => scene.id === choice.nextScene
+      scene => scene.id === choice.nextSceneId
     );
 
     if (!nextScene) {
-      console.error("Next scene not found:", choice.nextScene);
+      console.error("Next scene not found:", choice.nextSceneId);
       return;
     }
 
@@ -215,7 +256,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         choiceId: choice.id,
         text: choice.text,
         timestamp: new Date(),
-        effects: choice.effects
+        metricChanges: choice.metricChanges
       }]
     });
 
@@ -231,7 +272,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setSceneHistory([...sceneHistory, newHistoryEntry]);
     
     // Special handling for mirror moments
-    if (mirrorMomentsEnabled && (nextScene.type === 'reflection' || Math.random() < 0.1)) {
+    if (mirrorMomentsEnabled && (nextScene.id.includes('reflect') || Math.random() < 0.1)) {
+      setCurrentMirrorQuestion("How do you feel about the choice you just made?");
       setShowMirrorMoment(true);
       setTimeout(() => setShowMirrorMoment(false), 8000);
     }
@@ -274,7 +316,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       choiceId: choice.choiceId,
       choiceText: choice.text,
       timestamp: new Date(choice.timestamp),
-      metricChanges: choice.effects
+      metricChanges: choice.metricChanges
     }));
 
     try {
@@ -354,13 +396,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         mirrorMomentsEnabled,
         toggleMirrorMoments,
         showMirrorMoment,
+        setShowMirrorMoment,
         userRole,
         gameMode,
         setGameMode,
         classroomId,
         setClassroomId,
         classroomVotes,
-        setClassroomVotes
+        setClassroomVotes,
+        revealVotes,
+        setRevealVotes,
+        submitVote,
+        currentMirrorQuestion,
+        scenarios
       }}
     >
       {children}

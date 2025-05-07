@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 
 const HomePage = () => {
-  const { scenarios, startScenario, userRole, gameMode, setGameMode, classroomId } = useGameContext();
+  const { startScenario, userRole, gameMode, setGameMode, classroomId, scenarios } = useGameContext();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();

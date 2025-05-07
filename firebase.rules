@@ -1,6 +1,4 @@
 
-// Firestore rules
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -9,8 +7,10 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
       
-      // Allow updating just the classrooms field for joining a class
-      allow update: if request.auth != null;
+      // Allow updating classrooms field for joining a class
+      allow update: if request.auth != null && 
+                     (request.auth.uid == userId || 
+                     request.resource.data.keys().hasOnly(['classrooms']));
     }
     
     // Classroom rules
@@ -18,10 +18,10 @@ service cloud.firestore {
       // Anyone authenticated can read classrooms
       allow read: if request.auth != null;
       
-      // Only teachers can create classrooms
+      // Teachers can create classrooms
       allow create: if request.auth != null;
       
-      // Anyone authenticated can update classrooms (this can be restricted more if needed)
+      // Anyone can update classrooms for joining purposes
       allow update: if request.auth != null;
       
       // Only teachers can delete their classrooms
@@ -36,6 +36,12 @@ service cloud.firestore {
       
       // Progress subcollection - track student progress
       match /progress/{studentId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+      
+      // Messages subcollection - for classroom chat
+      match /messages/{messageId} {
         allow read: if request.auth != null;
         allow write: if request.auth != null;
       }

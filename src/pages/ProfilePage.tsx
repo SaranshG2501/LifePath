@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,11 @@ import { Progress } from '@/components/ui/progress';
 import { useGameContext } from '@/context/GameContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { ScenarioHistory, getClassroomByCode, getUserClassrooms } from '@/lib/firebase';
+import { ScenarioHistory } from '@/lib/firebase';
 import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
+import ClassroomJoinLink from '@/components/classroom/ClassroomJoinLink';
+import StudentClassroomView from '@/components/classroom/StudentClassroomView';
+import AchievementSection from '@/components/AchievementSection';
 import { 
   User, School, Trophy, History, BarChart, 
   Users, LogOut, BookOpen, Gamepad2, Award, 
@@ -17,34 +20,17 @@ import {
   TrendingUp, LineChart, Play
 } from 'lucide-react';
 
-const StudentClassroomView = ({ onClassroomJoined }) => {
-  // Implementation of StudentClassroomView component
-};
-
-const AchievementSection = ({ userProfile }) => {
-  // Implementation of AchievementSection component
-};
-
 const ProfilePage: React.FC = () => {
   const { userRole } = useGameContext();
-  const { userProfile, logout, isLoading } = useAuth();
+  const { userProfile, currentUser, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const [xpProgress, setXpProgress] = useState(0);
   const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
   const [isHistoryDetailOpen, setIsHistoryDetailOpen] = useState(false);
+  const [expandedHistoryIndex, setExpandedHistoryIndex] = useState<number | null>(null);
 
-  // State for joining a classroom
-  const [joinClassCode, setJoinClassCode] = useState('');
-  const [isJoinClassModalOpen, setIsJoinClassModalOpen] = useState(false);
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
-
-  // Initialize decision metrics
-  const [decisionMetrics, setDecisionMetrics] = useState({
-    analytical: 67,
-    emotional: 42,
-    riskTaking: 58,
-  });
+  // State for user history
+  const [userHistory, setUserHistory] = useState<ScenarioHistory[]>([]);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -59,40 +45,11 @@ const ProfilePage: React.FC = () => {
       const xpToNextLevel = 1000;
       const progress = ((userProfile.xp || 0) % xpToNextLevel) / xpToNextLevel * 100;
       setXpProgress(progress);
+      
+      // Set user history
+      setUserHistory(userProfile.history || []);
     }
   }, [userProfile]);
-
-  useEffect(() => {
-    if (userProfile && userProfile.history) {
-      // Update decision metrics based on user history
-      const allChoices = userProfile.history.flatMap((h) => h.choices || []);
-      if (allChoices.length > 0) {
-        const analyticalChoices = allChoices.filter(
-          (choice) => choice.metricChanges?.knowledge && choice.metricChanges.knowledge > 0
-        ).length;
-
-        const emotionalChoices = allChoices.filter(
-          (choice) => choice.metricChanges?.happiness && choice.metricChanges.happiness > 0
-        ).length;
-
-        const riskyChoices = allChoices.filter(
-          (choice) =>
-            (choice.metricChanges?.money && choice.metricChanges.money < 0) ||
-            (choice.metricChanges?.health && choice.metricChanges.health < 0)
-        ).length;
-
-        const totalChoices = allChoices.length;
-
-        if (totalChoices > 0) {
-          setDecisionMetrics({
-            analytical: Math.round((analyticalChoices / totalChoices) * 100),
-            emotional: Math.round((emotionalChoices / totalChoices) * 100),
-            riskTaking: Math.round((riskyChoices / totalChoices) * 100),
-          });
-        }
-      }
-    }
-  }, [userProfile?.history]);
 
   const handleLogout = async () => {
     try {
@@ -103,44 +60,11 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const openHistoryDetail = (history: ScenarioHistory) => {
-    setSelectedHistory(history);
-    setIsHistoryDetailOpen(true);
-  };
-
-  const handleJoinClassroom = async () => {
-    setJoinError(null);
-    setIsJoining(true);
-    if (!joinClassCode.trim()) {
-      setJoinError('Please enter a class code.');
-      setIsJoining(false);
-      return;
-    }
-    try {
-      const classroom = await getClassroomByCode(joinClassCode.trim());
-      if (!classroom) {
-        setJoinError('Classroom not found. Please check the code and try again.');
-        setIsJoining(false);
-        return;
-      }
-      if (!userProfile) {
-        setJoinError('User profile not loaded.');
-        setIsJoining(false);
-        return;
-      }
-      if (userProfile.classrooms && userProfile.classrooms.includes(classroom.id)) {
-        setJoinError('You are already a member of this classroom.');
-        setIsJoining(false);
-        return;
-      }
-      await getUserClassrooms(userProfile.id, classroom.id);
-      setIsJoinClassModalOpen(false);
-      setJoinClassCode('');
-    } catch (error) {
-      console.error('Error joining classroom:', error);
-      setJoinError('An error occurred while joining the classroom.');
-    } finally {
-      setIsJoining(false);
+  const toggleHistoryExpand = (index: number) => {
+    if (expandedHistoryIndex === index) {
+      setExpandedHistoryIndex(null);
+    } else {
+      setExpandedHistoryIndex(index);
     }
   };
 
@@ -155,19 +79,6 @@ const ProfilePage: React.FC = () => {
   if (!userProfile) {
     return null; // Redirecting handled in useEffect
   }
-
-  const defaultProfile = {
-    username: userProfile.username || 'User',
-    email: userProfile.email || '',
-    role: userProfile.role || userRole || 'student',
-    xp: userProfile.xp || 0,
-    level: userProfile.level || 1,
-    completedScenarios: userProfile.completedScenarios || [],
-    badges: userProfile.badges || [],
-    classrooms: userProfile.classrooms || [],
-    history: userProfile.history || [],
-    id: userProfile.id || '',
-  };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'Unknown';
@@ -257,7 +168,7 @@ const ProfilePage: React.FC = () => {
                       <div key={key} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
                         <span className="text-sm text-white/90 capitalize">{key}:</span>
-                        <span className="text-sm font-medium text-white">{value}</span>
+                        <span className="text-sm font-medium text-white">{String(value)}</span>
                       </div>
                     ))}
                   </div>
@@ -285,7 +196,20 @@ const ProfilePage: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* User's Classrooms */}
           {userRole === 'student' && (
-            <StudentClassroomView onClassroomJoined={(id) => console.log("Joined classroom:", id)} />
+            <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <School className="h-5 w-5 text-indigo-300" />
+                  My Classrooms
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StudentClassroomView />
+              </CardContent>
+              <CardFooter className="border-t border-white/10 pt-4">
+                <ClassroomJoinLink />
+              </CardFooter>
+            </Card>
           )}
         
           {/* Scenario History */}
@@ -305,7 +229,7 @@ const ProfilePage: React.FC = () => {
               {userHistory && userHistory.length > 0 ? (
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
                   {userHistory.map((history, index) => (
-                    <ScenarioHistoryDetail key={index} history={history} expanded={expandedHistoryIndex === index} onToggleExpand={() => toggleHistoryExpand(index)} />
+                    <ScenarioHistoryDetail key={index} history={history} />
                   ))}
                 </div>
               ) : (
