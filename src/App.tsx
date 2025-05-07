@@ -1,4 +1,3 @@
-
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -18,10 +17,10 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <GameProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <TooltipProvider>
+        <AuthProvider>
+          <GameProvider>
             <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-[#1A1F2C] to-purple-900 flex flex-col">
               <AppHeader />
               <main className="flex-1 pb-12">
@@ -36,11 +35,11 @@ const App = () => (
                 </Routes>
               </main>
             </div>
-          </BrowserRouter>
-          <Toaster />
-        </GameProvider>
-      </AuthProvider>
-    </TooltipProvider>
+          </GameProvider>
+        </AuthProvider>
+        <Toaster />
+      </TooltipProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

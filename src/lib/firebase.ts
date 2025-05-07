@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-useless-catch */
 
 import { initializeApp } from 'firebase/app';
 import { 
@@ -44,12 +46,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+let analytics; // Declare the variable
 try {
-  export const analytics = getAnalytics(app);
+  analytics = getAnalytics(app); // Assign the value inside the try block
 } catch (error) {
   console.log("Analytics failed to initialize:", error);
-  // Analytics may not be available in all environments
 }
+
+// Export the analytics variable after the try-catch block
+export { analytics };
 
 // Types
 export interface ClassroomStudent {
@@ -298,7 +304,7 @@ export const getUserClassrooms = async (userId: string, role: string) => {
   }
 };
 
-// The function with the original error (now fixed)
+// The joinClassroom function with fixed export error
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
@@ -321,7 +327,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Get current data
     const userData = userSnap.data();
-    let userClassrooms = userData.classrooms || [];
+    const userClassrooms = userData.classrooms || [];
     
     // Check if user already has this classroom
     if (!userClassrooms.includes(classroomId)) {
@@ -341,7 +347,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Step 3: Now update the classroom document
     const classroomData = classroomSnap.data() as Classroom;
-    let classroomStudents = classroomData.students || [];
+    const classroomStudents = classroomData.students || [];
     
     // Check if student is already in this classroom
     const existingStudent = classroomStudents.find(s => s.id === studentId);
@@ -551,3 +557,4 @@ export const saveScenarioHistory = async (
     throw error;
   }
 };
+
