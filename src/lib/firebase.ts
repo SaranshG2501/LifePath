@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -26,21 +27,29 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 
-// Firebase configuration with fallbacks for development
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemo-FirebaseKeyForDevelopmentOnly",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "demo-project.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-project",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "demo-project.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:abcdefghijklmnopqrstuv"
+  apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
+  authDomain: "lifepath-3ff8f.firebaseapp.com",
+  projectId: "lifepath-3ff8f",
+  storageBucket: "lifepath-3ff8f.firebasestorage.app",
+  messagingSenderId: "185300197020",
+  appId: "1:185300197020:web:d3c7701675bc4972fbd759",
+  measurementId: "G-N5CCD171WX"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+try {
+  export const analytics = getAnalytics(app);
+} catch (error) {
+  console.log("Analytics failed to initialize:", error);
+  // Analytics may not be available in all environments
+}
 
 // Types
 export interface ClassroomStudent {

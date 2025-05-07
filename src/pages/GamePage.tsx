@@ -15,8 +15,15 @@ import TeacherClassroomManager from '@/components/classroom/TeacherClassroomMana
 import { onClassroomUpdated } from '@/lib/firebase';
 import { ArrowLeft, LayoutDashboard, UsersRound } from 'lucide-react';
 
+// Type Definition
+interface TeacherClassroomManagerProps {
+  classroom: any;
+  onRefresh: () => void;
+}
+
 const GamePage: React.FC = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [classroomData, setClassroomData] = useState<any>(null);
   
   const navigate = useNavigate();
   const { userProfile } = useAuth();
@@ -40,6 +47,9 @@ const GamePage: React.FC = () => {
     if (gameMode === 'classroom' && classroomId) {
       // Listen for classroom updates
       const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
+        // Store classroom data
+        setClassroomData(classroom);
+        
         // If a new scenario gets activated, load it
         if (classroom?.activeScenario && !isGameActive && isFirstLoad) {
           startScenario(classroom.activeScenario);
@@ -73,6 +83,11 @@ const GamePage: React.FC = () => {
       navigate('/profile');
     }
   };
+  
+  const handleRefreshClassroom = () => {
+    // Refresh classroom data
+    console.log("Refreshing classroom data");
+  };
 
   // Handle classroom mode
   if (gameMode === 'classroom') {
@@ -88,7 +103,12 @@ const GamePage: React.FC = () => {
             <ClassroomJoinLink />
           </div>
           
-          <TeacherClassroomManager />
+          {classroomData && (
+            <TeacherClassroomManager 
+              classroom={classroomData} 
+              onRefresh={handleRefreshClassroom}
+            />
+          )}
           
           {gameState.currentScene && !gameState.currentScene.isEnding && (
             <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -98,7 +118,9 @@ const GamePage: React.FC = () => {
                   <CardDescription>Students are viewing this scene</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <SceneDisplay scene={gameState.currentScene} onChoiceSelected={makeChoice} />
+                  <SceneDisplay 
+                    scene={gameState.currentScene} 
+                  />
                 </CardContent>
               </Card>
               
@@ -114,10 +136,10 @@ const GamePage: React.FC = () => {
           {gameState.currentScene && gameState.currentScene.isEnding && (
             <div className="mt-8">
               <ResultsSummary 
-                finalScene={gameState.currentScene} 
+                scenario={gameState.currentScenario}
+                scene={gameState.currentScene} 
                 metrics={gameState.metrics}
                 choices={gameState.choices}
-                scenarioTitle={gameState.currentScenario?.title || ''}
                 isClassroom={true}
                 onPlayAgain={handlePlayAgain}
                 onReturnHome={handleReturnHome}
@@ -140,7 +162,9 @@ const GamePage: React.FC = () => {
         
         {gameState.currentScene && (
           <div className="mt-8">
-            <SceneDisplay scene={gameState.currentScene} onChoiceSelected={makeChoice} />
+            <SceneDisplay 
+              scene={gameState.currentScene} 
+            />
             
             {gameState.currentScene.choices && !gameState.currentScene.isEnding && (
               <div className="mt-8">
@@ -154,10 +178,10 @@ const GamePage: React.FC = () => {
             {gameState.currentScene.isEnding && (
               <div className="mt-8">
                 <ResultsSummary 
-                  finalScene={gameState.currentScene} 
+                  scenario={gameState.currentScenario}
+                  scene={gameState.currentScene} 
                   metrics={gameState.metrics}
                   choices={gameState.choices}
-                  scenarioTitle={gameState.currentScenario?.title || ''}
                   isClassroom={true}
                   onPlayAgain={handlePlayAgain}
                   onReturnHome={handleReturnHome}
@@ -195,7 +219,9 @@ const GamePage: React.FC = () => {
         <div className="space-y-8">
           <div className="lg:flex gap-6 space-y-6 lg:space-y-0">
             <div className="lg:flex-1">
-              <SceneDisplay scene={gameState.currentScene} onChoiceSelected={makeChoice} />
+              <SceneDisplay 
+                scene={gameState.currentScene} 
+              />
             </div>
             
             <div className="lg:w-64">
@@ -204,17 +230,19 @@ const GamePage: React.FC = () => {
           </div>
           
           {showMirrorMoment && (
-            <MirrorMoment onClose={() => setShowMirrorMoment(false)} />
+            <MirrorMoment 
+              onClose={() => setShowMirrorMoment(false)} 
+            />
           )}
         </div>
       )}
       
       {isGameActive && gameState.currentScene && gameState.currentScene.isEnding && (
         <ResultsSummary 
-          finalScene={gameState.currentScene} 
+          scenario={gameState.currentScenario}
+          scene={gameState.currentScene} 
           metrics={gameState.metrics}
           choices={gameState.choices}
-          scenarioTitle={gameState.currentScenario?.title || ''}
           onPlayAgain={handlePlayAgain}
           onReturnHome={handleReturnHome}
         />

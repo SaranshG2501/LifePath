@@ -309,7 +309,7 @@ const TeacherDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <Button onClick={() => document.querySelector('[data-value="classrooms"]')?.click()}>
+                <Button onClick={() => document.querySelector('[data-value="classrooms"]')?.dispatchEvent(new Event('click'))}>
                   Go to Classrooms Tab
                 </Button>
               </CardContent>
@@ -324,10 +324,12 @@ const TeacherDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p className="text-sm text-white/70">Difficulty: {scenario.difficulty}</p>
+                      <p className="text-sm text-white/70">
+                        Duration: {scenario.estimatedTime || '15-20 minutes'}
+                      </p>
                       
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {scenario.tags && scenario.tags.map((tag) => (
+                        {scenario.tags && scenario.tags.map((tag: string) => (
                           <span 
                             key={tag} 
                             className="bg-white/10 text-white/80 px-2 py-1 rounded text-xs"
