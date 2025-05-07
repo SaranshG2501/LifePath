@@ -1,379 +1,344 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import { Metrics, Scenario, Scene } from '@/types/game';
+import { scenarios } from '@/data/scenarios';
+import { awardBadge, saveScenarioHistory } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
-import { scenarios } from "@/data/scenarios";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/context/AuthContext";
-import { 
-  updateUserProfile, 
-  getUserClassrooms, 
-  saveScenarioHistory, 
-  ScenarioChoice 
-} from "@/lib/firebase";
-import { Timestamp } from "firebase/firestore";
+interface GameState {
+  currentScenario: Scenario | null;
+  currentScene: Scene | null;
+  metrics: Metrics;
+  choices: {
+    sceneId: string;
+    choiceId: string;
+    text?: string;
+    timestamp: Date;
+    effects?: Record<string, number>;
+  }[];
+  isActive: boolean;
+  startTime: Date | null;
+}
 
-type GameContextType = {
-  gameState: GameState;
-  scenarios: Scenario[];
-  startScenario: (id: string) => void;
-  makeChoice: (choiceId: string) => void;
-  resetGame: () => void;
-  isGameActive: boolean;
-  gameMode: GameMode;
-  setGameMode: (mode: GameMode) => void;
-  userRole: UserRole;
-  setUserRole: (role: UserRole) => void;
-  classroomId: string | null;
-  setClassroomId: (id: string | null) => void;
-  showMirrorMoment: boolean;
-  setShowMirrorMoment: (show: boolean) => void;
-  currentMirrorQuestion: string | null;
-  classroomVotes: Record<string, number>;
-  submitVote: (choiceId: string) => void;
-  revealVotes: boolean;
-  setRevealVotes: (reveal: boolean) => void;
-  toggleMirrorMoments: () => void;
-  mirrorMomentsEnabled: boolean;
-  hasJoinedClassroom: boolean;
-};
+interface SceneHistoryEntry {
+  sceneId: string;
+  timestamp: Date;
+  metrics: Metrics;
+  choiceId?: string;
+  choiceText?: string;
+}
 
 const initialMetrics: Metrics = {
-  health: 0,
-  money: 0,
-  happiness: 0,
-  knowledge: 0,
-  relationships: 0
+  health: 50,
+  money: 50,
+  happiness: 50,
+  knowledge: 50,
+  relationships: 50
 };
 
 const initialGameState: GameState = {
   currentScenario: null,
   currentScene: null,
   metrics: initialMetrics,
-  history: []
+  choices: [],
+  isActive: false,
+  startTime: null
 };
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
+interface GameContextProps {
+  gameState: GameState;
+  sceneHistory: SceneHistoryEntry[];
+  makeChoice: (choiceId: string) => void;
+  resetGame: () => void;
+  startScenario: (scenarioId: string) => void;
+  isGameActive: boolean;
+  mirrorMomentsEnabled: boolean;
+  toggleMirrorMoments: () => void;
+  showMirrorMoment: boolean;
+  userRole: string;
+  gameMode: 'individual' | 'classroom';
+  setGameMode: (mode: 'individual' | 'classroom') => void;
+  classroomId: string | null;
+  setClassroomId: (classroomId: string | null) => void;
+  classroomVotes: any[];
+  setClassroomVotes: (votes: any[]) => void;
+}
 
-export const GameProvider = ({ children }: { children: React.ReactNode }) => {
+interface GameProviderProps {
+  children: React.ReactNode;
+}
+
+const GameContext = createContext<GameContextProps>({
+  gameState: initialGameState,
+  sceneHistory: [],
+  makeChoice: () => {},
+  resetGame: () => {},
+  startScenario: () => {},
+  isGameActive: false,
+  mirrorMomentsEnabled: true,
+  toggleMirrorMoments: () => {},
+  showMirrorMoment: false,
+  userRole: 'student',
+  gameMode: 'individual',
+  setGameMode: () => {},
+  classroomId: null,
+  setClassroomId: () => {},
+  classroomVotes: [],
+  setClassroomVotes: () => {},
+});
+
+export const useGameContext = () => useContext(GameContext);
+
+export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
-  const [isGameActive, setIsGameActive] = useState<boolean>(false);
-  const [gameMode, setGameMode] = useState<GameMode>("individual");
-  const [userRole, setUserRole] = useState<UserRole>("student");
-  const [classroomId, setClassroomId] = useState<string | null>(null);
-  const [showMirrorMoment, setShowMirrorMoment] = useState<boolean>(false);
-  const [currentMirrorQuestion, setCurrentMirrorQuestion] = useState<string | null>(null);
-  const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
-  const [revealVotes, setRevealVotes] = useState<boolean>(false);
-  const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
-  const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
-  const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
-  const { toast } = useToast();
+  const [sceneHistory, setSceneHistory] = useState<SceneHistoryEntry[]>([]);
+  const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState(true);
+  const [showMirrorMoment, setShowMirrorMoment] = useState(false);
+
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Set user role based on profile
+  const userRole = userProfile?.role || 'student';
+
+  const [metricChangePopup, setMetricChangePopup] = useState<{
+    show: boolean;
+    changes: Record<string, number> | null;
+  }>({
+    show: false,
+    changes: null
+  });
+
+  // Game mode state
+  const [gameMode, setGameMode] = useState<'individual' | 'classroom'>('individual');
+  const [classroomId, setClassroomId] = useState<string | null>(null);
+  const [classroomVotes, setClassroomVotes] = useState<any[]>([]);
+
   useEffect(() => {
-    if (userProfile?.role) {
-      setUserRole(userProfile.role as UserRole);
+    if (classroomId) {
+      console.log("Classroom ID set:", classroomId);
+    }
+  }, [classroomId]);
+
+  useEffect(() => {
+    if (gameMode === 'classroom') {
+      console.log("Game mode set to classroom");
     } else {
-      setUserRole("guest");
+      console.log("Game mode set to individual");
     }
-  }, [userProfile]);
-
-  // Check if user has joined any classroom
-  useEffect(() => {
-    const checkClassroomStatus = async () => {
-      if (!currentUser || !userProfile) return;
-      
-      try {
-        const userClassrooms = await getUserClassrooms(currentUser.uid, userProfile.role || 'student');
-        setHasJoinedClassroom(userClassrooms.length > 0);
-        
-        // If user has classrooms but no active classroom selected, set the first one
-        if (userClassrooms.length > 0 && !classroomId) {
-          setClassroomId(userClassrooms[0].id);
-        }
-      } catch (error) {
-        console.error("Error checking classroom status:", error);
-      }
-    };
-    
-    checkClassroomStatus();
-  }, [currentUser, userProfile, classroomId, setClassroomId]);
-
-  // Set game mode to individual if user has no classroom
-  useEffect(() => {
-    if (userRole === 'student' && !hasJoinedClassroom && gameMode === 'classroom') {
-      setGameMode('individual');
-      if (!classroomId) {
-        toast({
-          title: "Classroom Required",
-          description: "You need to join a classroom before using classroom mode.",
-        });
-      }
-    }
-  }, [hasJoinedClassroom, gameMode, userRole, classroomId, toast]);
-
-  const startScenario = (id: string) => {
-    const scenario = scenarios.find((s) => s.id === id);
-    
-    if (!scenario) {
-      toast({
-        title: "Error",
-        description: "Scenario not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const firstScene = scenario.scenes.find((s) => s.id === "start");
-    
-    if (!firstScene) {
-      toast({
-        title: "Error",
-        description: "Starting scene not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate classroom mode
-    if (gameMode === "classroom") {
-      // Students need to be in a classroom
-      if (userRole === "student" && !classroomId) {
-        toast({
-          title: "Classroom Required",
-          description: "Please join a classroom before starting a scenario in classroom mode.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Teachers need to have created a classroom
-      if (userRole === "teacher" && !classroomId) {
-        toast({
-          title: "Classroom Required",
-          description: "Please create a classroom before starting a scenario in classroom mode.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Start with scenario's default metrics rather than user's saved metrics
-    const startingMetrics = { ...scenario.initialMetrics };
-
-    // Reset scenario choices for new scenario
-    setScenarioChoices([]);
-
-    setGameState({
-      currentScenario: scenario,
-      currentScene: firstScene,
-      metrics: startingMetrics,
-      history: []
-    });
-    setIsGameActive(true);
-    setShowMirrorMoment(false);
-    setRevealVotes(false);
-    setClassroomVotes({});
-
-    if (gameMode === "classroom") {
-      toast({
-        title: "Classroom Mode Active",
-        description: userRole === "teacher" 
-          ? "You're leading this scenario. Students can join with your classroom code." 
-          : "You're participating in a classroom activity.",
-      });
-    }
-  };
-
-  const makeChoice = (choiceId: string) => {
-    if (!gameState.currentScene || !gameState.currentScenario) return;
-
-    const choice = gameState.currentScene.choices.find(
-      (c) => c.id === choiceId
-    );
-    
-    if (!choice) {
-      toast({
-        title: "Error",
-        description: "Choice not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If mirror moments are enabled, show reflection question
-    if (mirrorMomentsEnabled && !showMirrorMoment && Math.random() < 0.5) {
-      const mirrorQuestions = [
-        "Pause. Why did you choose that option?",
-        "Would your real self make the same choice?",
-        "How does this choice align with your values?",
-        "What consequences do you think this will have?",
-        "Is this what you would do in real life?"
-      ];
-      setCurrentMirrorQuestion(mirrorQuestions[Math.floor(Math.random() * mirrorQuestions.length)]);
-      setShowMirrorMoment(true);
-      return;
-    }
-
-    // For classroom mode, collect votes instead of immediately proceeding
-    if (gameMode === "classroom" && userRole === "teacher" && !revealVotes) {
-      // In a real app, this would communicate with backend
-      // For demo, we'll simulate votes
-      const newVotes = { ...classroomVotes };
-      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
-      setClassroomVotes(newVotes);
-      setRevealVotes(true);
-      
-      toast({
-        title: "Votes collected",
-        description: "You can now discuss the results with your class.",
-      });
-      
-      return;
-    }
-
-    // Calculate new metrics - create a copy to prevent mutation
-    const newMetrics = { ...gameState.metrics };
-    
-    // Process each metric change
-    if (choice.metricChanges) {
-      Object.entries(choice.metricChanges).forEach(([key, value]) => {
-        const metricKey = key as keyof Metrics;
-        // Check if the key exists in our metrics object
-        if (newMetrics.hasOwnProperty(metricKey) && typeof value === 'number') {
-          // Ensure we stay within 0-100 range
-          newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
-        }
-      });
-    }
-
-    console.log("Updated metrics:", newMetrics);
-
-    // Find the next scene
-    const nextScene = gameState.currentScenario.scenes.find(
-      (s) => s.id === choice.nextSceneId
-    );
-    
-    if (!nextScene) {
-      toast({
-        title: "Error",
-        description: "Next scene not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Update history
-    const newHistoryEntry = {
-      sceneId: gameState.currentScene.id,
-      choiceId,
-      metricChanges: choice.metricChanges
-    };
-
-    // Save choice to scenario choices for Firestore
-    let newChoice: ScenarioChoice | null = null;
-    if (currentUser) {
-      newChoice = {
-        sceneId: gameState.currentScene.id,
-        choiceId: choice.id,
-        choiceText: choice.text,
-        timestamp: Timestamp.now(),
-        metricChanges: choice.metricChanges
-      };
-      
-      setScenarioChoices(prev => [...prev, newChoice as ScenarioChoice]);
-    }
-
-    const updatedGameState = {
-      ...gameState,
-      currentScene: nextScene,
-      metrics: newMetrics,
-      history: [...gameState.history, newHistoryEntry]
-    };
-
-    setGameState(updatedGameState);
-
-    // If user is logged in, update their metrics in their profile
-    if (currentUser && gameMode === "individual") {
-      updateUserProfile(currentUser.uid, { 
-        metrics: newMetrics
-      }).catch(error => {
-        console.error("Error updating user metrics:", error);
-      });
-    }
-
-    // Check if this is the end of the scenario
-    if ((nextScene.isEndScene || nextScene.isEnding) && currentUser && gameState.currentScenario && newChoice) {
-      const allChoices = [...scenarioChoices, newChoice];
-      
-      // Save completed scenario to Firestore
-      saveScenarioHistory(
-        currentUser.uid,
-        gameState.currentScenario.id,
-        gameState.currentScenario.title,
-        allChoices,
-        newMetrics
-      ).then(() => {
-        toast({
-          title: "Scenario Completed",
-          description: "Your choices have been saved to your profile.",
-        });
-        
-        // Refresh user profile to get updated data
-        refreshUserProfile();
-      }).catch(error => {
-        console.error("Error saving scenario history:", error);
-      });
-    }
-
-    // Reset mirror moment and votes state
-    setShowMirrorMoment(false);
-    setRevealVotes(false);
-    setClassroomVotes({});
-    
-    // Removed the metrics changes toast
-  };
+  }, [gameMode]);
 
   const resetGame = () => {
     setGameState(initialGameState);
-    setIsGameActive(false);
-    setShowMirrorMoment(false);
-    setRevealVotes(false);
-    setClassroomVotes({});
-    setScenarioChoices([]);
+    setSceneHistory([]);
+  };
+  
+  // Initialize game with a scenario
+  const startScenario = (scenarioId: string) => {
+    // Find the scenario
+    const scenario = scenarios.find(s => s.id === scenarioId);
+    if (!scenario) {
+      console.error("Scenario not found:", scenarioId);
+      return;
+    }
+
+    // Find the initial scene
+    const initialScene = scenario.scenes.find(scene => scene.isStart);
+    if (!initialScene) {
+      console.error("Initial scene not found for scenario:", scenarioId);
+      return;
+    }
+    
+    // Log scenario start
+    console.log(`Starting scenario: ${scenario.title} (${scenarioId})`);
+
+    // Set game state
+    setGameState({
+      ...initialGameState,
+      currentScenario: scenario,
+      currentScene: initialScene,
+      isActive: true,
+      startTime: new Date()
+    });
+
+    // Add first scene to history
+    setSceneHistory([
+      {
+        sceneId: initialScene.id,
+        timestamp: new Date(),
+        metrics: { ...initialGameState.metrics }
+      }
+    ]);
   };
 
-  const submitVote = (choiceId: string) => {
-    if (gameMode === "classroom" && gameState.currentScene) {
-      // Validate student is in a classroom
-      if (userRole === "student" && !classroomId) {
-        toast({
-          title: "Classroom Required",
-          description: "Please join a classroom before voting.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const newVotes = { ...classroomVotes };
-      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
-      setClassroomVotes(newVotes);
-      
-      toast({
-        title: "Vote submitted",
-        description: "Waiting for other students to vote.",
+  // Handle choice selection
+  const makeChoice = (choiceId: string) => {
+    if (!gameState.currentScene || !gameState.currentScenario) return;
+
+    // Find the choice
+    const choice = gameState.currentScene.choices.find(c => c.id === choiceId);
+    if (!choice) return;
+    
+    console.log("Making choice:", choice);
+
+    // Calculate metrics changes
+    const newMetrics = { ...gameState.metrics };
+    if (choice.effects) {
+      Object.entries(choice.effects).forEach(([metric, value]) => {
+        if (metric in newMetrics) {
+          newMetrics[metric as keyof Metrics] += value;
+        }
       });
+    }
+
+    // Instead of showing the metrics popup, update state directly
+    const changes = choice.effects || {};
+    
+    // Find the next scene
+    const nextScene = gameState.currentScenario.scenes.find(
+      scene => scene.id === choice.nextScene
+    );
+
+    if (!nextScene) {
+      console.error("Next scene not found:", choice.nextScene);
+      return;
+    }
+
+    // Update game state with new scene and updated metrics
+    setGameState({
+      ...gameState,
+      currentScene: nextScene,
+      metrics: newMetrics,
+      choices: [...gameState.choices, {
+        sceneId: gameState.currentScene.id,
+        choiceId: choice.id,
+        text: choice.text,
+        timestamp: new Date(),
+        effects: choice.effects
+      }]
+    });
+
+    // Add to scene history
+    const newHistoryEntry = {
+      sceneId: nextScene.id,
+      timestamp: new Date(),
+      metrics: { ...newMetrics },
+      choiceId: choice.id,
+      choiceText: choice.text
+    };
+
+    setSceneHistory([...sceneHistory, newHistoryEntry]);
+    
+    // Special handling for mirror moments
+    if (mirrorMomentsEnabled && (nextScene.type === 'reflection' || Math.random() < 0.1)) {
+      setShowMirrorMoment(true);
+      setTimeout(() => setShowMirrorMoment(false), 8000);
+    }
+    
+    // Special handling for classroom mode and ending scenes
+    if (gameMode === 'classroom' && classroomId) {
+      if (nextScene.isEnding) {
+        // Save classroom scenario completion
+        saveScenarioResult(nextScene.id, true);
+      } else {
+        // Record vote in classroom
+        try {
+          // This is handled separately through ClassroomVoting component
+          console.log("Classroom choice made:", choice.id);
+        } catch (error) {
+          console.error("Failed to record classroom vote:", error);
+        }
+      }
+    } else if (nextScene.isEnding) {
+      // Regular scenario completion
+      saveScenarioResult(nextScene.id);
+    }
+  };
+
+  // Save scenario results
+  const saveScenarioResult = async (finalSceneId: string, isClassroom = false) => {
+    if (!gameState.currentScenario) return;
+
+    // Calculate time taken
+    const endTime = new Date();
+    const timeTaken = endTime.getTime() - (gameState.startTime?.getTime() || 0);
+    const timeInSeconds = Math.round(timeTaken / 1000);
+
+    // Log the scenario completion
+    console.log(`Scenario completed: ${gameState.currentScenario.title} in ${timeInSeconds} seconds`);
+
+    // Map choices to the format expected by Firebase
+    const choicesHistory = gameState.choices.map(choice => ({
+      sceneId: choice.sceneId,
+      choiceId: choice.choiceId,
+      choiceText: choice.text,
+      timestamp: new Date(choice.timestamp),
+      metricChanges: choice.effects
+    }));
+
+    try {
+      if (currentUser) {
+        // Save to Firebase with optional classroomId for classroom mode
+        await saveScenarioHistory(
+          currentUser.uid,
+          gameState.currentScenario.id,
+          gameState.currentScenario.title,
+          choicesHistory,
+          gameState.metrics,
+          isClassroom ? classroomId! : undefined
+        );
+
+        // Refresh user profile to get updated stats
+        if (refreshUserProfile) {
+          await refreshUserProfile();
+        }
+
+        // Award any badges
+        checkForBadges();
+      }
+    } catch (error) {
+      console.error("Error saving scenario history:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your progress.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const checkForBadges = async () => {
+    if (!currentUser || !userProfile) return;
+
+    // Check for "First Scenario" badge
+    if (!userProfile.badges?.some(badge => badge.id === 'first-scenario') && gameState.currentScenario) {
+      const awarded = await awardBadge(currentUser.uid, 'first-scenario', 'First Scenario');
+      if (awarded) {
+        toast({
+          title: "Badge Earned!",
+          description: "You've earned the 'First Scenario' badge!",
+        });
+      }
+    }
+
+    // Check for "Perfect Score" badge (all metrics at 100)
+    const perfectScore = Object.values(gameState.metrics).every(value => value === 100);
+    if (perfectScore && !userProfile.badges?.some(badge => badge.id === 'perfect-score')) {
+      const awarded = await awardBadge(currentUser.uid, 'perfect-score', 'Perfect Score');
+      if (awarded) {
+        toast({
+          title: "Badge Earned!",
+          description: "You've earned the 'Perfect Score' badge for achieving a perfect score!",
+        });
+      }
     }
   };
 
   const toggleMirrorMoments = () => {
     setMirrorMomentsEnabled(!mirrorMomentsEnabled);
     toast({
-      title: `Mirror Moments ${!mirrorMomentsEnabled ? 'Enabled' : 'Disabled'}`,
-      description: !mirrorMomentsEnabled 
-        ? "You'll now receive reflection prompts during gameplay." 
-        : "You won't receive reflection prompts during gameplay.",
+      title: "Mirror Moments",
+      description: `Mirror moments are now ${!mirrorMomentsEnabled ? 'enabled' : 'disabled'}.`,
     });
   };
 
@@ -381,38 +346,24 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     <GameContext.Provider
       value={{
         gameState,
-        scenarios,
-        startScenario,
+        sceneHistory,
         makeChoice,
         resetGame,
-        isGameActive,
+        startScenario,
+        isGameActive: gameState.isActive,
+        mirrorMomentsEnabled,
+        toggleMirrorMoments,
+        showMirrorMoment,
+        userRole,
         gameMode,
         setGameMode,
-        userRole,
-        setUserRole,
         classroomId,
         setClassroomId,
-        showMirrorMoment,
-        setShowMirrorMoment,
-        currentMirrorQuestion,
         classroomVotes,
-        submitVote,
-        revealVotes,
-        setRevealVotes,
-        toggleMirrorMoments,
-        mirrorMomentsEnabled,
-        hasJoinedClassroom
+        setClassroomVotes
       }}
     >
       {children}
     </GameContext.Provider>
   );
-};
-
-export const useGameContext = () => {
-  const context = useContext(GameContext);
-  if (context === undefined) {
-    throw new Error("useGameContext must be used within a GameProvider");
-  }
-  return context;
 };

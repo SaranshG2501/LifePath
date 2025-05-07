@@ -58,17 +58,25 @@ export interface ClassroomStudent {
   joinedAt: Timestamp | Date;
 }
 
+export interface Teacher {
+  id: string;
+  name: string;
+  email?: string;
+}
+
 export interface Classroom {
   id?: string;
   name: string;
   description?: string;
   teacherId: string;
+  teacherName?: string;
   students: ClassroomStudent[];
   activeScenario?: string | null;
   currentScene?: string | null;
   createdAt: any;
   classCode: string;
   isActive: boolean;
+  messages?: any[];
 }
 
 export interface UserProfileData {
@@ -78,7 +86,7 @@ export interface UserProfileData {
   xp?: number;
   level?: number;
   completedScenarios?: string[];
-  badges?: string[];
+  badges?: Array<{id: string; title: string; awardedAt: any}>;
   history?: ScenarioHistory[];
   metrics?: Metrics;
   classrooms?: string[];
@@ -93,6 +101,7 @@ export interface ScenarioHistory {
   completedAt?: Timestamp | Date;
   choices: ScenarioChoice[];
   finalMetrics?: Metrics;
+  classroomId?: string;
 }
 
 export interface ScenarioChoice {
@@ -207,7 +216,8 @@ export const saveScenarioHistory = async (
   scenarioId: string, 
   scenarioTitle: string, 
   choices: ScenarioChoice[], 
-  finalMetrics: Metrics
+  finalMetrics: Metrics,
+  classroomId?: string
 ) => {
   try {
     // Get user's current profile
@@ -226,7 +236,8 @@ export const saveScenarioHistory = async (
       startedAt: choices.length > 0 ? choices[0].timestamp : Timestamp.now(),
       completedAt: Timestamp.now(),
       choices,
-      finalMetrics
+      finalMetrics,
+      classroomId
     };
     
     // Add to history array
@@ -246,6 +257,19 @@ export const saveScenarioHistory = async (
       xp: (userData.xp || 0) + 50 // Award XP for completion
     });
     
+    // If this was a classroom scenario, update classroom data
+    if (classroomId) {
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const studentProgressRef = doc(db, 'classrooms', classroomId, 'progress', userId);
+      
+      await setDoc(studentProgressRef, {
+        userId,
+        scenarioId,
+        completedAt: Timestamp.now(),
+        metrics: finalMetrics,
+      });
+    }
+    
     return historyEntry;
   } catch (error) {
     console.error('Error saving scenario history:', error);
@@ -254,7 +278,7 @@ export const saveScenarioHistory = async (
 };
 
 // Classroom functions
-export const createClassroom = async (teacherId: string, name: string, description?: string) => {
+export const createClassroom = async (teacherId: string, name: string, teacherName: string, description?: string) => {
   try {
     // Generate a unique class code
     const classCode = generateClassCode();
@@ -264,12 +288,14 @@ export const createClassroom = async (teacherId: string, name: string, descripti
       name,
       description: description || "",
       teacherId,
+      teacherName: teacherName || "Teacher",
       students: [],
       activeScenario: null,
       currentScene: null,
       createdAt: Timestamp.now(),
       classCode,
-      isActive: true
+      isActive: true,
+      messages: []
     };
     
     // Add to Firestore
@@ -304,70 +330,74 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Completely rewritten joinClassroom function with a more reliable approach
+// Completely rewritten joinClassroom function with a direct update approach
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
     
     // Step 1: Get the classroom document
     const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomDoc = await getDoc(classroomRef);
+    const classroomSnap = await getDoc(classroomRef);
     
-    if (!classroomDoc.exists()) {
-      console.error("Classroom not found");
+    if (!classroomSnap.exists()) {
       throw new Error("Classroom not found");
     }
     
-    // Step 2: Get current classroom data
-    const classroomData = classroomDoc.data() as Classroom;
-    const currentStudents = classroomData.students || [];
+    // Step 2: Get and update the user document first
+    const userRef = doc(db, 'users', studentId);
+    const userSnap = await getDoc(userRef);
     
-    // Step 3: Check if student is already in the classroom
-    const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
+    if (!userSnap.exists()) {
+      throw new Error("User not found");
+    }
     
-    if (existingStudentIndex === -1) {
-      // Student is not in the classroom yet, add them
-      const newStudent = {
+    // Get current data
+    const userData = userSnap.data();
+    let userClassrooms = userData.classrooms || [];
+    
+    // Check if user already has this classroom
+    if (!userClassrooms.includes(classroomId)) {
+      userClassrooms = [...userClassrooms, classroomId];
+      // Update user document
+      await updateDoc(userRef, { classrooms: userClassrooms });
+      console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
+      
+      // Award badge for joining first classroom if this is their first one
+      if (userClassrooms.length === 1) {
+        await awardBadge(studentId, "classroom-joined", "Joined First Classroom");
+      }
+    }
+    
+    // Step 3: Now update the classroom document
+    const classroomData = classroomSnap.data() as Classroom;
+    let classroomStudents = classroomData.students || [];
+    
+    // Check if student is already in this classroom
+    const existingStudent = classroomStudents.find(s => s.id === studentId);
+    if (!existingStudent) {
+      // Add student to classroom
+      const newStudent: ClassroomStudent = {
         id: studentId,
         name: studentName,
         joinedAt: Timestamp.now()
       };
       
-      // Create a new students array with the new student
-      const updatedStudents = [...currentStudents, newStudent];
-      
-      // Update the classroom document with the new students array
-      await updateDoc(classroomRef, { students: updatedStudents });
+      classroomStudents = [...classroomStudents, newStudent];
+      // Update classroom document
+      await updateDoc(classroomRef, { students: classroomStudents });
       console.log(`Added student ${studentId} to classroom ${classroomId}`);
+    }
+    
+    // Step 4: Get and return the updated classroom data
+    const updatedClassroomSnap = await getDoc(classroomRef);
+    if (updatedClassroomSnap.exists()) {
+      return { 
+        id: classroomId, 
+        ...updatedClassroomSnap.data() 
+      } as Classroom;
     } else {
-      console.log(`Student ${studentId} is already in classroom ${classroomId}`);
+      throw new Error("Failed to retrieve updated classroom data");
     }
-    
-    // Step 4: Update the student's profile to include this classroom
-    const userRef = doc(db, 'users', studentId);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      console.error(`User ${studentId} not found`);
-      throw new Error("User not found");
-    }
-    
-    const userData = userDoc.data();
-    const userClassrooms = userData.classrooms || [];
-    
-    // Only add classroom ID if it's not already in the user's classrooms
-    if (!userClassrooms.includes(classroomId)) {
-      const updatedClassrooms = [...userClassrooms, classroomId];
-      await updateDoc(userRef, { classrooms: updatedClassrooms });
-      console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
-    }
-    
-    // Step 5: Get the updated classroom data and return it
-    const updatedClassroomDoc = await getDoc(classroomRef);
-    return {
-      id: classroomId,
-      ...updatedClassroomDoc.data()
-    } as Classroom;
     
   } catch (error) {
     console.error("Error joining classroom:", error);
@@ -461,9 +491,7 @@ export const startClassroomScenario = async (classroomId: string, scenarioId: st
   return updateDoc(doc(db, 'classrooms', classroomId), {
     activeScenario: scenarioId,
     currentScene: initialScene,
-    startedAt: Timestamp.now(),
-    votes: {},
-    studentProgress: {}
+    startedAt: Timestamp.now()
   });
 };
 
@@ -495,6 +523,25 @@ export const advanceClassroomScene = async (classroomId: string, nextSceneId: st
     currentScene: nextSceneId,
     lastUpdated: Timestamp.now()
   });
+};
+
+export const getStudentProgress = async (classroomId: string) => {
+  const progressRef = collection(db, 'classrooms', classroomId, 'progress');
+  const snapshot = await getDocs(progressRef);
+  return snapshot.docs.map(doc => ({ studentId: doc.id, ...doc.data() }));
+};
+
+export const addClassroomMessage = async (classroomId: string, message: any) => {
+  const classroomRef = doc(db, 'classrooms', classroomId);
+  const classroomDoc = await getDoc(classroomRef);
+  
+  if (classroomDoc.exists()) {
+    const classroom = classroomDoc.data();
+    const messages = classroom.messages || [];
+    const newMessages = [message, ...messages].slice(0, 100); // Keep only most recent 100 messages
+    
+    return updateDoc(classroomRef, { messages: newMessages });
+  }
 };
 
 // Helper to generate a random class code
