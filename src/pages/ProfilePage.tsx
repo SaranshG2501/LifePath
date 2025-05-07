@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -14,10 +13,9 @@ import ClassroomJoinLink from '@/components/classroom/ClassroomJoinLink';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import AchievementSection from '@/components/AchievementSection';
 import { 
-  User, School, Trophy, History, BarChart, 
-  Users, LogOut, BookOpen, Gamepad2, Award, 
-  BadgeCheck, BarChart2, Sparkles, Calendar, 
-  TrendingUp, LineChart, Play
+  User, School, History, BarChart, 
+  Users, LogOut, BookOpen, Play,
+  TrendingUp, LineChart
 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
@@ -25,11 +23,6 @@ const ProfilePage: React.FC = () => {
   const { userProfile, currentUser, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const [xpProgress, setXpProgress] = useState(0);
-  const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
-  const [isHistoryDetailOpen, setIsHistoryDetailOpen] = useState(false);
-  const [expandedHistoryIndex, setExpandedHistoryIndex] = useState<number | null>(null);
-
-  // State for user history
   const [userHistory, setUserHistory] = useState<ScenarioHistory[]>([]);
 
   useEffect(() => {
@@ -60,14 +53,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const toggleHistoryExpand = (index: number) => {
-    if (expandedHistoryIndex === index) {
-      setExpandedHistoryIndex(null);
-    } else {
-      setExpandedHistoryIndex(index);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
@@ -79,22 +64,6 @@ const ProfilePage: React.FC = () => {
   if (!userProfile) {
     return null; // Redirecting handled in useEffect
   }
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Unknown';
-    try {
-      if (timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toLocaleDateString();
-      }
-      if (timestamp instanceof Date) {
-        return timestamp.toLocaleDateString();
-      }
-      return 'Unknown';
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Unknown';
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">

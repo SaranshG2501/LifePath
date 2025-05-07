@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Metrics, Scenario, Scene, Choice } from '@/types/game';
+import { Metrics, Scenario, Scene, Choice, GameMode, UserRole } from '@/types/game';
 import { scenarios } from '@/data/scenarios';
 import { awardBadge, saveScenarioHistory, recordStudentVote, onVotesUpdated } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -58,9 +57,9 @@ interface GameContextProps {
   toggleMirrorMoments: () => void;
   showMirrorMoment: boolean;
   setShowMirrorMoment: (show: boolean) => void;
-  userRole: string;
-  gameMode: 'individual' | 'classroom';
-  setGameMode: (mode: 'individual' | 'classroom') => void;
+  userRole: UserRole;
+  gameMode: GameMode;
+  setGameMode: (mode: GameMode) => void;
   classroomId: string | null;
   setClassroomId: (classroomId: string | null) => void;
   classroomVotes: any[];
@@ -117,7 +116,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const userRole = userProfile?.role || 'student';
 
   // Game mode state
-  const [gameMode, setGameMode] = useState<'individual' | 'classroom'>('individual');
+  const [gameMode, setGameMode] = useState<GameMode>('individual');
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<any[]>([]);
   const [revealVotes, setRevealVotes] = useState(false);
@@ -328,7 +327,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           gameState.currentScenario.title,
           choicesHistory,
           gameState.metrics,
-          isClassroom ? classroomId! : undefined
+          isClassroom ? classroomId : undefined
         );
 
         // Refresh user profile to get updated stats

@@ -1,214 +1,215 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Check, Users, LineChart } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { Users, BarChart, ArrowRight, Clock, CheckCircle } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Scene, Choice } from '@/types/game';
 import { recordStudentVote, getScenarioVotes, onVotesUpdated } from '@/lib/firebase';
-import { Badge } from '@/components/ui/badge';
 
 interface EnhancedClassroomVotingProps {
-  scene: Scene;
+  sceneId: string;
+  choices: {
+    id: string;
+    text: string;
+  }[];
+  onContinue: () => void;
 }
 
-const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene }) => {
-  const { 
-    classroomId,
-    revealVotes, 
-    setRevealVotes, 
-    userRole,
-    makeChoice
-  } = useGameContext();
+const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({
+  sceneId,
+  choices,
+  onContinue
+}) => {
+  const { classroomId, revealVotes, setRevealVotes, userRole } = useGameContext();
+  const { userProfile, currentUser } = useAuth();
+  const { toast } = useToast();
   
-  const { currentUser } = useAuth();
-  const [votes, setVotes] = useState<any[]>([]);
-  const [hasVoted, setHasVoted] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [votes, setVotes] = useState<any[]>([]);
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
+  const [percentages, setPercentages] = useState<Record<string, number>>({});
+  const [hasVoted, setHasVoted] = useState(false);
   
-  // Set up real-time listeners for votes
+  // Listen for votes in real-time
   useEffect(() => {
     if (!classroomId) return;
     
-    const unsubscribe = onVotesUpdated(
-      classroomId,
-      (updatedVotes) => {
-        setVotes(updatedVotes);
-        
-        // Check if current user has voted
-        if (currentUser) {
-          const userVote = updatedVotes.find(v => v.studentId === currentUser.uid);
-          if (userVote) {
-            setHasVoted(true);
-            setSelectedChoice(userVote.choiceId);
-          }
-        }
-      }
-    );
-    
-    return () => unsubscribe();
-  }, [classroomId, currentUser]);
-
-  const totalVotes = votes.length;
-  
-  const getVoteCount = (choiceId: string) => {
-    return votes.filter(vote => vote.choiceId === choiceId).length;
-  };
-  
-  const getVotePercentage = (choiceId: string) => {
-    if (!totalVotes) return 0;
-    return Math.round((getVoteCount(choiceId) / totalVotes) * 100);
-  };
-
-  const handleChoiceClick = async (choiceId: string) => {
-    if (userRole === 'student' && !hasVoted) {
-      setSelectedChoice(choiceId);
-      setIsSubmitting(true);
+    const unsubscribe = onVotesUpdated(classroomId, (updatedVotes) => {
+      setVotes(updatedVotes);
       
-      try {
-        if (currentUser && classroomId) {
-          await recordStudentVote(classroomId, currentUser.uid, choiceId);
-          setHasVoted(true);
-        }
-      } catch (error) {
-        console.error('Error recording vote:', error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else if (userRole === 'teacher') {
-      if (!revealVotes) {
-        setRevealVotes(true);
-      } else {
-        makeChoice(choiceId);
-      }
-    }
-  };
-
-  const handleContinue = () => {
-    // Get the choice with the most votes
-    if (totalVotes > 0) {
-      const voteCounts: Record<string, number> = {};
-      votes.forEach(vote => {
-        voteCounts[vote.choiceId] = (voteCounts[vote.choiceId] || 0) + 1;
+      // Calculate vote counts and percentages
+      const counts: Record<string, number> = {};
+      choices.forEach(choice => {
+        counts[choice.id] = updatedVotes.filter(vote => vote.choiceId === choice.id).length;
       });
       
-      const topChoiceId = Object.entries(voteCounts)
-        .sort(([, a], [, b]) => (b as number) - (a as number))[0][0];
+      setVoteCounts(counts);
       
-      makeChoice(topChoiceId);
+      const totalVotes = Object.values(counts).reduce((sum, count) => sum + count, 0);
+      const votePercentages: Record<string, number> = {};
+      
+      choices.forEach(choice => {
+        votePercentages[choice.id] = totalVotes > 0 ? (counts[choice.id] / totalVotes) * 100 : 0;
+      });
+      
+      setPercentages(votePercentages);
+      
+      // Check if current user has already voted
+      if (currentUser) {
+        setHasVoted(updatedVotes.some(vote => vote.studentId === currentUser.uid));
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [classroomId, choices, currentUser]);
+  
+  // Fetch initial votes when component loads
+  useEffect(() => {
+    const fetchInitialVotes = async () => {
+      if (!classroomId) return;
+      
+      try {
+        const fetchedVotes = await getScenarioVotes(classroomId);
+        setVotes(fetchedVotes);
+      } catch (error) {
+        console.error('Error fetching votes:', error);
+      }
+    };
+    
+    fetchInitialVotes();
+  }, [classroomId]);
+  
+  const handleVote = async (choiceId: string) => {
+    if (!currentUser || !classroomId || isSubmitting || hasVoted) return;
+    
+    try {
+      setIsSubmitting(true);
+      setSelectedChoice(choiceId);
+      
+      await recordStudentVote(classroomId, currentUser.uid, choiceId);
+      
+      toast({
+        title: "Vote submitted",
+        description: "Your vote has been recorded.",
+      });
+      
+      setHasVoted(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit your vote.",
+        variant: "destructive",
+      });
+      console.error('Error submitting vote:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
+  
+  const totalVotes = votes.length;
+  const studentsWhoVoted = new Set(votes.map(vote => vote.studentId)).size;
+  
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-black/40 border-primary/20 backdrop-blur-lg shadow-xl animate-fade-in">
-      <CardHeader>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Users className="h-5 w-5 text-primary" />
-          <CardTitle className="text-xl text-white">Classroom Decision</CardTitle>
-        </div>
-        <CardDescription className="text-center text-white/80">
+    <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white flex items-center gap-2">
+          <Users className="h-5 w-5 text-indigo-300" />
+          Classroom Voting
+        </CardTitle>
+        <CardDescription className="text-white/70">
           {userRole === 'teacher' 
-            ? 'Review class votes and facilitate discussion' 
+            ? 'Wait for students to vote on what happens next'
             : hasVoted 
-              ? 'Waiting for other students to vote' 
-              : 'Cast your vote on what should happen next'}
+              ? 'Waiting for other students to vote...' 
+              : 'Choose what happens next in the story'}
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        <div className="bg-black/20 rounded-lg p-3 mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart className="h-5 w-5 text-primary" />
-            <span className="text-white font-medium">Votes: {totalVotes}</span>
-          </div>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between text-sm mb-2">
+          <span className="text-white/70">
+            <Users className="h-4 w-4 inline mr-1" /> 
+            {studentsWhoVoted} student{studentsWhoVoted !== 1 ? 's' : ''} voted
+          </span>
           
           {userRole === 'teacher' && (
             <Button 
-              variant="outline"
-              size="sm"
+              size="sm" 
+              variant="ghost" 
+              className="text-indigo-300 hover:text-indigo-200 hover:bg-indigo-900/40"
               onClick={() => setRevealVotes(!revealVotes)}
-              className="border-white/20 bg-black/40 text-white hover:bg-white/10"
             >
               {revealVotes ? 'Hide Results' : 'Show Results'}
             </Button>
           )}
         </div>
         
-        <div className="space-y-4">
-          {scene.choices.map((choice) => (
-            <div key={choice.id} className="space-y-2">
+        <div className="space-y-3">
+          {choices.map((choice) => (
+            <div key={choice.id} className="relative">
               <Button
                 variant="outline"
-                className={`w-full justify-between py-6 px-4 text-left border ${
-                  hasVoted && selectedChoice === choice.id
-                    ? 'border-primary/70 bg-primary/20'
-                    : revealVotes && getVotePercentage(choice.id) > 0
-                    ? 'border-primary/30 bg-primary/10'
-                    : 'border-white/10 bg-black/30'
-                } hover:bg-white/10 text-white relative overflow-hidden ${
-                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                className={`w-full text-left justify-between p-4 h-auto border ${
+                  hasVoted && selectedChoice === choice.id 
+                    ? 'border-green-400 bg-green-900/20' 
+                    : 'border-white/10 bg-black/40 hover:bg-white/10'
                 }`}
-                onClick={() => !isSubmitting && handleChoiceClick(choice.id)}
-                disabled={isSubmitting || (userRole === 'student' && hasVoted)}
+                onClick={() => !hasVoted && handleVote(choice.id)}
+                disabled={isSubmitting || hasVoted}
               >
-                <span className="text-base">{choice.text}</span>
-                
-                {(revealVotes || (hasVoted && selectedChoice === choice.id)) && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-white/80">{getVoteCount(choice.id)} votes</span>
-                    <span className="font-mono font-bold">{getVotePercentage(choice.id)}%</span>
-                  </div>
-                )}
-                
-                {hasVoted && selectedChoice === choice.id && !revealVotes && (
-                  <Badge className="absolute top-2 right-2 bg-primary/60 text-white">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Your vote
-                  </Badge>
+                <span className="mr-2">{choice.text}</span>
+                {hasVoted && selectedChoice === choice.id && (
+                  <Check className="h-5 w-5 text-green-400" />
                 )}
               </Button>
               
-              {revealVotes && (
-                <Progress 
-                  value={getVotePercentage(choice.id)} 
-                  className="h-2 bg-white/20" 
-                />
+              {(revealVotes || userRole === 'teacher') && (
+                <div className="mt-1">
+                  <div className="flex items-center justify-between text-xs text-white/70">
+                    <span>{voteCounts[choice.id] || 0} votes</span>
+                    <span>{Math.round(percentages[choice.id] || 0)}%</span>
+                  </div>
+                  <Progress 
+                    value={percentages[choice.id] || 0} 
+                    className="h-1 mt-1" 
+                    indicatorClassName={`bg-gradient-to-r from-indigo-500 to-purple-500`} 
+                  />
+                </div>
               )}
             </div>
           ))}
         </div>
-      </CardContent>
-      
-      <CardFooter className="flex justify-center pt-4">
-        {userRole === 'teacher' && revealVotes && (
-          <Button 
-            className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white"
-            onClick={handleContinue}
-          >
-            Continue with majority vote
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
         
-        {userRole === 'student' && (
-          <div className="text-white/80 text-center flex items-center gap-2">
-            {hasVoted ? (
-              <>
-                <Clock className="h-5 w-5 inline-block" />
-                Waiting for teacher to continue...
-              </>
-            ) : (
-              <>
-                <Users className="h-5 w-5 inline-block" />
-                Choose what happens next
-              </>
-            )}
+        {userRole === 'teacher' && (
+          <div className="mt-6 flex justify-center">
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={onContinue}
+            >
+              Continue with Most Popular Choice
+            </Button>
           </div>
         )}
-      </CardFooter>
+        
+        {hasVoted && userRole === 'student' && (
+          <div className="bg-black/30 rounded-lg p-3 text-center">
+            <LineChart className="h-5 w-5 mx-auto mb-2 text-indigo-300" />
+            <p className="text-white/70">
+              Waiting for teacher to continue the story...
+            </p>
+          </div>
+        )}
+        
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-300" />
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

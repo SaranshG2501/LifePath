@@ -1,331 +1,248 @@
 
-import React from 'react';
-import { GameState } from '@/types/game';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame, ChevronRight, Award, TrendingUp, Brain, Heart } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
+import { useGameContext } from '@/context/GameContext';
+import { Home, BarChart, Award, Star, TrendingUp, Trophy, Heart, DollarSign, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface ResultsSummaryProps {
-  gameState: GameState;
-  onPlayAgain: () => void;
-  onReturnHome: () => void;
+  onReset: () => void;
 }
 
-const ResultsSummary: React.FC<ResultsSummaryProps> = ({
-  gameState,
-  onPlayAgain,
-  onReturnHome,
-}) => {
-  const isMobile = useIsMobile();
+const ResultsSummary: React.FC<ResultsSummaryProps> = ({ onReset }) => {
+  const navigate = useNavigate();
+  const { gameState, sceneHistory } = useGameContext();
+  const [showAchievement, setShowAchievement] = useState(false);
   
-  // Calculate total metric changes
-  const totalChanges = gameState.history.reduce(
-    (acc, entry) => {
-      Object.entries(entry.metricChanges).forEach(([key, value]) => {
-        if (value) {
-          acc[key as keyof typeof acc] = (acc[key as keyof typeof acc] || 0) + value;
-        }
-      });
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
-  // Get ending message based on metrics
-  const getEndingMessage = () => {
-    const { metrics } = gameState;
-    
-    if (metrics.money > 80) {
-      return "You've become quite the financial wizard! Your money management skills are impressive.";
-    } else if (metrics.relationships > 80) {
-      return "You've built strong relationships that will support you throughout life!";
-    } else if (metrics.knowledge > 80) {
-      return "Your dedication to learning has made you exceptionally knowledgeable!";
-    } else if (metrics.happiness > 80) {
-      return "You've prioritized your happiness and it shows! You're thriving emotionally.";
-    } else if (metrics.health > 80) {
-      return "Your health-conscious decisions have paid off with excellent well-being!";
-    } else if (Object.values(metrics).every(val => val > 60)) {
-      return "You've achieved a great balance in life across all areas!";
-    } else if (Object.values(metrics).some(val => val < 30)) {
-      return "You've faced some challenges, but every struggle is a learning opportunity.";
-    }
-    
-    return "You've completed your journey with a unique set of experiences and outcomes!";
-  };
-
-  // Get achievement badges based on metrics and choices
-  const getAchievements = () => {
-    const { metrics } = gameState;
-    const achievements = [];
-
-    if (metrics.money > 75) {
-      achievements.push({ 
-        title: 'Financial Wizard', 
-        description: 'Masterful management of your finances',
-        icon: <Award className="h-5 w-5 text-neon-yellow" />
-      });
-    }
-    
-    if (metrics.health > 75) {
-      achievements.push({
-        title: 'Health Champion',
-        description: 'Prioritized your physical wellbeing',
-        icon: <Heart className="h-5 w-5 text-neon-red" />
-      });
-    }
-    
-    if (metrics.knowledge > 75) {
-      achievements.push({
-        title: 'Knowledge Seeker',
-        description: 'Pursued learning at every opportunity',
-        icon: <Brain className="h-5 w-5 text-neon-blue" />
-      });
-    }
-    
-    if (metrics.relationships > 75) {
-      achievements.push({
-        title: 'Social Butterfly',
-        description: 'Built meaningful connections with others',
-        icon: <Heart className="h-5 w-5 text-neon-purple" />
-      });
-    }
-
-    if (metrics.happiness > 75) {
-      achievements.push({
-        title: 'Joy Master',
-        description: 'Found happiness along your journey',
-        icon: <Star className="h-5 w-5 text-neon-yellow" />
-      });
-    }
-    
-    if (Object.values(metrics).every(val => val > 60)) {
-      achievements.push({
-        title: 'Balanced Achiever',
-        description: 'Maintained balance in all areas of life',
-        icon: <TrendingUp className="h-5 w-5 text-neon-green" />
-      });
-    }
-    
-    return achievements;
-  };
-
-  // Generate personalized tips based on game stats
-  const getPersonalizedTips = () => {
-    const { metrics } = gameState;
-    const tips = [];
-    
-    // Find lowest metric to provide a focused tip
-    const lowestMetric = Object.entries(metrics).reduce(
-      (lowest, [key, value]) => value < lowest.value ? { key, value } : lowest,
-      { key: '', value: 100 }
-    );
-    
-    switch(lowestMetric.key) {
-      case 'money':
-        tips.push("Consider creating a simple budget to track your income and expenses.");
-        break;
-      case 'health':
-        tips.push("Small daily habits like taking short walks can greatly improve your overall health.");
-        break;
-      case 'knowledge':
-        tips.push("Setting aside just 15 minutes a day for learning can lead to major knowledge gains.");
-        break;
-      case 'relationships':
-        tips.push("Quality connections often matter more than the quantity of relationships.");
-        break;
-      case 'happiness':
-        tips.push("Taking time for activities you enjoy is essential for your emotional wellbeing.");
-        break;
-      default:
-        tips.push("Reflecting on your decisions helps build better decision-making skills.");
-    }
-    
-    // Add a general tip
-    tips.push("The choices that seem small today can have significant impacts on your future self.");
-    
-    return tips;
-  };
-
-  // Evaluate decision-making style
-  const getDecisionStyle = () => {
-    const { metrics, history } = gameState;
-    
-    // Count risky vs cautious choices (simplified example)
-    const riskyChoices = history.filter(entry => {
-      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      const choice = scene?.choices.find(c => c.id === entry.choiceId);
-      // This is a simplified example - would need actual choice data with risk indicators
-      return choice?.metricChanges.money && choice.metricChanges.money < -5;
-    }).length;
-    
-    const cautiousChoices = history.filter(entry => {
-      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      const choice = scene?.choices.find(c => c.id === entry.choiceId);
-      return choice?.metricChanges.money && choice.metricChanges.money > 5;
-    }).length;
-    
-    if (riskyChoices > cautiousChoices) {
-      return "You tend to make bold, sometimes risky decisions. While this can lead to exciting opportunities, consider balancing with some caution.";
-    } else if (cautiousChoices > riskyChoices) {
-      return "You prefer safe, reliable choices. This stability is valuable, but occasionally taking calculated risks might open new doors.";
-    } else {
-      return "You balance risk and caution well in your decisions, adapting to situations thoughtfully.";
-    }
-  };
-
-  if (!gameState.currentScenario || !gameState.currentScene) {
-    return null;
-  }
-
-  const achievements = getAchievements();
-  const personaltips = getPersonalizedTips();
-
-  return (
-    <div className="w-full max-w-4xl mx-auto animate-scale-in">
-      <Card className="shadow-lg border-primary/20 glassmorphic-card">
-        <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <div className="p-4 rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 backdrop-blur-md border border-primary/50 animate-glow relative">
-              <Trophy className="h-8 w-8 text-neon-yellow animate-float" />
-              <Sparkles className="h-4 w-4 absolute top-0 right-0 text-neon-yellow animate-pulse" />
-              <Sparkles className="h-4 w-4 absolute bottom-0 left-0 text-neon-yellow animate-pulse" style={{ animationDelay: '1s' }} />
-            </div>
-          </div>
-          <CardTitle className="text-2xl gradient-heading flex items-center justify-center gap-2">
-            <Star className="h-5 w-5 text-neon-yellow animate-pulse" />
-            Your Journey Results
-            <Star className="h-5 w-5 text-neon-yellow animate-pulse" style={{ animationDelay: '0.5s' }} />
-          </CardTitle>
-          <CardDescription className="text-base mt-1 text-white/90">
-            Here's how your choices shaped your path through "{gameState.currentScenario.title}"
+  // Check if we have a scenario and choices
+  if (!gameState.currentScenario || !gameState.choices.length) {
+    return (
+      <Card className="w-full max-w-3xl mx-auto bg-black/30 backdrop-blur-md border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-white">No Scenario Data</CardTitle>
+          <CardDescription className="text-white/70">
+            No scenario has been completed yet.
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/30 animate-slide-up relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm -z-10"></div>
-            <h3 className="font-medium text-lg mb-2 flex items-center gap-2 text-white">
-              <Flame className="text-neon-yellow" />
-              Journey Outcome
-            </h3>
-            <p className="text-base text-white/90">{getEndingMessage()}</p>
-          </div>
-          
-          <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Final Stats
-            </h3>
-            <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
-          </div>
-          
-          {achievements.length > 0 && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
-              <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-                <Award className="h-5 w-5 text-neon-yellow" />
-                Achievements Unlocked
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {achievements.map((achievement, index) => (
-                  <div 
-                    key={index}
-                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-neon-yellow/30 hover:border-neon-yellow/60 transition-all flex items-start gap-2"
-                  >
-                    <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-2 rounded-full">
-                      {achievement.icon}
-                    </div>
-                    <div>
-                      <div className="font-medium text-white">{achievement.title}</div>
-                      <div className="text-xs text-white/70">{achievement.description}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Brain className="h-5 w-5 text-neon-blue" />
-              Decision Style
-            </h3>
-            <div className="bg-black/30 backdrop-blur-sm p-4 rounded-md border border-white/10">
-              <p className="text-white/90">{getDecisionStyle()}</p>
-            </div>
-          </div>
-          
-          <div className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
-            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-neon-green" />
-              Tips For Your Journey
-            </h3>
-            <div className="space-y-3">
-              {personaltips.map((tip, index) => (
-                <div 
-                  key={index}
-                  className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-neon-green/20 flex items-start gap-2"
-                >
-                  <ChevronRight className="h-4 w-4 text-neon-green mt-0.5 flex-shrink-0" />
-                  <p className="text-white/90 text-sm">{tip}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <Separator className="bg-white/20" />
-          
-          <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Your Journey
-            </h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {gameState.history.map((entry, index) => {
-                const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-                const choice = scene?.choices.find(c => c.id === entry.choiceId);
-                const animationDelay = `${0.3 + index * 0.1}s`;
-                
-                return (
-                  <div 
-                    key={index} 
-                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
-                    style={{ animationDelay }}
-                  >
-                    <div className="font-medium text-white">{scene?.title}</div>
-                    <div className="text-sm text-white/70 flex items-start gap-2">
-                      <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      {choice?.text}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex flex-col sm:flex-row gap-3 animate-slide-up pt-4" style={{ animationDelay: '0.5s' }}>
-          <Button 
-            onClick={onPlayAgain} 
-            className="w-full sm:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
-          >
-            <Repeat className="h-4 w-4 mr-2" />
-            Play Again
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={onReturnHome} 
-            className="w-full sm:w-auto flex items-center gap-2 border-white/20 text-white hover:bg-white/10 bg-black/30"
-          >
-            <Home size={16} />
-            Return to Home
+        <CardFooter>
+          <Button onClick={() => navigate('/')} className="w-full">
+            <Home className="mr-2 h-4 w-4" />
+            Go to Home
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    );
+  }
+  
+  // Get the first choice and final metrics
+  const firstChoice = gameState.choices[0];
+  const finalMetrics = gameState.metrics;
+  const { currentScenario } = gameState;
+  
+  // Calculate total changes for each metric from the beginning
+  const metricChanges = {
+    health: finalMetrics.health - 50,
+    money: finalMetrics.money - 50,
+    happiness: finalMetrics.happiness - 50,
+    knowledge: finalMetrics.knowledge - 50,
+    relationships: finalMetrics.relationships - 50,
+  };
+
+  // Get icon for each metric
+  const getMetricIcon = (metric: string) => {
+    switch (metric) {
+      case 'health':
+        return <Heart className="h-5 w-5 text-red-400" />;
+      case 'money':
+        return <DollarSign className="h-5 w-5 text-green-400" />;
+      case 'happiness':
+        return <Star className="h-5 w-5 text-yellow-400" />;
+      case 'knowledge':
+        return <Award className="h-5 w-5 text-blue-400" />;
+      case 'relationships':
+        return <User className="h-5 w-5 text-purple-400" />;
+      default:
+        return <BarChart className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  // Get change direction indicator
+  const getChangeIndicator = (change: number) => {
+    if (change > 0) return <span className="text-green-400">+{change}</span>;
+    if (change < 0) return <span className="text-red-400">{change}</span>;
+    return <span className="text-gray-400">0</span>;
+  };
+
+  // Check for achievements
+  const perfectScore = Object.values(finalMetrics).every(value => value >= 80);
+  const balancedScore = Object.values(finalMetrics).every(value => value >= 40 && value <= 60);
+  const hasAchievement = perfectScore || balancedScore;
+
+  // Show achievement notification after a delay
+  useEffect(() => {
+    if (hasAchievement) {
+      const timer = setTimeout(() => {
+        setShowAchievement(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasAchievement]);
+
+  return (
+    <Card className="w-full max-w-3xl mx-auto bg-gradient-to-b from-black/40 to-indigo-950/30 backdrop-blur-md border-primary/20 overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 p-6 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl text-white">{currentScenario.title}</CardTitle>
+            <CardDescription className="text-white/70 mt-1">
+              Scenario Summary & Results
+            </CardDescription>
+          </div>
+          
+          {hasAchievement && showAchievement && (
+            <Badge className="bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-0 animate-pulse">
+              <Trophy className="mr-1 h-4 w-4" />
+              Achievement Unlocked!
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-6 space-y-6">
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-indigo-400" />
+            Final Stats
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {Object.entries(finalMetrics).map(([metric, value]) => (
+              <div key={metric} className="bg-black/30 rounded-lg p-4 flex flex-col items-center">
+                <div className="rounded-full bg-black/40 p-3 mb-2">
+                  {getMetricIcon(metric)}
+                </div>
+                
+                <div className="font-bold text-xl text-white">
+                  {value}
+                </div>
+                
+                <div className="text-sm text-white/70 capitalize">
+                  {metric}
+                </div>
+                
+                <div className={`text-sm mt-1 flex items-center gap-1 ${
+                  metricChanges[metric as keyof typeof metricChanges] > 0 
+                    ? 'text-green-400' 
+                    : metricChanges[metric as keyof typeof metricChanges] < 0 
+                      ? 'text-red-400' 
+                      : 'text-gray-400'
+                }`}>
+                  {metricChanges[metric as keyof typeof metricChanges] > 0 && '+'}{metricChanges[metric as keyof typeof metricChanges]}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <Separator className="bg-white/10" />
+        
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-3">Key Choices</h3>
+          
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+            {gameState.choices.map((choice, index) => {
+              const scene = currentScenario.scenes.find(s => s.id === choice.sceneId);
+              const choiceObj = scene?.choices.find(c => c.id === choice.choiceId);
+              
+              return (
+                <div key={index} className="bg-black/30 rounded-lg p-4">
+                  <div className="font-medium text-white">
+                    {scene?.title || `Scene ${index + 1}`}
+                  </div>
+                  
+                  <div className="text-primary mt-1">
+                    {choice.text || choiceObj?.text || 'Made a choice'}
+                  </div>
+                  
+                  {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
+                      {Object.entries(choice.metricChanges).map(([metric, change]) => (
+                        <div key={metric} className="flex items-center gap-2">
+                          {getMetricIcon(metric)}
+                          <span className="text-white/80 capitalize">{metric}:</span>
+                          {getChangeIndicator(change as number)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {hasAchievement && (
+          <>
+            <Separator className="bg-white/10" />
+            
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-400" />
+                Achievements
+              </h3>
+              
+              <div className="bg-gradient-to-r from-amber-950/30 to-yellow-900/30 rounded-lg p-4 border border-yellow-500/20">
+                {perfectScore && (
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full p-2">
+                      <Star className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white">Perfect Score</div>
+                      <div className="text-white/70">You achieved excellent stats in all categories!</div>
+                    </div>
+                  </div>
+                )}
+                
+                {balancedScore && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-full p-2">
+                      <TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white">Balanced Approach</div>
+                      <div className="text-white/70">You maintained a balanced life across all categories!</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+      
+      <CardFooter className="flex flex-col sm:flex-row gap-3 border-t border-white/10 pt-4 bg-black/20">
+        <Button 
+          variant="outline" 
+          className="bg-transparent border-white/20 text-white hover:bg-white/10 w-full sm:w-auto"
+          onClick={onReset}
+        >
+          Play Another Scenario
+        </Button>
+        
+        <Button 
+          className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+          onClick={() => navigate('/profile')}
+        >
+          <BarChart className="mr-2 h-4 w-4" />
+          View My Progress
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
