@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { School, Play, Users, Book, LogIn, ArrowRight, MessageSquare, Loader2, Clock } from 'lucide-react';
+import { School, Play, Users, Book, LogIn, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
 import { getClassroomByCode, joinClassroom, onClassroomUpdated, getScenarioVotes, Classroom } from '@/lib/firebase';
 import { scenarios } from '@/data/scenarios';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -54,11 +54,6 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
         const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
           console.log("Classroom updated:", classroom);
           setClassroom(classroom);
-          
-          // Update messages if available
-          if (classroom.messages && classroom.messages.length > 0) {
-            setMessages(classroom.messages);
-          }
           
           // If classroom has an active scenario, fetch it
           if (classroom.activeScenario) {
@@ -204,16 +199,6 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
       });
     }
   };
-
-  const renderTeacherInfo = () => {
-    if (!classroom) return null;
-    
-    return (
-      <p className="text-sm text-white/70">
-        Teacher: {classroom.teacherName || "Unknown"}
-      </p>
-    );
-  };
   
   return (
     <div className="space-y-6">
@@ -271,13 +256,12 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-medium text-white">{classroom.name}</h3>
-                    {renderTeacherInfo()}
-                    <p className="text-sm text-white/70 mt-1">
+                    <p className="text-sm text-white/70">
                       <Users className="h-3 w-3 inline mr-1" /> {classroom.students?.length || 0} students
                     </p>
                   </div>
                   
-                  {classroom.activeScenario && activeScenario && (
+                  {classroom.activeScenario && (
                     <Button 
                       size="sm" 
                       className="bg-blue-500 hover:bg-blue-600 text-white"
@@ -300,21 +284,11 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                     <p className="text-sm text-white/70">
                       {activeScenario.description}
                     </p>
-                    <div className="mt-3 flex justify-center">
-                      <Button
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700"
-                        onClick={handleStartScenario}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Start Activity Now
-                      </Button>
-                    </div>
                   </div>
                 ) : (
-                  <div className="text-white/70 text-center py-6 flex flex-col items-center gap-3">
-                    <Clock className="h-10 w-10 text-indigo-400/50" />
-                    <p>No active scenario. Waiting for teacher to start an activity...</p>
-                  </div>
+                  <p className="text-white/70 text-center py-2">
+                    No active scenario. Waiting for teacher to start an activity...
+                  </p>
                 )}
               </div>
               
@@ -330,8 +304,8 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
                       {messages.map((msg, i) => (
                         <div key={i} className="bg-black/30 rounded p-2">
                           <div className="flex items-center gap-1 text-blue-300 text-sm font-medium">
-                            <span>{msg.sender === 'teacher' ? `${classroom.teacherName || 'Teacher'}` : msg.sender}</span>
-                            <span className="text-white/50 text-xs">• {new Date(msg.sentAt?.seconds ? msg.sentAt.seconds * 1000 : Date.now()).toLocaleTimeString()}</span>
+                            <span>Teacher</span>
+                            <span className="text-white/50 text-xs">• {new Date(msg.timestamp).toLocaleTimeString()}</span>
                           </div>
                           <p className="text-white/90 mt-1">{msg.text}</p>
                         </div>
@@ -358,7 +332,7 @@ const StudentClassroomView: React.FC<StudentClassroomViewProps> = ({ onClassroom
             </AlertDialogTitle>
             <AlertDialogDescription className="text-white/70">
               {joinError ? joinError : (
-                classroomToJoin && `You're about to join "${classroomToJoin.name}" class taught by ${classroomToJoin.teacherName || 'a teacher'}. Continue?`
+                classroomToJoin && `You're about to join "${classroomToJoin.name}" class. Continue?`
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

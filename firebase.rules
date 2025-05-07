@@ -10,7 +10,9 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
       
       // Allow updating just the classrooms field for joining a class
-      allow update: if request.auth != null;
+      allow update: if request.auth != null && 
+                     (request.auth.uid == userId || 
+                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classrooms'])));
     }
     
     // Classroom rules
@@ -19,11 +21,14 @@ service cloud.firestore {
       allow read: if request.auth != null;
       
       // Only teachers can create classrooms
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && 
+                     request.resource.data.teacherId == request.auth.uid;
       
-      // Anyone authenticated can update classrooms (this can be restricted more if needed)
-      allow update: if request.auth != null;
-      
+      // Teachers can update their own classrooms or students can join by adding themselves
+      allow update: if request.auth != null && 
+                     (resource.data.teacherId == request.auth.uid || 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students']));
+                      
       // Only teachers can delete their classrooms
       allow delete: if request.auth != null && 
                      resource.data.teacherId == request.auth.uid;
@@ -31,13 +36,7 @@ service cloud.firestore {
       // Votes subcollection - students can vote
       match /votes/{voteId} {
         allow read: if request.auth != null;
-        allow write: if request.auth != null;
-      }
-      
-      // Progress subcollection - track student progress
-      match /progress/{studentId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null;
+        allow write: if request.auth != null && voteId == request.auth.uid;
       }
     }
     

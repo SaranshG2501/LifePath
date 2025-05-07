@@ -13,17 +13,8 @@ import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
 import { 
   User, School, Trophy, History, BarChart, 
   Users, LogOut, BookOpen, Gamepad2, Award, 
-  BadgeCheck, BarChart2, Sparkles, Calendar, 
-  TrendingUp, LineChart, Play
+  BadgeCheck, BarChart2, Sparkles, Calendar
 } from 'lucide-react';
-
-const StudentClassroomView = ({ onClassroomJoined }) => {
-  // Implementation of StudentClassroomView component
-};
-
-const AchievementSection = ({ userProfile }) => {
-  // Implementation of AchievementSection component
-};
 
 const ProfilePage: React.FC = () => {
   const { userRole } = useGameContext();
@@ -187,144 +178,440 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-6 text-center md:text-left">
-        My Profile
-      </h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left column - User Profile */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* User Card */}
-          <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl text-white">
-                  {userProfile?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : 'User')}
-                </CardTitle>
-                <Badge className="bg-indigo-500/30 text-indigo-200 border-0">
-                  {userRole === 'teacher' ? 'Teacher' : 'Student'}
-                </Badge>
-              </div>
-              <CardDescription className="text-white/70">
-                {currentUser?.email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* XP Level */}
-              <div className="bg-black/20 p-3 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-indigo-300" />
-                    <span className="text-white font-medium">Level {userProfile?.level || 1}</span>
-                  </div>
-                  <Badge className="bg-blue-500/30 text-blue-200 border-0">
-                    {userProfile?.xp || 0} XP
-                  </Badge>
-                </div>
-                <div className="mt-2 h-2 bg-black/30 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                    style={{ width: `${((userProfile?.xp || 0) % 100) || 0}%` }}
-                  ></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 bg-black/30 border-primary/20 backdrop-blur-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-center mb-4">
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                <span className="text-4xl font-bold text-white">
+                  {defaultProfile.username.charAt(0).toUpperCase()}
+                </span>
+                <div className="absolute bottom-0 right-0 bg-black/50 rounded-full p-1">
+                  {defaultProfile.role === 'teacher' ? (
+                    <School className="h-5 w-5 text-primary animate-pulse-slow" />
+                  ) : (
+                    <User className="h-5 w-5 text-primary animate-pulse-slow" />
+                  )}
                 </div>
               </div>
-
-              {/* User Stats */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-black/20 p-3 rounded-lg text-center">
-                  <div className="text-lg font-semibold text-white">
-                    {userProfile?.completedScenarios?.length || 0}
-                  </div>
-                  <div className="text-xs text-white/70">Scenarios Completed</div>
-                </div>
-                <div className="bg-black/20 p-3 rounded-lg text-center">
-                  <div className="text-lg font-semibold text-white">
-                    {userProfile?.badges?.length || 0}
-                  </div>
-                  <div className="text-xs text-white/70">Badges Earned</div>
-                </div>
-              </div>
-
-              {/* Current Metrics */}
+            </div>
+            <CardTitle className="text-center text-xl font-bold gradient-heading text-white">
+              {defaultProfile.username}
+            </CardTitle>
+            <CardDescription className="text-center flex items-center justify-center gap-1 text-white/70">
+              {defaultProfile.role === 'teacher' ? (
+                <>
+                  <School className="h-4 w-4" />
+                  Teacher
+                </>
+              ) : (
+                <>
+                  <User className="h-4 w-4" />
+                  Student
+                </>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <LineChart className="h-4 w-4 text-indigo-300" />
-                  <h3 className="text-white font-medium">Current Stats</h3>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-white/70">Level {defaultProfile.level}</span>
+                  <span className="text-sm font-medium text-white/70">{defaultProfile.xp} XP</span>
                 </div>
-                {userProfile?.metrics ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(userProfile.metrics).map(([key, value]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
-                        <span className="text-sm text-white/90 capitalize">{key}:</span>
-                        <span className="text-sm font-medium text-white">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-white/50 text-center py-2">
-                    No stats available yet
-                  </div>
-                )}
+                <Progress value={xpProgress} className="h-2 bg-white/10" />
+                <div className="flex justify-end mt-1">
+                  <span className="text-xs text-white/50">{Math.round(xpProgress)}% to Level {defaultProfile.level + 1}</span>
+                </div>
               </div>
-            </CardContent>
-            
-            <CardFooter className="border-t border-white/10 pt-4">
-              <Button className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600" onClick={handleLogout}>
+
+              <div className="bg-black/20 rounded-lg p-4">
+                <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
+                  <Trophy className="h-4 w-4 text-primary" />
+                  Badges Earned
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {defaultProfile.badges && defaultProfile.badges.length > 0 ? (
+                    defaultProfile.badges.map((badge: any, index: number) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="bg-black/40 border-primary/30 text-white py-1"
+                      >
+                        {badge.name || badge}
+                      </Badge>
+                    ))
+                  ) : (
+                    <div className="text-white/50 text-sm">No badges earned yet</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-black/20 rounded-lg p-4">
+                <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  Completed Scenarios
+                </h3>
+                <div className="text-sm text-white/80">
+                  {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0} scenarios completed
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Log Out
               </Button>
-            </CardFooter>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Badges Section */}
-          <AchievementSection userProfile={userProfile} />
-        </div>
-
-        {/* Right column - Scenario History and Classes */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* User's Classrooms */}
-          {userRole === 'student' && (
-            <StudentClassroomView onClassroomJoined={(id) => console.log("Joined classroom:", id)} />
-          )}
-        
-          {/* Scenario History */}
-          <Card className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md overflow-hidden shadow-lg">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl text-white flex items-center gap-2">
-                  <History className="h-5 w-5 text-indigo-300" />
-                  Scenario History
-                </CardTitle>
-              </div>
-              <CardDescription className="text-white/70">
-                Your previously completed scenarios
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {userHistory && userHistory.length > 0 ? (
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-                  {userHistory.map((history, index) => (
-                    <ScenarioHistoryDetail key={index} history={history} expanded={expandedHistoryIndex === index} onToggleExpand={() => toggleHistoryExpand(index)} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-black/20 rounded-lg">
-                  <BookOpen className="h-12 w-12 text-white/30 mx-auto mb-2" />
-                  <h3 className="text-white font-medium">No Completed Scenarios</h3>
-                  <p className="text-white/70 mt-1 max-w-xs mx-auto">
-                    Complete your first scenario to see your history here.
-                  </p>
-                  <Button className="mt-4 bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate('/')}>
-                    <Play className="mr-2 h-4 w-4" />
-                    Start a Scenario
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      <div className="lg:col-span-2 space-y-6">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="w-full grid grid-cols-3 bg-black/20 border-white/10 p-1">
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary/20">
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="classrooms" className="data-[state=active]:bg-primary/20">
+                {userRole === 'teacher' ? 'My Classes' : 'My Classrooms'}
+              </TabsTrigger>
+              <TabsTrigger value="history" className="data-[state=active]:bg-primary/20">
+                History
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="dashboard" className="mt-4">
+              <Card className="bg-black/20 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
+                    <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
+                    Your Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
+                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                        <Award className="h-4 w-4 text-primary" />
+                        Achievements
+                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white/80">Scenarios Completed</span>
+                        <span className="font-mono text-white">
+                          {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0}/10
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length * 10) || 0} 
+                        className="h-2 mb-4 bg-white/10" 
+                      />
+                      
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white/80">Badges Earned</span>
+                        <span className="font-mono text-white">
+                          {(defaultProfile.badges && defaultProfile.badges.length) || 0}/8
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(defaultProfile.badges && defaultProfile.badges.length * 12.5) || 0} 
+                        className="h-2 bg-white/10" 
+                      />
+                    </div>
+                    
+                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
+                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                        <BarChart className="h-4 w-4 text-primary" />
+                        Decision Metrics
+                      </h3>
+                      <div className="space-y-3 flex-grow">
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Analytical Decisions</span>
+                            <span className="font-mono">{decisionMetrics.analytical}%</span>
+                          </div>
+                          <Progress value={decisionMetrics.analytical} className="h-2 bg-white/10" />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Emotional Decisions</span>
+                            <span className="font-mono">{decisionMetrics.emotional}%</span>
+                          </div>
+                          <Progress value={decisionMetrics.emotional} className="h-2 bg-white/10" />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1 text-white/80">
+                            <span>Risk Taking</span>
+                            <span className="font-mono">{decisionMetrics.riskTaking}%</span>
+                          </div>
+                          <Progress value={decisionMetrics.riskTaking} className="h-2 bg-white/10" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                      <Gamepad2 className="h-4 w-4 text-primary" />
+                      Recent Activity
+                    </h3>
+                    <div className="bg-black/20 rounded-lg overflow-hidden">
+                      <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
+                        <div className="font-medium text-white/80">Scenario</div>
+                        <div className="font-medium text-white/80">Date</div>
+                        <div className="font-medium text-white/80 text-right">Actions</div>
+                      </div>
+                      {defaultProfile.history && defaultProfile.history.length > 0 ? (
+                        defaultProfile.history.slice(0, 3).map((item: any, index: number) => (
+                          <div 
+                            key={index} 
+                            className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
+                          >
+                            <div className="text-white">{item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown Scenario'}</div>
+                            <div className="text-white/70">{formatDate(item.completedAt)}</div>
+                            <div className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-primary hover:bg-primary/10 hover:text-primary"
+                                onClick={() => openHistoryDetail(item)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-white/50 text-center">No activity recorded yet</div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="classrooms" className="mt-4">
+              <Card className="bg-black/20 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
+                    <Users className="h-5 w-5 text-primary animate-pulse-slow" />
+                    {userRole === 'teacher' ? 'My Classes' : 'My Classrooms'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {defaultProfile.classrooms && defaultProfile.classrooms.length > 0 ? (
+                      defaultProfile.classrooms.map((classroom: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className="bg-black/30 rounded-lg p-4 border border-white/10 hover:border-primary/30 transition-colors cursor-pointer"
+                        >
+                          <h3 className="font-medium mb-2 text-white">{classroom.name || `Classroom ${index + 1}`}</h3>
+                          {userRole === 'teacher' ? (
+                            <div className="text-sm text-white/70 flex items-center gap-1">
+                              <Users className="h - 4 w-4" />
+                              {classroom.students || 0} students
+                            </div>
+                          ) : (
+                            <div className="text-sm text-white/70 flex items-center gap-1">
+                              <School className="h-4 w-4" />
+                              Teacher: {classroom.teacher || 'Unknown'}
+                            </div>
+                          )}
+                          
+                          <div className="mt-3 flex justify-end">
+                            <Button variant="outline" size="sm" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
+                              {userRole === 'teacher' ? 'Manage Class' : 'View Activities'}
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 bg-black/20 rounded-lg p-4 text-white/60 text-center">
+                        No classrooms found
+                      </div>
+                    )}
+                    
+                    <div 
+                      onClick={() => setIsJoinClassModalOpen(userRole !== 'teacher')} 
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') setIsJoinClassModalOpen(userRole !== 'teacher'); }}
+                      className="bg-black/10 rounded-lg border border-dashed border-white/20 p-4 flex flex-col items-center justify-center text-center hover:bg-black/20 transition-colors cursor-pointer select-none"
+                    >
+                      <div className="rounded-full bg-white/5 p-3 mb-2">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="font-medium text-white">
+                        {userRole === 'teacher' ? 'Create New Class using Teacher Dashboard' : 'Join a Classroom'}
+                      </h3>
+                      <p className="text-sm text-white/60 mt-1">
+                        {userRole === 'teacher' 
+                          ? 'Set up a new classroom for your students' 
+                          : 'Enter a class code to join'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {isJoinClassModalOpen && (
+                    <div 
+                      className="fixed inset-0 flex items-center justify-center bg-black/70 z-50" 
+                      onClick={() => setIsJoinClassModalOpen(false)}
+                    >
+                      <div 
+                        className="bg-gray-900 border border-white/20 rounded-lg p-6 w-80"
+                        onClick={e => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="joinClassroomTitle"
+                      >
+                        <h2 id="joinClassroomTitle" className="text-xl font-bold mb-4 text-white">
+                          Join a Classroom
+                        </h2>
+                        <input
+                          type="text"
+                          placeholder="Enter class code"
+                          value={joinClassCode}
+                          onChange={e => setJoinClassCode(e.target.value)}
+                          className="w-full rounded-md border border-white/30 bg-black/50 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary mb-3"
+                          autoFocus
+                        />
+                        {joinError && <p className="text-red-500 mb-3">{joinError}</p>}
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setIsJoinClassModalOpen(false)}
+                            disabled={isJoining}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleJoinClassroom} 
+                            disabled={isJoining || !joinClassCode.trim()}
+                          >
+                            {isJoining ? 'Joining...' : 'Join'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="history" className="mt-4">
+              <Card className="bg-black/20 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
+                    <History className="h-5 w-5 text-primary animate-pulse-slow" />
+                    Your History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-black/20 rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
+                      <div className="font-medium text-white/80">Scenario</div>
+                      <div className="font-medium text-white/80">Date</div>
+                      <div className="font-medium text-white/80 text-right">Actions</div>
+                    </div>
+                    {defaultProfile.history && defaultProfile.history.length > 0 ? (
+                      defaultProfile.history.map((item: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
+                        >
+                          <div className="text-white capitalize">
+                            {item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown'}
+                          </div>
+                          <div className="text-white/70 flex items-center gap-1">
+                            <Calendar className="h-4 w-4 opacity-70" />
+                            {formatDate(item.completedAt)}
+                          </div>
+                          <div className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-primary hover:bg-primary/10 hover:text-primary"
+                              onClick={() => openHistoryDetail(item)}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 text-white/50 text-center">No history available</div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
+                      <BarChart2 className="h-4 w-4 text-primary" />
+                      Decision Analytics
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-white">Analytical Decisions</h4>
+                          <Badge 
+                            className={
+                              (decisionMetrics.analytical > 50 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300') + ' border-0'
+                            }
+                          >
+                            {decisionMetrics.analytical > 50 ? '+' : '-'}
+                          </Badge>
+                        </div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.analytical}%</div>
+                        <div className="text-xs text-white/60 mt-1">Logic-based problem solving</div>
+                      </div>
+                      
+                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-white">Emotional Choices</h4>
+                          <Badge 
+                            className={
+                              (decisionMetrics.emotional > 50 ? 'bg-blue-500/20 text-blue-300' : 'bg-orange-500/20 text-orange-300') + ' border-0'
+                            }
+                          >
+                            {decisionMetrics.emotional > 50 ? '+' : '-'}
+                          </Badge>
+                        </div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.emotional}%</div>
+                        <div className="text-xs text-white/60 mt-1">Empathy-driven decisions</div>
+                      </div>
+                      
+                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-white">Risk Taking</h4>
+                          <Badge 
+                            className={
+                              (decisionMetrics.riskTaking < 40 ? 'bg-blue-500/20 text-blue-300' : decisionMetrics.riskTaking > 70 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300') + ' border-0'
+                            }
+                          >
+                            {decisionMetrics.riskTaking < 40 ? 'Low' : decisionMetrics.riskTaking > 70 ? 'High' : 'Balanced'}
+                          </Badge>
+                        </div>
+                        <div className="text-3xl font-bold text-white">{decisionMetrics.riskTaking}%</div>
+                        <div className="text-xs text-white/60 mt-1">Willingness to take chances</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
+
+      {selectedHistory && (
+        <ScenarioHistoryDetail
+          history={selectedHistory}
+          open={isHistoryDetailOpen}
+          onClose={() => setIsHistoryDetailOpen(false)}
+        />
+      )}
     </div>
   );
 };

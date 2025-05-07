@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { School, Users, LogIn, Loader2 } from 'lucide-react';
+import { School, Users, LogIn } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -84,12 +84,9 @@ const ClassroomJoinLink: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const teacherName = userProfile?.displayName || currentUser.email?.split('@')[0] || 'Teacher';
-      
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
-        teacherName,
         classDescription
       );
       
@@ -265,7 +262,7 @@ const ClassroomJoinLink: React.FC = () => {
                 className="bg-primary hover:bg-primary/90"
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>Create Classroom</>
                 )}
@@ -328,7 +325,7 @@ const ClassroomJoinLink: React.FC = () => {
               className="bg-primary hover:bg-primary/90"
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
                   <LogIn className="mr-2 h-4 w-4" />
