@@ -8,9 +8,7 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
       
       // Allow updating classrooms field for joining a class
-      allow update: if request.auth != null && 
-                     (request.auth.uid == userId || 
-                     request.resource.data.keys().hasOnly(['classrooms']));
+      allow update: if request.auth != null;
     }
     
     // Classroom rules
@@ -49,9 +47,7 @@ service cloud.firestore {
     
     // Allow read/write for history documents
     match /history/{historyId} {
-      allow read: if request.auth != null && 
-                   (resource.data.userId == request.auth.uid || 
-                   resource.data.classroomId != null);
+      allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
     

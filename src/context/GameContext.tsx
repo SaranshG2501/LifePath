@@ -352,7 +352,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     if (!currentUser || !userProfile) return;
 
     // Check for "First Scenario" badge
-    if (!userProfile.badges?.some(badge => badge.id === 'first-scenario') && gameState.currentScenario) {
+    if (!userProfile.badges?.some(badge => typeof badge === 'object' && badge.id === 'first-scenario') && gameState.currentScenario) {
       const awarded = await awardBadge(currentUser.uid, 'first-scenario', 'First Scenario');
       if (awarded) {
         toast({
@@ -364,7 +364,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     // Check for "Perfect Score" badge (all metrics at 100)
     const perfectScore = Object.values(gameState.metrics).every(value => value === 100);
-    if (perfectScore && !userProfile.badges?.some(badge => badge.id === 'perfect-score')) {
+    if (perfectScore && !userProfile.badges?.some(badge => typeof badge === 'object' && badge.id === 'perfect-score')) {
       const awarded = await awardBadge(currentUser.uid, 'perfect-score', 'Perfect Score');
       if (awarded) {
         toast({
