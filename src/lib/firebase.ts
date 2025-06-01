@@ -747,5 +747,3 @@ export const signInWithGoogle = () => {
 };
 
 export { auth, db, Timestamp, analytics };
-
-</edits_to_apply>
