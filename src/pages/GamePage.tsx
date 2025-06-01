@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '@/context/GameContext';
@@ -48,7 +47,6 @@ const GamePage = () => {
   const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isInLiveSession, setIsInLiveSession] = useState(false);
-  const [sessionSyncInterval, setSessionSyncInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // If no active game, redirect to home

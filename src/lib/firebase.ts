@@ -180,14 +180,18 @@ export const createLiveSession = async (
 // Join a live session
 export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
   try {
+    console.log("Attempting to join session:", sessionId, "with student:", studentId);
+    
     const sessionRef = doc(db, 'liveSessions', sessionId);
     const sessionDoc = await getDoc(sessionRef);
     
     if (!sessionDoc.exists()) {
+      console.error("Session not found:", sessionId);
       throw new Error("Session not found");
     }
 
     const sessionData = sessionDoc.data() as LiveSession;
+    console.log("Session found:", sessionData);
     
     // Add student to participants if not already present
     if (!sessionData.participants.includes(studentId)) {
@@ -195,6 +199,7 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
         participants: arrayUnion(studentId),
         lastUpdated: Timestamp.now()
       });
+      console.log("Added student to participants array");
     }
 
     // Create participant record
@@ -208,6 +213,7 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     };
 
     await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
+    console.log("Created participant record");
 
     return { id: sessionId, ...sessionData };
   } catch (error) {

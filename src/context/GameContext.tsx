@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
@@ -35,6 +34,7 @@ type GameContextType = {
   toggleMirrorMoments: () => void;
   mirrorMomentsEnabled: boolean;
   hasJoinedClassroom: boolean;
+  setCurrentScene: (sceneId: string) => void;
 };
 
 const initialMetrics: Metrics = {
@@ -377,6 +377,19 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
+  // Add setCurrentScene function
+  const setCurrentScene = (sceneId: string) => {
+    if (!gameState.currentScenario) return;
+    
+    const scene = gameState.currentScenario.scenes.find(s => s.id === sceneId);
+    if (scene) {
+      setGameState(prev => ({
+        ...prev,
+        currentScene: scene
+      }));
+    }
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -401,7 +414,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         setRevealVotes,
         toggleMirrorMoments,
         mirrorMomentsEnabled,
-        hasJoinedClassroom
+        hasJoinedClassroom,
+        setCurrentScene
       }}
     >
       {children}
