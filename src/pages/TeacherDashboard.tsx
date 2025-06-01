@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, School, Users, PlusCircle, Search, Loader2, Play, Broadcast } from 'lucide-react';
+import { ArrowRight, School, Users, PlusCircle, Search, Loader2, Play, Radio } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
 import { getUserClassrooms, createClassroom, Classroom, createLiveSession } from '@/lib/firebase';
@@ -377,7 +377,7 @@ const TeacherDashboard = () => {
                       }}
                       className="bg-green-500 hover:bg-green-600"
                     >
-                      <Broadcast className="mr-2 h-4 w-4" />
+                      <Radio className="mr-2 h-4 w-4" />
                       Start Live Session
                     </Button>
                   )}

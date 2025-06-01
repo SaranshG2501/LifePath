@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -35,7 +36,6 @@ import { getAnalytics } from 'firebase/analytics';
 import { Metrics } from '@/types/game';
 
 // Your web app's Firebase configuration
-// Replace with your actual Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
   authDomain: "lifepath-3ff8f.firebaseapp.com",
@@ -628,7 +628,7 @@ export const getUserClassrooms = async (userId: string, role: string) => {
     }
     
     // Get details for each classroom the user is in
-    const classroomPromises = userClassrooms.map(classroomId => getClassroom(classroomId));
+    const classroomPromises = userClassrooms.map((classroomId: string) => getClassroom(classroomId));
     const classrooms = await Promise.all(classroomPromises);
     
     // Filter out any null results (in case a classroom was deleted)
