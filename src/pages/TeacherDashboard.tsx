@@ -1,15 +1,12 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, School, Users, BookOpen, BarChart3, PlusCircle, Search, Loader2 } from 'lucide-react';
+import { ArrowRight, School, Users, PlusCircle, Search, Loader2, Play, Broadcast } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { getClassrooms, getUserClassrooms, createClassroom, Classroom } from '@/lib/firebase';
+import { getUserClassrooms, createClassroom, Classroom, createLiveSession } from '@/lib/firebase';
 import ScenarioCard from '@/components/ScenarioCard';
 import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
 import { scenarios } from '@/data/scenarios';
@@ -152,9 +149,67 @@ const TeacherDashboard = () => {
     }
   };
 
+  const handleStartLiveScenario = async (scenarioId: string) => {
+    if (!selectedClassroom || !currentUser) {
+      toast({
+        title: "Classroom Required",
+        description: "Please select a classroom before starting a live scenario.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const scenario = scenarios.find(s => s.id === scenarioId);
+      if (!scenario) {
+        throw new Error("Scenario not found");
+      }
+
+      // Create live session
+      const liveSession = await createLiveSession(
+        selectedClassroom.id!,
+        currentUser.uid,
+        scenarioId,
+        scenario.title
+      );
+
+      setClassroomId(selectedClassroom.id!);
+      setGameMode("classroom");
+      startScenario(scenarioId);
+      
+      toast({
+        title: "Live Session Started",
+        description: `Students will receive a notification to join "${scenario.title}"`,
+      });
+      
+      navigate('/game');
+    } catch (error) {
+      console.error("Error starting live scenario:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start live scenario. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleScenarioClick = (scenarioId: string) => {
-    startScenario(scenarioId);
-    navigate('/game');
+    if (selectedClassroom) {
+      // Show option to start as live session or individual
+      const confirmLive = window.confirm(
+        "Do you want to start this as a live session for your students? Click OK for live session, Cancel for individual play."
+      );
+      
+      if (confirmLive) {
+        handleStartLiveScenario(scenarioId);
+      } else {
+        startScenario(scenarioId);
+        navigate('/game');
+      }
+    } else {
+      startScenario(scenarioId);
+      navigate('/game');
+    }
   };
   
   // Filter classrooms based on search term
@@ -177,7 +232,7 @@ const TeacherDashboard = () => {
               Teacher Dashboard
             </h1>
             <p className="text-white/70 mt-2">
-              Manage your classrooms and track student progress
+              Manage your classrooms and create live learning experiences
             </p>
           </div>
           <Button 
@@ -314,6 +369,18 @@ const TeacherDashboard = () => {
                   {selectedClassroom ? selectedClassroom.name : "Classroom Management"}
                 </CardTitle>
                 <div className="flex gap-2">
+                  {selectedClassroom && (
+                    <Button
+                      onClick={() => {
+                        // Quick start live session with first scenario
+                        handleStartLiveScenario(scenarios[0].id);
+                      }}
+                      className="bg-green-500 hover:bg-green-600"
+                    >
+                      <Broadcast className="mr-2 h-4 w-4" />
+                      Start Live Session
+                    </Button>
+                  )}
                   {!selectedClassroom && (
                     <Button 
                       onClick={() => setIsCreateModalOpen(true)}
@@ -338,7 +405,7 @@ const TeacherDashboard = () => {
               </div>
               <CardDescription className="text-white/70">
                 {selectedClassroom 
-                  ? `Manage ${selectedClassroom.students?.length || 0} students` 
+                  ? `Manage ${selectedClassroom.students?.length || 0} students and start live scenarios` 
                   : "Create and manage your classrooms"}
               </CardDescription>
             </CardHeader>
@@ -371,15 +438,30 @@ const TeacherDashboard = () => {
       </div>
       
       <div className="mt-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Available Scenarios</h2>
+        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          Available Scenarios
+          {selectedClassroom && (
+            <Badge className="bg-blue-500/20 text-blue-300 border-0">
+              Click to start live session
+            </Badge>
+          )}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {scenarios.slice(0, 6).map((scenario) => (
-            <ScenarioCard 
-              key={scenario.id}
-              scenario={scenario}
-              onStart={handleScenarioClick}
-              onClick={() => handleScenarioClick(scenario.id)}
-            />
+            <div key={scenario.id} className="relative">
+              <ScenarioCard 
+                scenario={scenario}
+                onStart={handleScenarioClick}
+                onClick={() => handleScenarioClick(scenario.id)}
+              />
+              {selectedClassroom && (
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                    Live Ready
+                  </Badge>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>

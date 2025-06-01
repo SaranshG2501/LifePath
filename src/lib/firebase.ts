@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -32,6 +31,7 @@ import {
   arrayUnion,
   FieldValue
 } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 import { Metrics } from '@/types/game';
 
 // Your web app's Firebase configuration
@@ -50,6 +50,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Initialize Analytics with error handling
+let analytics;
+try {
+  analytics = getAnalytics(app);
+} catch (error) {
+  console.log("Analytics failed to initialize:", error);
+}
 
 // Define types
 export interface ClassroomStudent {
@@ -102,6 +110,189 @@ export interface ScenarioChoice {
   timestamp: Timestamp | Date;
   metricChanges?: Record<string, number>;
 }
+
+// New Live Session Management Functions
+export interface LiveSession {
+  id?: string;
+  classroomId: string;
+  teacherId: string;
+  scenarioId: string;
+  scenarioTitle: string;
+  currentSceneId: string;
+  isActive: boolean;
+  startedAt: Timestamp;
+  participants: string[];
+  currentChoices?: Record<string, string>; // studentId -> choiceId
+  teacherChoiceRevealed?: boolean;
+}
+
+export interface SessionParticipant {
+  sessionId: string;
+  studentId: string;
+  studentName: string;
+  joinedAt: Timestamp;
+  isActive: boolean;
+  currentChoice?: string;
+}
+
+// Create a live classroom session
+export const createLiveSession = async (
+  classroomId: string,
+  teacherId: string,
+  scenarioId: string,
+  scenarioTitle: string,
+  initialSceneId: string = "start"
+) => {
+  try {
+    const sessionData: LiveSession = {
+      classroomId,
+      teacherId,
+      scenarioId,
+      scenarioTitle,
+      currentSceneId: initialSceneId,
+      isActive: true,
+      startedAt: Timestamp.now(),
+      participants: [],
+      currentChoices: {},
+      teacherChoiceRevealed: false
+    };
+
+    const docRef = await addDoc(collection(db, 'liveSessions'), sessionData);
+    
+    // Update classroom with active session
+    await updateDoc(doc(db, 'classrooms', classroomId), {
+      activeSessionId: docRef.id,
+      lastActivity: Timestamp.now()
+    });
+
+    return { id: docRef.id, ...sessionData };
+  } catch (error) {
+    console.error("Error creating live session:", error);
+    throw error;
+  }
+};
+
+// Join a live session
+export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
+  try {
+    const sessionRef = doc(db, 'liveSessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+    
+    if (!sessionDoc.exists()) {
+      throw new Error("Session not found");
+    }
+
+    const sessionData = sessionDoc.data() as LiveSession;
+    
+    // Add student to participants if not already present
+    if (!sessionData.participants.includes(studentId)) {
+      await updateDoc(sessionRef, {
+        participants: arrayUnion(studentId)
+      });
+    }
+
+    // Create participant record
+    const participantData: SessionParticipant = {
+      sessionId,
+      studentId,
+      studentName,
+      joinedAt: Timestamp.now(),
+      isActive: true
+    };
+
+    await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
+
+    return { id: sessionId, ...sessionData };
+  } catch (error) {
+    console.error("Error joining live session:", error);
+    throw error;
+  }
+};
+
+// Submit choice in live session
+export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string) => {
+  try {
+    const sessionRef = doc(db, 'liveSessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+    
+    if (!sessionDoc.exists()) {
+      throw new Error("Session not found");
+    }
+
+    const currentChoices = sessionDoc.data().currentChoices || {};
+    currentChoices[studentId] = choiceId;
+
+    await updateDoc(sessionRef, {
+      currentChoices
+    });
+
+    // Update participant record
+    await updateDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), {
+      currentChoice: choiceId,
+      lastActivity: Timestamp.now()
+    });
+
+  } catch (error) {
+    console.error("Error submitting live choice:", error);
+    throw error;
+  }
+};
+
+// Advance session to next scene
+export const advanceLiveSession = async (sessionId: string, nextSceneId: string) => {
+  try {
+    await updateDoc(doc(db, 'liveSessions', sessionId), {
+      currentSceneId: nextSceneId,
+      currentChoices: {}, // Reset choices for new scene
+      teacherChoiceRevealed: false,
+      lastUpdated: Timestamp.now()
+    });
+  } catch (error) {
+    console.error("Error advancing live session:", error);
+    throw error;
+  }
+};
+
+// End live session
+export const endLiveSession = async (sessionId: string, classroomId: string) => {
+  try {
+    await updateDoc(doc(db, 'liveSessions', sessionId), {
+      isActive: false,
+      endedAt: Timestamp.now()
+    });
+
+    // Remove active session from classroom
+    await updateDoc(doc(db, 'classrooms', classroomId), {
+      activeSessionId: null
+    });
+  } catch (error) {
+    console.error("Error ending live session:", error);
+    throw error;
+  }
+};
+
+// Get active session for classroom
+export const getActiveSession = async (classroomId: string) => {
+  try {
+    const q = query(
+      collection(db, 'liveSessions'),
+      where('classroomId', '==', classroomId),
+      where('isActive', '==', true)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+    
+    const sessionDoc = snapshot.docs[0];
+    return { id: sessionDoc.id, ...sessionDoc.data() } as LiveSession;
+  } catch (error) {
+    console.error("Error getting active session:", error);
+    return null;
+  }
+};
 
 // Auth functions
 export const createUser = async (email: string, password: string) => {
@@ -529,9 +720,32 @@ export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => 
   return unsubscribe;
 };
 
+export const onLiveSessionUpdated = (sessionId: string, callback: (session: LiveSession) => void) => {
+  return onSnapshot(doc(db, 'liveSessions', sessionId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as LiveSession);
+    }
+  });
+};
+
+export const onSessionParticipantsUpdated = (sessionId: string, callback: (participants: SessionParticipant[]) => void) => {
+  const q = query(
+    collection(db, 'sessionParticipants'),
+    where('sessionId', '==', sessionId),
+    where('isActive', '==', true)
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const participants = snapshot.docs.map(doc => doc.data() as SessionParticipant);
+    callback(participants);
+  });
+};
+
 export const signInWithGoogle = () => {
   const provider = new GoogleAuthProvider();
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp };
+export { auth, db, Timestamp, analytics };
+
+</edits_to_apply>
