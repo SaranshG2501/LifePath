@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -642,9 +641,9 @@ export const getUserClassrooms = async (userId: string, role: string) => {
 export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
   const updateData = { ...data };
   if ('id' in updateData) {
-    delete updateData.id; // Remove id property if present
+    delete (updateData as any).id; // Remove id property if present
   }
-  return updateDoc(doc(db, 'classrooms', classroomId), updateData as DocumentData);
+  return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
 // Classroom activity functions

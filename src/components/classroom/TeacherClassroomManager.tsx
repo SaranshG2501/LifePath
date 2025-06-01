@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
@@ -5,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useToast } from '@/components/ui/use-toast';
-import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ClassroomStudent } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -22,17 +23,50 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
+  const [currentClassroom, setCurrentClassroom] = useState(classroom);
+  const [activeSession, setActiveSession] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
+  
+  // Set up real-time listener for classroom updates
+  useEffect(() => {
+    if (!classroom?.id) return;
+    
+    console.log("Setting up classroom listener for:", classroom.id);
+    
+    const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
+      console.log("Classroom updated in real-time:", updatedClassroom);
+      setCurrentClassroom(updatedClassroom);
+    });
+    
+    return () => unsubscribe();
+  }, [classroom?.id]);
+  
+  // Check for active sessions
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      if (!classroom?.id) return;
+      
+      try {
+        const session = await getActiveSession(classroom.id);
+        setActiveSession(session);
+      } catch (error) {
+        console.error("Error checking active session:", error);
+      }
+    };
+    
+    checkActiveSession();
+  }, [classroom?.id]);
   
   // Initialize messages from classroom if available
   useEffect(() => {
-    if (classroom && classroom.messages) {
-      setMessages(classroom.messages);
+    if (currentClassroom && currentClassroom.messages) {
+      setMessages(currentClassroom.messages);
     }
-  }, [classroom]);
+  }, [currentClassroom]);
   
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(classroom.classCode);
+    navigator.clipboard.writeText(currentClassroom.classCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     
@@ -42,13 +76,28 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     });
   };
   
+  const handleRefreshClassroom = async () => {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+      toast({
+        title: "Refreshed",
+        description: "Classroom data has been updated.",
+      });
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
   const handleRemoveStudent = (studentId: string) => {
     // In a real app, this would remove a student from the classroom
     toast({
       title: "Student removed",
       description: "The student has been removed from your classroom.",
     });
-    onRefresh(); // Refresh classroom data
+    onRefresh();
   };
   
   const handleSendMessage = () => {
@@ -61,7 +110,6 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       return;
     }
     
-    // In a real app, this would send a message to all students in the classroom
     const newMessage = {
       text: message,
       sentAt: new Date(),
@@ -76,22 +124,34 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     });
     
     setMessage('');
-    
-    // Optionally update the classroom with the new message
-    // This would be handled by a backend function in a real app
   };
+  
+  const studentsList = currentClassroom?.students || [];
+  console.log("Current students list:", studentsList);
   
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium mb-3 text-white">Classroom Information</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium text-white">Classroom Information</h3>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="border-white/20 bg-black/20 text-white hover:bg-white/10"
+            onClick={handleRefreshClassroom}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="text-white/70 text-sm">Share this code with your students:</p>
               <div className="flex items-center gap-2 mt-1">
                 <code className="bg-black/40 px-3 py-1 rounded text-primary font-mono">
-                  {classroom.classCode}
+                  {currentClassroom.classCode}
                 </code>
                 <Button 
                   variant="ghost" 
@@ -104,7 +164,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               </div>
             </div>
             
-            <div>
+            <div className="flex gap-2">
               <Badge className="bg-green-500/20 text-green-300 border-0">
                 <div className="flex items-center gap-1">
                   <div className="relative">
@@ -114,6 +174,12 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                   Active
                 </div>
               </Badge>
+              
+              {activeSession && (
+                <Badge className="bg-blue-500/20 text-blue-300 border-0">
+                  Live Session
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -123,7 +189,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-medium text-white flex items-center gap-1">
             <Users className="h-4 w-4 text-primary" />
-            Students ({classroom.students?.length || 0})
+            Students ({studentsList.length})
           </h3>
           <Button variant="outline" size="sm" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
             <UserPlus className="mr-1 h-4 w-4" />
@@ -131,9 +197,9 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
           </Button>
         </div>
         
-        {classroom.students?.length > 0 ? (
+        {studentsList.length > 0 ? (
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-            {(classroom.students || []).map((student: ClassroomStudent, i: number) => (
+            {studentsList.map((student: ClassroomStudent, i: number) => (
               <div 
                 key={student.id || i} 
                 className="bg-black/20 rounded-lg p-3 flex items-center justify-between"
@@ -141,12 +207,19 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8 border border-white/20">
                     <AvatarFallback className="bg-primary/20 text-white">
-                      {student.name?.charAt(0) || 'S'}
+                      {student.name?.charAt(0)?.toUpperCase() || 'S'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="text-white">{student.name || `Student ${i + 1}`}</div>
-                    <div className="text-xs text-white/60">Joined: {student.joinedAt ? new Date((student.joinedAt as any).seconds * 1000).toLocaleDateString() : 'Recently'}</div>
+                    <div className="text-xs text-white/60">
+                      Joined: {student.joinedAt ? 
+                        (student.joinedAt.seconds ? 
+                          new Date(student.joinedAt.seconds * 1000).toLocaleDateString() : 
+                          new Date(student.joinedAt).toLocaleDateString()
+                        ) : 'Recently'
+                      }
+                    </div>
                   </div>
                 </div>
                 
@@ -169,7 +242,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Remove Student</AlertDialogTitle>
                         <AlertDialogDescription className="text-white/70">
-                          Are you sure you want to remove this student from your classroom?
+                          Are you sure you want to remove {student.name} from your classroom?
                           They will no longer have access to classroom activities.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
