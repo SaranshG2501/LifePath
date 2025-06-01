@@ -76,6 +76,7 @@ export interface Classroom {
   createdAt: any;
   classCode: string;
   isActive: boolean;
+  activeSessionId?: string | null;
 }
 
 export interface UserProfileData {
@@ -123,6 +124,7 @@ export interface LiveSession {
   participants: string[];
   currentChoices?: Record<string, string>; // studentId -> choiceId
   teacherChoiceRevealed?: boolean;
+  lastUpdated?: Timestamp;
 }
 
 export interface SessionParticipant {
@@ -132,6 +134,7 @@ export interface SessionParticipant {
   joinedAt: Timestamp;
   isActive: boolean;
   currentChoice?: string;
+  lastActivity?: Timestamp;
 }
 
 // Create a live classroom session
@@ -153,7 +156,8 @@ export const createLiveSession = async (
       startedAt: Timestamp.now(),
       participants: [],
       currentChoices: {},
-      teacherChoiceRevealed: false
+      teacherChoiceRevealed: false,
+      lastUpdated: Timestamp.now()
     };
 
     const docRef = await addDoc(collection(db, 'liveSessions'), sessionData);
@@ -161,6 +165,8 @@ export const createLiveSession = async (
     // Update classroom with active session
     await updateDoc(doc(db, 'classrooms', classroomId), {
       activeSessionId: docRef.id,
+      activeScenario: scenarioId,
+      currentScene: initialSceneId,
       lastActivity: Timestamp.now()
     });
 
@@ -186,7 +192,8 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     // Add student to participants if not already present
     if (!sessionData.participants.includes(studentId)) {
       await updateDoc(sessionRef, {
-        participants: arrayUnion(studentId)
+        participants: arrayUnion(studentId),
+        lastUpdated: Timestamp.now()
       });
     }
 
@@ -196,7 +203,8 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
       studentId,
       studentName,
       joinedAt: Timestamp.now(),
-      isActive: true
+      isActive: true,
+      lastActivity: Timestamp.now()
     };
 
     await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
@@ -222,7 +230,8 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
     currentChoices[studentId] = choiceId;
 
     await updateDoc(sessionRef, {
-      currentChoices
+      currentChoices,
+      lastUpdated: Timestamp.now()
     });
 
     // Update participant record
@@ -257,13 +266,28 @@ export const endLiveSession = async (sessionId: string, classroomId: string) => 
   try {
     await updateDoc(doc(db, 'liveSessions', sessionId), {
       isActive: false,
-      endedAt: Timestamp.now()
+      endedAt: Timestamp.now(),
+      lastUpdated: Timestamp.now()
     });
 
     // Remove active session from classroom
     await updateDoc(doc(db, 'classrooms', classroomId), {
-      activeSessionId: null
+      activeSessionId: null,
+      activeScenario: null,
+      currentScene: null
     });
+
+    // Mark all participants as inactive
+    const participantsQuery = query(
+      collection(db, 'sessionParticipants'),
+      where('sessionId', '==', sessionId)
+    );
+    const participantsSnapshot = await getDocs(participantsQuery);
+    
+    const updatePromises = participantsSnapshot.docs.map(doc => 
+      updateDoc(doc.ref, { isActive: false })
+    );
+    await Promise.all(updatePromises);
   } catch (error) {
     console.error("Error ending live session:", error);
     throw error;
@@ -291,6 +315,15 @@ export const getActiveSession = async (classroomId: string) => {
     console.error("Error getting active session:", error);
     return null;
   }
+};
+
+// Helper function to convert Timestamp to Date
+const convertTimestampToDate = (timestamp: Timestamp | Date): Date => {
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  // It's a Firestore Timestamp
+  return (timestamp as any).toDate();
 };
 
 // Auth functions
@@ -459,7 +492,8 @@ export const createClassroom = async (teacherId: string, name: string, descripti
       currentScene: null,
       createdAt: Timestamp.now(),
       classCode,
-      isActive: true
+      isActive: true,
+      activeSessionId: null
     };
     
     // Add to Firestore
@@ -745,4 +779,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp, analytics };
+export { auth, db, Timestamp, analytics, convertTimestampToDate };

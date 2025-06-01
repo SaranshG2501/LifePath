@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { onClassroomUpdated, getActiveSession, ClassroomStudent } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -214,10 +214,8 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                     <div className="text-white">{student.name || `Student ${i + 1}`}</div>
                     <div className="text-xs text-white/60">
                       Joined: {student.joinedAt ? 
-                        (student.joinedAt.seconds ? 
-                          new Date(student.joinedAt.seconds * 1000).toLocaleDateString() : 
-                          new Date(student.joinedAt).toLocaleDateString()
-                        ) : 'Recently'
+                        convertTimestampToDate(student.joinedAt).toLocaleDateString() : 
+                        'Recently'
                       }
                     </div>
                   </div>

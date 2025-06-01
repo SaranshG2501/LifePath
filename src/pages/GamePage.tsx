@@ -10,10 +10,10 @@ import MirrorMoment from '@/components/MirrorMoment';
 import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import LiveSessionModal from '@/components/classroom/LiveSessionModal';
 import LiveSessionTracker from '@/components/classroom/LiveSessionTracker';
-import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi } from 'lucide-react';
+import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { 
   LiveSession, 
   SessionParticipant, 
@@ -37,7 +37,8 @@ const GamePage = () => {
     userRole,
     classroomId,
     mirrorMomentsEnabled,
-    toggleMirrorMoments
+    toggleMirrorMoments,
+    setCurrentScene
   } = useGameContext();
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const GamePage = () => {
   const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isInLiveSession, setIsInLiveSession] = useState(false);
+  const [sessionSyncInterval, setSessionSyncInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // If no active game, redirect to home
@@ -55,13 +57,16 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
   
-  // Check for active live sessions when in classroom mode
+  // Check for active live sessions when in classroom mode (for students)
   useEffect(() => {
+    let checkInterval: NodeJS.Timeout;
+    
     const checkActiveSession = async () => {
-      if (gameMode === "classroom" && classroomId && userRole === "student") {
+      if (gameMode === "classroom" && classroomId && userRole === "student" && !isInLiveSession) {
         try {
           const activeSession = await getActiveSession(classroomId);
           if (activeSession && !isInLiveSession) {
+            console.log("Active session found:", activeSession);
             setLiveSession(activeSession);
             setShowJoinModal(true);
           }
@@ -71,14 +76,33 @@ const GamePage = () => {
       }
     };
 
-    checkActiveSession();
+    if (gameMode === "classroom" && userRole === "student") {
+      // Check immediately
+      checkActiveSession();
+      
+      // Then check every 3 seconds for new sessions
+      checkInterval = setInterval(checkActiveSession, 3000);
+    }
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
   }, [gameMode, classroomId, userRole, isInLiveSession]);
 
-  // Listen to live session updates
+  // Listen to live session updates for real-time sync
   useEffect(() => {
-    if (liveSession?.id) {
+    if (liveSession?.id && isInLiveSession) {
+      console.log("Setting up live session listener for:", liveSession.id);
+      
       const unsubscribe = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
+        console.log("Live session updated:", updatedSession);
         setLiveSession(updatedSession);
+        
+        // Sync scene with teacher's current scene
+        if (updatedSession.currentSceneId && gameState.currentScene?.id !== updatedSession.currentSceneId) {
+          console.log("Syncing to teacher's scene:", updatedSession.currentSceneId);
+          setCurrentScene(updatedSession.currentSceneId);
+        }
         
         // If session ended, clean up
         if (!updatedSession.isActive) {
@@ -93,15 +117,21 @@ const GamePage = () => {
 
       return unsubscribe;
     }
-  }, [liveSession?.id, toast]);
+  }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, toast]);
 
   const handleJoinLiveSession = async () => {
     if (!liveSession || !currentUser || !userProfile) return;
 
     try {
+      console.log("Joining live session:", liveSession.id);
       await joinLiveSession(liveSession.id!, currentUser.uid, userProfile.displayName || 'Student');
       setIsInLiveSession(true);
       setShowJoinModal(false);
+      
+      // Sync to the current scene of the session
+      if (liveSession.currentSceneId) {
+        setCurrentScene(liveSession.currentSceneId);
+      }
       
       toast({
         title: "Joined Live Session",
@@ -125,6 +155,7 @@ const GamePage = () => {
   const handleLiveChoice = async (choiceId: string) => {
     if (liveSession?.id && currentUser) {
       try {
+        console.log("Submitting live choice:", choiceId);
         await submitLiveChoice(liveSession.id, currentUser.uid, choiceId);
         toast({
           title: "Choice Submitted",
@@ -144,9 +175,10 @@ const GamePage = () => {
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id) {
       try {
+        console.log("Advancing live session to scene:", nextSceneId);
         await advanceLiveSession(liveSession.id, nextSceneId);
         // Also advance the local game state
-        makeChoice('advance'); // This will be handled by the game context
+        makeChoice('advance');
       } catch (error) {
         console.error("Error advancing scene:", error);
       }
@@ -198,6 +230,16 @@ const GamePage = () => {
   };
   
   const toggleGameMode = () => {
+    // Prevent mode switching during live session
+    if (isInLiveSession) {
+      toast({
+        title: "Mode Locked",
+        description: "You cannot change modes during a live session. Exit the session first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (gameMode === "classroom") {
       setGameMode("individual");
       toast({
@@ -262,6 +304,7 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
                 onClick={toggleMirrorMoments}
+                disabled={isInLiveSession}
               >
                 {mirrorMomentsEnabled ? (
                   <ToggleRight className="h-4 w-4 text-indigo-300" />
@@ -276,8 +319,9 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
                 onClick={toggleGameMode}
-                disabled={!classroomId && gameMode === "individual"}
+                disabled={(!classroomId && gameMode === "individual") || isInLiveSession}
               >
+                {isInLiveSession && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
                 {gameMode === "classroom" ? (
                   <>
                     <Users className="h-4 w-4 text-indigo-300" />
@@ -317,6 +361,13 @@ const GamePage = () => {
         />
       ) : showMirrorMoment ? (
         <MirrorMoment />
+      ) : isInLiveSession ? (
+        <SceneDisplay 
+          scene={gameState.currentScene} 
+          onChoiceMade={handleChoiceMade}
+          isLiveSession={true}
+          liveSession={liveSession}
+        />
       ) : gameMode === "classroom" && !isInLiveSession ? (
         <EnhancedClassroomVoting scene={gameState.currentScene} />
       ) : (

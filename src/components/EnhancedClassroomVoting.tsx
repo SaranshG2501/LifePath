@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Users, BarChart, ArrowRight, Clock, CheckCircle } from 'lucide-react';
+import { Users, BarChart, ArrowRight, Clock, CheckCircle, Wifi } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { Scene, Choice } from '@/types/game';
-import { recordStudentVote, getScenarioVotes, onVotesUpdated } from '@/lib/firebase';
+import { recordStudentVote, getScenarioVotes, onVotesUpdated, getActiveSession, onLiveSessionUpdated, submitLiveChoice } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 
 interface EnhancedClassroomVotingProps {
@@ -28,14 +28,56 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [liveSession, setLiveSession] = useState<any>(null);
   
-  // Set up real-time listeners for votes
+  // Check for active live session
+  useEffect(() => {
+    const checkLiveSession = async () => {
+      if (!classroomId) return;
+      
+      try {
+        const activeSession = await getActiveSession(classroomId);
+        if (activeSession) {
+          setLiveSession(activeSession);
+          console.log("Found active live session:", activeSession);
+        }
+      } catch (error) {
+        console.error("Error checking live session:", error);
+      }
+    };
+    
+    checkLiveSession();
+  }, [classroomId]);
+  
+  // Set up real-time listeners for votes (legacy) and live session updates
   useEffect(() => {
     if (!classroomId) return;
     
-    const unsubscribe = onVotesUpdated(
-      classroomId,
-      (updatedVotes) => {
+    let unsubscribeVotes: (() => void) | undefined;
+    let unsubscribeLiveSession: (() => void) | undefined;
+    
+    if (liveSession?.id) {
+      // Use live session real-time updates
+      unsubscribeLiveSession = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
+        setLiveSession(updatedSession);
+        
+        // Convert live session choices to votes format
+        const liveVotes = Object.entries(updatedSession.currentChoices || {}).map(([studentId, choiceId]) => ({
+          studentId,
+          choiceId,
+          timestamp: new Date()
+        }));
+        setVotes(liveVotes);
+        
+        // Check if current user has voted
+        if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
+          setHasVoted(true);
+          setSelectedChoice(updatedSession.currentChoices[currentUser.uid]);
+        }
+      });
+    } else {
+      // Use legacy voting system
+      unsubscribeVotes = onVotesUpdated(classroomId, (updatedVotes) => {
         setVotes(updatedVotes);
         
         // Check if current user has voted
@@ -46,11 +88,14 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
             setSelectedChoice(userVote.choiceId);
           }
         }
-      }
-    );
+      });
+    }
     
-    return () => unsubscribe();
-  }, [classroomId, currentUser]);
+    return () => {
+      if (unsubscribeVotes) unsubscribeVotes();
+      if (unsubscribeLiveSession) unsubscribeLiveSession();
+    };
+  }, [classroomId, currentUser, liveSession?.id]);
 
   const totalVotes = votes.length;
   
@@ -70,11 +115,20 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
       
       try {
         if (currentUser && classroomId) {
-          await recordStudentVote(classroomId, currentUser.uid, choiceId);
+          if (liveSession?.id) {
+            // Submit to live session
+            console.log("Submitting vote to live session:", choiceId);
+            await submitLiveChoice(liveSession.id, currentUser.uid, choiceId);
+          } else {
+            // Submit to legacy voting system
+            console.log("Submitting vote to legacy system:", choiceId);
+            await recordStudentVote(classroomId, currentUser.uid, choiceId);
+          }
           setHasVoted(true);
         }
       } catch (error) {
         console.error('Error recording vote:', error);
+        setSelectedChoice(null);
       } finally {
         setIsSubmitting(false);
       }
@@ -108,6 +162,12 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         <div className="flex items-center justify-center gap-2 mb-2">
           <Users className="h-5 w-5 text-primary" />
           <CardTitle className="text-xl text-white">Classroom Decision</CardTitle>
+          {liveSession && (
+            <Badge className="bg-green-500/20 text-green-300 border-0">
+              <Wifi className="h-3 w-3 mr-1" />
+              Live
+            </Badge>
+          )}
         </div>
         <CardDescription className="text-center text-white/80">
           {userRole === 'teacher' 
@@ -123,6 +183,11 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
           <div className="flex items-center gap-2">
             <BarChart className="h-5 w-5 text-primary" />
             <span className="text-white font-medium">Votes: {totalVotes}</span>
+            {liveSession && (
+              <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
+                Scene: {liveSession.currentSceneId}
+              </Badge>
+            )}
           </div>
           
           {userRole === 'teacher' && (

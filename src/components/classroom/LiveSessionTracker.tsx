@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, BarChart3, CheckCircle, Loader2 } from 'lucide-react';
+import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
 
 interface LiveSessionTrackerProps {
@@ -22,11 +22,16 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 }) => {
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
   const [choiceStats, setChoiceStats] = useState<Record<string, number>>({});
+  const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
     if (!session.id) return;
 
-    const unsubscribeParticipants = onSessionParticipantsUpdated(session.id, setParticipants);
+    console.log("Setting up participants listener for session:", session.id);
+    const unsubscribeParticipants = onSessionParticipantsUpdated(session.id, (updatedParticipants) => {
+      console.log("Participants updated:", updatedParticipants);
+      setParticipants(updatedParticipants);
+    });
     
     return () => {
       unsubscribeParticipants();
@@ -34,17 +39,24 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   }, [session.id]);
 
   useEffect(() => {
-    // Calculate choice statistics
+    // Calculate choice statistics from live session choices
+    console.log("Calculating choice stats from:", session.currentChoices);
     const stats: Record<string, number> = {};
-    Object.values(session.currentChoices || {}).forEach(choice => {
-      stats[choice] = (stats[choice] || 0) + 1;
-    });
+    if (session.currentChoices) {
+      Object.values(session.currentChoices).forEach(choice => {
+        stats[choice] = (stats[choice] || 0) + 1;
+      });
+    }
     setChoiceStats(stats);
   }, [session.currentChoices]);
 
   const totalVotes = Object.values(choiceStats).reduce((sum, count) => sum + count, 0);
   const participantCount = participants.length;
   const responseRate = participantCount > 0 ? (totalVotes / participantCount) * 100 : 0;
+
+  const getParticipantChoice = (participantId: string) => {
+    return session.currentChoices?.[participantId];
+  };
 
   return (
     <Card className="bg-black/30 border-blue-500/20">
@@ -56,21 +68,32 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                 <div className="absolute h-3 w-3 rounded-full bg-green-400 animate-ping"></div>
                 <div className="relative h-3 w-3 rounded-full bg-green-400"></div>
               </div>
-              Live Session
+              Live Session Active
             </CardTitle>
             <CardDescription className="text-white/70">
-              {session.scenarioTitle}
+              {session.scenarioTitle} - Scene: {session.currentSceneId}
             </CardDescription>
           </div>
           {isTeacher && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={onEndSession}
-              className="border-red-500/20 text-red-400 hover:bg-red-500/10"
-            >
-              End Session
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowResults(!showResults)}
+                className="border-blue-500/20 text-blue-400 hover:bg-blue-500/10"
+              >
+                {showResults ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showResults ? 'Hide' : 'Show'} Results
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onEndSession}
+                className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+              >
+                End Session
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -102,7 +125,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
           </div>
         </div>
 
-        {Object.keys(choiceStats).length > 0 && (
+        {showResults && Object.keys(choiceStats).length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-white">Current Voting Results:</h4>
             {Object.entries(choiceStats).map(([choiceId, count]) => (
@@ -118,9 +141,9 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-white">Active Participants:</h4>
-          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-            {participants.map((participant) => {
-              const hasVoted = session.currentChoices?.[participant.studentId];
+          <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+            {participants.length > 0 ? participants.map((participant) => {
+              const hasVoted = getParticipantChoice(participant.studentId);
               return (
                 <div key={participant.studentId} className="flex items-center gap-2 bg-black/20 rounded p-2">
                   <Avatar className="h-6 w-6">
@@ -128,15 +151,24 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                       {participant.studentName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-white/80 text-sm truncate">{participant.studentName}</span>
+                  <span className="text-white/80 text-sm truncate flex-1">{participant.studentName}</span>
+                  {showResults && hasVoted && (
+                    <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                      Choice {hasVoted}
+                    </Badge>
+                  )}
                   {hasVoted ? (
-                    <CheckCircle className="h-4 w-4 text-green-400 ml-auto" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                   ) : (
-                    <Loader2 className="h-4 w-4 text-orange-400 animate-spin ml-auto" />
+                    <Loader2 className="h-4 w-4 text-orange-400 animate-spin" />
                   )}
                 </div>
               );
-            })}
+            }) : (
+              <div className="text-white/60 text-sm text-center py-2">
+                Waiting for students to join...
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
