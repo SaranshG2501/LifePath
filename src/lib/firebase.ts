@@ -150,6 +150,8 @@ export const createLiveSession = async (
   initialSceneId: string = "start"
 ) => {
   try {
+    console.log("Creating live session for classroom:", classroomId);
+    
     // Get teacher info
     const teacherDoc = await getDoc(doc(db, 'users', teacherId));
     const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
@@ -170,6 +172,7 @@ export const createLiveSession = async (
     };
 
     const docRef = await addDoc(collection(db, 'liveSessions'), sessionData);
+    console.log("Live session created with ID:", docRef.id);
     
     // Update classroom with active session
     await updateDoc(doc(db, 'classrooms', classroomId), {
@@ -185,12 +188,15 @@ export const createLiveSession = async (
       const classroomData = classroomDoc.data() as Classroom;
       const students = classroomData.students || [];
       
+      console.log("Creating notifications for", students.length, "students");
+      
       // Create notifications for each student
       const notificationPromises = students.map(student => 
         setDoc(doc(db, 'notifications', `${docRef.id}_${student.id}`), {
           type: 'live_session_started',
           sessionId: docRef.id,
           classroomId,
+          classroomName: classroomData.name,
           teacherName,
           scenarioTitle,
           studentId: student.id,
@@ -200,6 +206,7 @@ export const createLiveSession = async (
       );
       
       await Promise.all(notificationPromises);
+      console.log("Notifications created successfully");
     }
 
     return { id: docRef.id, ...sessionData };
@@ -225,6 +232,10 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     const sessionData = sessionDoc.data() as LiveSession;
     console.log("Session found:", sessionData);
     
+    if (!sessionData.isActive) {
+      throw new Error("Session is no longer active");
+    }
+    
     // Add student to participants if not already present
     if (!sessionData.participants.includes(studentId)) {
       await updateDoc(sessionRef, {
@@ -248,9 +259,13 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     console.log("Created participant record");
 
     // Mark notification as read
-    await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
-      read: true
-    });
+    try {
+      await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
+        read: true
+      });
+    } catch (notificationError) {
+      console.log("Notification already processed or doesn't exist");
+    }
 
     return { id: sessionId, ...sessionData };
   } catch (error) {
@@ -262,6 +277,8 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
 // Submit choice in live session
 export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string) => {
   try {
+    console.log("Submitting live choice:", { sessionId, studentId, choiceId });
+    
     const sessionRef = doc(db, 'liveSessions', sessionId);
     const sessionDoc = await getDoc(sessionRef);
     
@@ -269,7 +286,8 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
       throw new Error("Session not found");
     }
 
-    const currentChoices = sessionDoc.data().currentChoices || {};
+    const sessionData = sessionDoc.data();
+    const currentChoices = sessionData.currentChoices || {};
     currentChoices[studentId] = choiceId;
 
     await updateDoc(sessionRef, {
@@ -283,6 +301,7 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
       lastActivity: Timestamp.now()
     });
 
+    console.log("Live choice submitted successfully");
   } catch (error) {
     console.error("Error submitting live choice:", error);
     throw error;
@@ -292,12 +311,16 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
 // Advance session to next scene
 export const advanceLiveSession = async (sessionId: string, nextSceneId: string) => {
   try {
+    console.log("Advancing live session to scene:", nextSceneId);
+    
     await updateDoc(doc(db, 'liveSessions', sessionId), {
       currentSceneId: nextSceneId,
       currentChoices: {}, // Reset choices for new scene
       teacherChoiceRevealed: false,
       lastUpdated: Timestamp.now()
     });
+    
+    console.log("Live session advanced successfully");
   } catch (error) {
     console.error("Error advancing live session:", error);
     throw error;
@@ -307,6 +330,8 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string)
 // End live session
 export const endLiveSession = async (sessionId: string, classroomId: string) => {
   try {
+    console.log("Ending live session:", sessionId);
+    
     await updateDoc(doc(db, 'liveSessions', sessionId), {
       isActive: false,
       endedAt: Timestamp.now(),
@@ -340,6 +365,8 @@ export const endLiveSession = async (sessionId: string, classroomId: string) => 
     const notificationsSnapshot = await getDocs(notificationsQuery);
     const deletePromises = notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
+    
+    console.log("Live session ended successfully");
   } catch (error) {
     console.error("Error ending live session:", error);
     throw error;
@@ -617,9 +644,11 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Remove student from classroom
+// Remove student from classroom - FIXED VERSION
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
+    console.log("Removing student", studentId, "from classroom", classroomId);
+    
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
     
@@ -635,6 +664,8 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       students: updatedStudents
     });
     
+    console.log("Updated classroom students list");
+    
     // Remove classroom from student's profile
     const userRef = doc(db, 'users', studentId);
     const userDoc = await getDoc(userRef);
@@ -647,6 +678,8 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       await updateDoc(userRef, {
         classrooms: updatedClassrooms
       });
+      
+      console.log("Updated student's classroom list");
     }
     
     return true;
@@ -656,7 +689,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   }
 };
 
-// Join classroom function with better multiple classroom support
+// Join classroom function - IMPROVED VERSION
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);

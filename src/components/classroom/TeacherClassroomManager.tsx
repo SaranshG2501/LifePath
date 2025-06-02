@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
@@ -93,6 +92,8 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
     try {
+      console.log("Attempting to remove student:", studentId, "from classroom:", currentClassroom.id);
+      
       await removeStudentFromClassroom(currentClassroom.id, studentId);
       
       toast({
@@ -101,7 +102,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       });
       
       // Refresh the classroom data
-      onRefresh();
+      await onRefresh();
     } catch (error) {
       console.error("Error removing student:", error);
       toast({
