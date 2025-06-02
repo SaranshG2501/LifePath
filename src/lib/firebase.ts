@@ -447,11 +447,16 @@ export const createUserProfile = async (uid: string, userData: UserProfileData) 
     history: [],
     metrics: initialMetrics,
     classrooms: [],
-    createdAt: Timestamp.now(),
+    createdAt: Timestamp.now()
+  };
+  
+  // Merge the default data with provided user data
+  const mergedData = {
+    ...defaultData,
     ...userData
   };
   
-  return setDoc(doc(db, 'users', uid), defaultData);
+  return setDoc(doc(db, 'users', uid), mergedData);
 };
 
 export const getUserProfile = async (uid: string) => {
@@ -612,7 +617,7 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Remove student from classroom - FIXED TO UPDATE BOTH SIDES
+// Remove student from classroom
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
     const classroomRef = doc(db, 'classrooms', classroomId);
@@ -651,7 +656,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   }
 };
 
-// Join classroom function - FIXED TO SUPPORT MULTIPLE CLASSROOMS
+// Join classroom function with better multiple classroom support
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
@@ -704,9 +709,8 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
     // Only add classroom ID if it's not already in the user's classrooms
     if (!userClassrooms.includes(classroomId)) {
-      await updateDoc(userRef, {
-        classrooms: arrayUnion(classroomId)
-      });
+      const updatedClassrooms = [...userClassrooms, classroomId];
+      await updateDoc(userRef, { classrooms: updatedClassrooms });
       console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
     }
     
