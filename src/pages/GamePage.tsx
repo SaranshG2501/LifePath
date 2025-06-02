@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '@/context/GameContext';
@@ -9,6 +10,7 @@ import MirrorMoment from '@/components/MirrorMoment';
 import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import LiveSessionModal from '@/components/classroom/LiveSessionModal';
 import LiveSessionTracker from '@/components/classroom/LiveSessionTracker';
+import NotificationModal from '@/components/classroom/NotificationModal';
 import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -21,7 +23,8 @@ import {
   submitLiveChoice,
   advanceLiveSession,
   endLiveSession,
-  getActiveSession
+  getActiveSession,
+  onNotificationsUpdated
 } from '@/lib/firebase';
 
 const GamePage = () => {
@@ -47,6 +50,8 @@ const GamePage = () => {
   const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isInLiveSession, setIsInLiveSession] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [pendingSession, setPendingSession] = useState<any>(null);
 
   useEffect(() => {
     // If no active game, redirect to home
@@ -54,6 +59,22 @@ const GamePage = () => {
       navigate('/');
     }
   }, [isGameActive, navigate]);
+
+  // Listen for live session notifications
+  useEffect(() => {
+    if (!currentUser || userRole !== 'student') return;
+
+    const unsubscribe = onNotificationsUpdated(currentUser.uid, (notifications) => {
+      const liveSessionNotification = notifications.find(n => n.type === 'live_session_started');
+      
+      if (liveSessionNotification && !isInLiveSession) {
+        setPendingSession(liveSessionNotification);
+        setShowNotification(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, userRole, isInLiveSession]);
   
   // Check for active live sessions when in classroom mode (for students)
   useEffect(() => {
@@ -116,6 +137,47 @@ const GamePage = () => {
       return unsubscribe;
     }
   }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, toast]);
+
+  const handleJoinFromNotification = async () => {
+    if (!pendingSession || !currentUser || !userProfile) return;
+
+    try {
+      console.log("Joining live session from notification:", pendingSession.sessionId);
+      await joinLiveSession(pendingSession.sessionId, currentUser.uid, userProfile.displayName || 'Student');
+      
+      // Get the session data
+      const sessionData = await getActiveSession(pendingSession.classroomId);
+      if (sessionData) {
+        setLiveSession(sessionData);
+        setIsInLiveSession(true);
+        
+        // Sync to the current scene of the session
+        if (sessionData.currentSceneId) {
+          setCurrentScene(sessionData.currentSceneId);
+        }
+        
+        toast({
+          title: "Joined Live Session",
+          description: `You're now part of the live session for "${sessionData.scenarioTitle}"`,
+        });
+      }
+      
+      setShowNotification(false);
+      setPendingSession(null);
+    } catch (error) {
+      console.error("Error joining live session from notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to join the live session. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDismissNotification = () => {
+    setShowNotification(false);
+    setPendingSession(null);
+  };
 
   const handleJoinLiveSession = async () => {
     if (!liveSession || !currentUser || !userProfile) return;
@@ -237,6 +299,16 @@ const GamePage = () => {
       });
       return;
     }
+
+    // Prevent teachers from switching to individual mode during active live session
+    if (userRole === 'teacher' && liveSession && liveSession.isActive) {
+      toast({
+        title: "Mode Locked",
+        description: "You cannot switch to individual mode while running a live session. End the session first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (gameMode === "classroom") {
       setGameMode("individual");
@@ -317,9 +389,9 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
                 onClick={toggleGameMode}
-                disabled={(!classroomId && gameMode === "individual") || isInLiveSession}
+                disabled={(!classroomId && gameMode === "individual") || isInLiveSession || (userRole === 'teacher' && liveSession?.isActive)}
               >
-                {isInLiveSession && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
+                {(isInLiveSession || (userRole === 'teacher' && liveSession?.isActive)) && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
                 {gameMode === "classroom" ? (
                   <>
                     <Users className="h-4 w-4 text-indigo-300" />
@@ -384,6 +456,16 @@ const GamePage = () => {
         teacherName={userProfile?.displayName || 'Teacher'}
         scenarioTitle={liveSession?.scenarioTitle || ''}
         participantCount={liveSession?.participants.length || 0}
+      />
+
+      {/* Session Notification Modal */}
+      <NotificationModal
+        isOpen={showNotification}
+        onClose={handleDismissNotification}
+        onJoin={handleJoinFromNotification}
+        onDismiss={handleDismissNotification}
+        teacherName={pendingSession?.teacherName || 'Teacher'}
+        scenarioTitle={pendingSession?.scenarioTitle || ''}
       />
     </div>
   );

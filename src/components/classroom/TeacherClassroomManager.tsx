@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -91,13 +91,25 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     }
   };
   
-  const handleRemoveStudent = (studentId: string) => {
-    // In a real app, this would remove a student from the classroom
-    toast({
-      title: "Student removed",
-      description: "The student has been removed from your classroom.",
-    });
-    onRefresh();
+  const handleRemoveStudent = async (studentId: string, studentName: string) => {
+    try {
+      await removeStudentFromClassroom(currentClassroom.id, studentId);
+      
+      toast({
+        title: "Student removed",
+        description: `${studentName} has been removed from your classroom.`,
+      });
+      
+      // Refresh the classroom data
+      onRefresh();
+    } catch (error) {
+      console.error("Error removing student:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove student. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleSendMessage = () => {
@@ -249,7 +261,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => handleRemoveStudent(student.id)}
+                          onClick={() => handleRemoveStudent(student.id, student.name)}
                           className="bg-red-500 hover:bg-red-600 text-white"
                         >
                           Remove

@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -29,6 +30,7 @@ import {
   DocumentData,
   Timestamp,
   arrayUnion,
+  arrayRemove,
   FieldValue
 } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
@@ -70,6 +72,7 @@ export interface Classroom {
   name: string;
   description?: string;
   teacherId: string;
+  teacherName?: string;
   students: ClassroomStudent[];
   activeScenario?: string | null;
   currentScene?: string | null;
@@ -116,6 +119,7 @@ export interface LiveSession {
   id?: string;
   classroomId: string;
   teacherId: string;
+  teacherName?: string;
   scenarioId: string;
   scenarioTitle: string;
   currentSceneId: string;
@@ -146,9 +150,14 @@ export const createLiveSession = async (
   initialSceneId: string = "start"
 ) => {
   try {
+    // Get teacher info
+    const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+    const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+
     const sessionData: LiveSession = {
       classroomId,
       teacherId,
+      teacherName,
       scenarioId,
       scenarioTitle,
       currentSceneId: initialSceneId,
@@ -169,6 +178,29 @@ export const createLiveSession = async (
       currentScene: initialSceneId,
       lastActivity: Timestamp.now()
     });
+
+    // Create session notification for all students in the classroom
+    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+    if (classroomDoc.exists()) {
+      const classroomData = classroomDoc.data() as Classroom;
+      const students = classroomData.students || [];
+      
+      // Create notifications for each student
+      const notificationPromises = students.map(student => 
+        setDoc(doc(db, 'notifications', `${docRef.id}_${student.id}`), {
+          type: 'live_session_started',
+          sessionId: docRef.id,
+          classroomId,
+          teacherName,
+          scenarioTitle,
+          studentId: student.id,
+          createdAt: Timestamp.now(),
+          read: false
+        })
+      );
+      
+      await Promise.all(notificationPromises);
+    }
 
     return { id: docRef.id, ...sessionData };
   } catch (error) {
@@ -214,6 +246,11 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
 
     await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
     console.log("Created participant record");
+
+    // Mark notification as read
+    await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
+      read: true
+    });
 
     return { id: sessionId, ...sessionData };
   } catch (error) {
@@ -294,6 +331,15 @@ export const endLiveSession = async (sessionId: string, classroomId: string) => 
       updateDoc(doc.ref, { isActive: false })
     );
     await Promise.all(updatePromises);
+
+    // Clean up notifications
+    const notificationsQuery = query(
+      collection(db, 'notifications'),
+      where('sessionId', '==', sessionId)
+    );
+    const notificationsSnapshot = await getDocs(notificationsQuery);
+    const deletePromises = notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
   } catch (error) {
     console.error("Error ending live session:", error);
     throw error;
@@ -323,8 +369,41 @@ export const getActiveSession = async (classroomId: string) => {
   }
 };
 
+// Get student notifications
+export const getStudentNotifications = async (studentId: string) => {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('studentId', '==', studentId),
+      where('read', '==', false),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error getting notifications:", error);
+    return [];
+  }
+};
+
+// Listen to notifications
+export const onNotificationsUpdated = (studentId: string, callback: (notifications: any[]) => void) => {
+  const q = query(
+    collection(db, 'notifications'),
+    where('studentId', '==', studentId),
+    where('read', '==', false),
+    orderBy('createdAt', 'desc')
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(notifications);
+  });
+};
+
 // Helper function to convert Timestamp to Date
-const convertTimestampToDate = (timestamp: Timestamp | Date): Date => {
+export const convertTimestampToDate = (timestamp: Timestamp | Date): Date => {
   if (timestamp instanceof Date) {
     return timestamp;
   }
@@ -485,6 +564,10 @@ export const saveScenarioHistory = async (
 // Classroom functions
 export const createClassroom = async (teacherId: string, name: string, description?: string) => {
   try {
+    // Get teacher info
+    const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+    const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+
     // Generate a unique class code
     const classCode = generateClassCode();
     
@@ -493,6 +576,7 @@ export const createClassroom = async (teacherId: string, name: string, descripti
       name,
       description: description || "",
       teacherId,
+      teacherName,
       students: [],
       activeScenario: null,
       currentScene: null,
@@ -507,7 +591,6 @@ export const createClassroom = async (teacherId: string, name: string, descripti
     
     // Update teacher's profile to include the new classroom
     const teacherRef = doc(db, 'users', teacherId);
-    const teacherDoc = await getDoc(teacherRef);
     
     if (teacherDoc.exists()) {
       const userData = teacherDoc.data();
@@ -534,7 +617,46 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Completely rewritten joinClassroom function with a more reliable approach
+// Remove student from classroom
+export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
+  try {
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    const classroomDoc = await getDoc(classroomRef);
+    
+    if (!classroomDoc.exists()) {
+      throw new Error("Classroom not found");
+    }
+    
+    const classroomData = classroomDoc.data() as Classroom;
+    const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
+    
+    // Update classroom
+    await updateDoc(classroomRef, {
+      students: updatedStudents
+    });
+    
+    // Remove classroom from student's profile
+    const userRef = doc(db, 'users', studentId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userClassrooms = userData.classrooms || [];
+      const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
+      
+      await updateDoc(userRef, {
+        classrooms: updatedClassrooms
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error removing student from classroom:", error);
+    throw error;
+  }
+};
+
+// Join classroom function with better multiple classroom support
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
@@ -785,4 +907,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp, analytics, convertTimestampToDate };
+export { auth, db, Timestamp, analytics };
