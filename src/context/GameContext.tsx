@@ -7,16 +7,13 @@ import {
   updateUserProfile, 
   getUserClassrooms, 
   saveScenarioHistory, 
-  ScenarioChoice,
-  LiveSession
+  ScenarioChoice 
 } from "@/lib/firebase";
 import { Timestamp } from "firebase/firestore";
 
 type GameContextType = {
   gameState: GameState;
   scenarios: Scenario[];
-  scenarioId: string | null;
-  currentScene: string | null;
   startScenario: (id: string) => void;
   makeChoice: (choiceId: string) => void;
   resetGame: () => void;
@@ -38,11 +35,6 @@ type GameContextType = {
   mirrorMomentsEnabled: boolean;
   hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
-  setScene: (scene: Scene) => void;
-  isLiveSession: boolean;
-  setIsLiveSession: (isLive: boolean) => void;
-  liveSessionData: LiveSession | null;
-  setLiveSessionData: (data: LiveSession | null) => void;
 };
 
 const initialMetrics: Metrics = {
@@ -75,11 +67,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
   const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
-  const [scenarioId, setScenarioId] = useState<string | null>(null);
-  const [currentScene, setCurrentScene] = useState<string | null>(null);
-  const [isLiveSession, setIsLiveSession] = useState<boolean>(false);
-  const [liveSessionData, setLiveSessionData] = useState<LiveSession | null>(null);
-  
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -127,7 +114,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   }, [hasJoinedClassroom, gameMode, userRole, classroomId, toast]);
 
   const startScenario = (id: string) => {
-    setScenarioId(id);
     const scenario = scenarios.find((s) => s.id === id);
     
     if (!scenario) {
@@ -185,7 +171,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       metrics: startingMetrics,
       history: []
     });
-    setCurrentScene("start");
     setIsGameActive(true);
     setShowMirrorMoment(false);
     setRevealVotes(false);
@@ -392,15 +377,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const setScene = (scene: Scene) => {
-    setGameState(prev => ({
-      ...prev,
-      currentScene: scene
-    }));
-    setCurrentScene(scene.id);
-  };
-
-  const handleSetCurrentScene = (sceneId: string) => {
+  // Add setCurrentScene function
+  const setCurrentScene = (sceneId: string) => {
     if (!gameState.currentScenario) return;
     
     const scene = gameState.currentScenario.scenes.find(s => s.id === sceneId);
@@ -409,7 +387,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         ...prev,
         currentScene: scene
       }));
-      setCurrentScene(sceneId);
     }
   };
 
@@ -418,8 +395,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         gameState,
         scenarios,
-        scenarioId,
-        currentScene,
         startScenario,
         makeChoice,
         resetGame,
@@ -440,12 +415,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         toggleMirrorMoments,
         mirrorMomentsEnabled,
         hasJoinedClassroom,
-        setCurrentScene: handleSetCurrentScene,
-        setScene,
-        isLiveSession,
-        setIsLiveSession,
-        liveSessionData,
-        setLiveSessionData
+        setCurrentScene
       }}
     >
       {children}

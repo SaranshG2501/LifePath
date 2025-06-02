@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -644,9 +645,9 @@ export const getClassroom = async (classroomId: string) => {
 };
 
 // Remove student from classroom - FIXED VERSION
-export const removeStudentFromClassroom = async (classroomId: string, studentId: string): Promise<void> => {
+export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
-    console.log("Removing student from classroom:", { classroomId, studentId });
+    console.log("Removing student", studentId, "from classroom", classroomId);
     
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
@@ -655,34 +656,33 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       throw new Error("Classroom not found");
     }
     
-    const classroomData = classroomDoc.data();
-    const currentStudents = classroomData.students || [];
+    const classroomData = classroomDoc.data() as Classroom;
+    const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
     
-    // Filter out the student to be removed
-    const updatedStudents = currentStudents.filter((student: any) => student.id !== studentId);
-    
-    // Update the classroom with the new students list
+    // Update classroom
     await updateDoc(classroomRef, {
-      students: updatedStudents,
-      updatedAt: Timestamp.now()
+      students: updatedStudents
     });
     
-    // Also remove classroom from student's profile
+    console.log("Updated classroom students list");
+    
+    // Remove classroom from student's profile
     const userRef = doc(db, 'users', studentId);
     const userDoc = await getDoc(userRef);
     
     if (userDoc.exists()) {
       const userData = userDoc.data();
-      const currentClassrooms = userData.classrooms || [];
-      const updatedClassrooms = currentClassrooms.filter((id: string) => id !== classroomId);
+      const userClassrooms = userData.classrooms || [];
+      const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
       
       await updateDoc(userRef, {
-        classrooms: updatedClassrooms,
-        updatedAt: Timestamp.now()
+        classrooms: updatedClassrooms
       });
+      
+      console.log("Updated student's classroom list");
     }
     
-    console.log("Student removed successfully from classroom");
+    return true;
   } catch (error) {
     console.error("Error removing student from classroom:", error);
     throw error;
