@@ -142,7 +142,6 @@ const StudentClassroomView = () => {
 
     try {
       setJoining(true);
-      console.log("Attempting to join classroom with code:", joinCode.trim().toUpperCase());
       
       // Find classroom by code
       const classroom = await getClassroomByCode(joinCode.trim().toUpperCase());
@@ -156,8 +155,6 @@ const StudentClassroomView = () => {
         return;
       }
 
-      console.log("Found classroom:", classroom);
-
       // Check if already joined
       const isAlreadyJoined = classrooms.some(c => c.id === classroom.id);
       if (isAlreadyJoined) {
@@ -170,7 +167,6 @@ const StudentClassroomView = () => {
       }
 
       // Join the classroom
-      console.log("Joining classroom:", classroom.id);
       const joinedClassroom = await joinClassroom(
         classroom.id!,
         currentUser.uid,
