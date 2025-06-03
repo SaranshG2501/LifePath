@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -141,7 +140,20 @@ export interface SessionParticipant {
   lastActivity?: Timestamp;
 }
 
-// Create a live classroom session
+// Session notification interface
+export interface SessionNotification {
+  id?: string;
+  type: 'live_session_started';
+  sessionId: string;
+  classroomId: string;
+  teacherName: string;
+  scenarioTitle: string;
+  studentId: string;
+  createdAt: Timestamp;
+  read: boolean;
+}
+
+// Create a live classroom session with enhanced notifications
 export const createLiveSession = async (
   classroomId: string,
   teacherId: string,
@@ -191,8 +203,8 @@ export const createLiveSession = async (
       console.log("Creating notifications for", students.length, "students");
       
       // Create notifications for each student
-      const notificationPromises = students.map(student => 
-        setDoc(doc(db, 'notifications', `${docRef.id}_${student.id}`), {
+      const notificationPromises = students.map(student => {
+        const notificationData: SessionNotification = {
           type: 'live_session_started',
           sessionId: docRef.id,
           classroomId,
@@ -201,8 +213,10 @@ export const createLiveSession = async (
           studentId: student.id,
           createdAt: Timestamp.now(),
           read: false
-        })
-      );
+        };
+        
+        return setDoc(doc(db, 'notifications', `${docRef.id}_${student.id}`), notificationData);
+      });
       
       await Promise.all(notificationPromises);
       console.log("Notifications created for all students");
@@ -215,7 +229,7 @@ export const createLiveSession = async (
   }
 };
 
-// Join a live session
+// Join a live session with better error handling
 export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
   try {
     console.log("Attempting to join session:", sessionId, "with student:", studentId);
@@ -401,8 +415,8 @@ export const getStudentNotifications = async (studentId: string) => {
   }
 };
 
-// Listen to notifications
-export const onNotificationsUpdated = (studentId: string, callback: (notifications: any[]) => void) => {
+// Listen to notifications with real-time updates
+export const onNotificationsUpdated = (studentId: string, callback: (notifications: SessionNotification[]) => void) => {
   const q = query(
     collection(db, 'notifications'),
     where('studentId', '==', studentId),
@@ -411,7 +425,7 @@ export const onNotificationsUpdated = (studentId: string, callback: (notificatio
   );
   
   return onSnapshot(q, (snapshot) => {
-    const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SessionNotification[];
     callback(notifications);
   });
 };

@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Radio, Users, Clock } from 'lucide-react';
+import { Radio, Users, Clock, Loader2 } from 'lucide-react';
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface NotificationModalProps {
   teacherName: string;
   scenarioTitle: string;
   classroomName?: string;
+  isJoining?: boolean;
 }
 
 const NotificationModal: React.FC<NotificationModalProps> = ({
@@ -22,7 +23,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   onDismiss,
   teacherName,
   scenarioTitle,
-  classroomName
+  classroomName,
+  isJoining = false
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,7 +64,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             
             <div className="flex items-center justify-center gap-2 text-sm text-white/70">
               <Clock className="h-4 w-4" />
-              Join now to participate with your class
+              {isJoining ? "Connecting to session..." : "Join now to participate with your class"}
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -72,14 +74,23 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             variant="outline" 
             onClick={onDismiss}
             className="border-white/20 text-white hover:bg-white/10 flex-1"
+            disabled={isJoining}
           >
             Maybe Later
           </Button>
           <Button 
             onClick={onJoin}
             className="bg-green-500 hover:bg-green-600 text-white flex-1"
+            disabled={isJoining}
           >
-            Join Session
+            {isJoining ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Joining...
+              </>
+            ) : (
+              "Join Session"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -11,10 +11,11 @@ import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import LiveSessionModal from '@/components/classroom/LiveSessionModal';
 import LiveSessionTracker from '@/components/classroom/LiveSessionTracker';
 import NotificationModal from '@/components/classroom/NotificationModal';
-import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock } from 'lucide-react';
+import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock, Radio } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { 
   LiveSession, 
   SessionParticipant, 
@@ -24,7 +25,8 @@ import {
   advanceLiveSession,
   endLiveSession,
   getActiveSession,
-  onNotificationsUpdated
+  onNotificationsUpdated,
+  SessionNotification
 } from '@/lib/firebase';
 
 const GamePage = () => {
@@ -40,7 +42,8 @@ const GamePage = () => {
     classroomId,
     mirrorMomentsEnabled,
     toggleMirrorMoments,
-    setCurrentScene
+    setCurrentScene,
+    startScenario
   } = useGameContext();
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -51,7 +54,8 @@ const GamePage = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isInLiveSession, setIsInLiveSession] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
-  const [pendingSession, setPendingSession] = useState<any>(null);
+  const [pendingSession, setPendingSession] = useState<SessionNotification | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     // If no active game, redirect to home
@@ -60,14 +64,18 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Listen for live session notifications
+  // Listen for live session notifications with real-time updates
   useEffect(() => {
     if (!currentUser || userRole !== 'student') return;
 
+    console.log("Setting up notification listener for student:", currentUser.uid);
+    
     const unsubscribe = onNotificationsUpdated(currentUser.uid, (notifications) => {
+      console.log("Received notifications:", notifications);
       const liveSessionNotification = notifications.find(n => n.type === 'live_session_started');
       
       if (liveSessionNotification && !isInLiveSession) {
+        console.log("Found live session notification:", liveSessionNotification);
         setPendingSession(liveSessionNotification);
         setShowNotification(true);
       }
@@ -138,18 +146,27 @@ const GamePage = () => {
     }
   }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, toast]);
 
-  const handleJoinFromNotification = async () => {
+  // Auto-join from notification with seamless scenario loading
+  const handleJoinFromNotification = useCallback(async () => {
     if (!pendingSession || !currentUser || !userProfile) return;
 
+    setIsJoining(true);
     try {
       console.log("Joining live session from notification:", pendingSession.sessionId);
-      await joinLiveSession(pendingSession.sessionId, currentUser.uid, userProfile.displayName || 'Student');
       
-      // Get the session data
-      const sessionData = await getActiveSession(pendingSession.classroomId);
+      // Auto-switch to classroom mode
+      setGameMode("classroom");
+      
+      // Join the live session
+      const sessionData = await joinLiveSession(pendingSession.sessionId, currentUser.uid, userProfile.displayName || 'Student');
+      
       if (sessionData) {
         setLiveSession(sessionData);
         setIsInLiveSession(true);
+        
+        // Auto-load the scenario that the teacher is running
+        console.log("Auto-loading scenario:", sessionData.scenarioId);
+        startScenario(sessionData.scenarioId);
         
         // Sync to the current scene of the session
         if (sessionData.currentSceneId) {
@@ -157,8 +174,8 @@ const GamePage = () => {
         }
         
         toast({
-          title: "Joined Live Session",
-          description: `You're now part of the live session for "${sessionData.scenarioTitle}"`,
+          title: "🎯 Joined Live Session!",
+          description: `Connected to "${sessionData.scenarioTitle}" with ${sessionData.teacherName}`,
         });
       }
       
@@ -167,12 +184,14 @@ const GamePage = () => {
     } catch (error) {
       console.error("Error joining live session from notification:", error);
       toast({
-        title: "Error",
-        description: "Failed to join the live session. Please try again.",
+        title: "Connection Failed",
+        description: "Unable to join the live session. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsJoining(false);
     }
-  };
+  }, [pendingSession, currentUser, userProfile, setGameMode, startScenario, setCurrentScene, toast]);
 
   const handleDismissNotification = () => {
     setShowNotification(false);
@@ -182,11 +201,15 @@ const GamePage = () => {
   const handleJoinLiveSession = async () => {
     if (!liveSession || !currentUser || !userProfile) return;
 
+    setIsJoining(true);
     try {
       console.log("Joining live session:", liveSession.id);
       await joinLiveSession(liveSession.id!, currentUser.uid, userProfile.displayName || 'Student');
       setIsInLiveSession(true);
       setShowJoinModal(false);
+      
+      // Auto-load the scenario
+      startScenario(liveSession.scenarioId);
       
       // Sync to the current scene of the session
       if (liveSession.currentSceneId) {
@@ -194,16 +217,18 @@ const GamePage = () => {
       }
       
       toast({
-        title: "Joined Live Session",
-        description: `You're now part of the live session for "${liveSession.scenarioTitle}"`,
+        title: "🎯 Joined Live Session!",
+        description: `Connected to "${liveSession.scenarioTitle}" with ${liveSession.teacherName}`,
       });
     } catch (error) {
       console.error("Error joining live session:", error);
       toast({
-        title: "Error",
-        description: "Failed to join the live session. Please try again.",
+        title: "Connection Failed",
+        description: "Unable to join the live session. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -218,14 +243,14 @@ const GamePage = () => {
         console.log("Submitting live choice:", choiceId);
         await submitLiveChoice(liveSession.id, currentUser.uid, choiceId);
         toast({
-          title: "Choice Submitted",
-          description: "Your choice has been recorded. Waiting for other students...",
+          title: "✅ Choice Submitted",
+          description: "Your decision has been recorded. Waiting for classmates...",
         });
       } catch (error) {
         console.error("Error submitting live choice:", error);
         toast({
-          title: "Error",
-          description: "Failed to submit your choice. Please try again.",
+          title: "Submission Error",
+          description: "Failed to record your choice. Please try again.",
           variant: "destructive",
         });
       }
@@ -362,8 +387,11 @@ const GamePage = () => {
               {gameState.currentScenario.title}
               {isInLiveSession && (
                 <div className="flex items-center gap-1 ml-2">
-                  <Wifi className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-green-400">Live</span>
+                  <Wifi className="h-4 w-4 text-green-400 animate-pulse" />
+                  <Badge className="bg-green-500/20 text-green-300 border-0">
+                    <Radio className="h-3 w-3 mr-1" />
+                    Live
+                  </Badge>
                 </div>
               )}
             </h1>
@@ -453,12 +481,12 @@ const GamePage = () => {
         onClose={handleDeclineLiveSession}
         onJoin={handleJoinLiveSession}
         onDecline={handleDeclineLiveSession}
-        teacherName={userProfile?.displayName || 'Teacher'}
+        teacherName={liveSession?.teacherName || 'Teacher'}
         scenarioTitle={liveSession?.scenarioTitle || ''}
         participantCount={liveSession?.participants.length || 0}
       />
 
-      {/* Session Notification Modal */}
+      {/* Session Notification Modal with enhanced UI */}
       <NotificationModal
         isOpen={showNotification}
         onClose={handleDismissNotification}
