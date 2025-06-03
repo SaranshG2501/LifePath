@@ -30,7 +30,8 @@ import {
   Timestamp,
   arrayUnion,
   arrayRemove,
-  FieldValue
+  FieldValue,
+  runTransaction
 } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { Metrics } from '@/types/game';
@@ -113,7 +114,7 @@ export interface ScenarioChoice {
   metricChanges?: Record<string, number>;
 }
 
-// Live Session Management Functions
+// Enhanced Live Session with proper lifecycle
 export interface LiveSession {
   id?: string;
   classroomId: string;
@@ -122,11 +123,11 @@ export interface LiveSession {
   scenarioId: string;
   scenarioTitle: string;
   currentSceneId: string;
-  isActive: boolean;
+  status: 'active' | 'ended';
   startedAt: Timestamp;
+  endedAt?: Timestamp;
   participants: string[];
-  currentChoices?: Record<string, string>; // studentId -> choiceId
-  teacherChoiceRevealed?: boolean;
+  currentChoices?: Record<string, string>;
   lastUpdated?: Timestamp;
 }
 
@@ -140,7 +141,6 @@ export interface SessionParticipant {
   lastActivity?: Timestamp;
 }
 
-// Session notification interface
 export interface SessionNotification {
   id?: string;
   type: 'live_session_started';
@@ -153,7 +153,7 @@ export interface SessionNotification {
   read: boolean;
 }
 
-// Create a live classroom session with enhanced notifications
+// Enhanced session creation with atomic transaction
 export const createLiveSession = async (
   classroomId: string,
   teacherId: string,
@@ -162,101 +162,193 @@ export const createLiveSession = async (
   initialSceneId: string = "start"
 ) => {
   try {
-    console.log("Creating live session for classroom:", classroomId, "scenario:", scenarioId);
+    console.log("Creating live session for classroom:", classroomId);
     
-    // Get teacher info
-    const teacherDoc = await getDoc(doc(db, 'users', teacherId));
-    const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+    // Use transaction to ensure atomicity
+    const result = await runTransaction(db, async (transaction) => {
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const classroomDoc = await transaction.get(classroomRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      
+      // Check if there's already an active session
+      if (classroomData.activeSessionId) {
+        const existingSessionRef = doc(db, 'liveSessions', classroomData.activeSessionId);
+        const existingSessionDoc = await transaction.get(existingSessionRef);
+        
+        if (existingSessionDoc.exists()) {
+          const existingSession = existingSessionDoc.data() as LiveSession;
+          if (existingSession.status === 'active') {
+            throw new Error("Cannot start new session: another session is already active. End the current session first.");
+          }
+        }
+      }
+      
+      // Get teacher info
+      const teacherRef = doc(db, 'users', teacherId);
+      const teacherDoc = await transaction.get(teacherRef);
+      const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
 
-    const sessionData: LiveSession = {
-      classroomId,
-      teacherId,
-      teacherName,
-      scenarioId,
-      scenarioTitle,
-      currentSceneId: initialSceneId,
-      isActive: true,
-      startedAt: Timestamp.now(),
-      participants: [],
-      currentChoices: {},
-      teacherChoiceRevealed: false,
-      lastUpdated: Timestamp.now()
-    };
-
-    const docRef = await addDoc(collection(db, 'liveSessions'), sessionData);
-    console.log("Live session created with ID:", docRef.id);
-    
-    // Update classroom with active session
-    await updateDoc(doc(db, 'classrooms', classroomId), {
-      activeSessionId: docRef.id,
-      activeScenario: scenarioId,
-      currentScene: initialSceneId,
-      lastActivity: Timestamp.now()
+      // Create new session
+      const sessionRef = doc(collection(db, 'liveSessions'));
+      const sessionData: LiveSession = {
+        classroomId,
+        teacherId,
+        teacherName,
+        scenarioId,
+        scenarioTitle,
+        currentSceneId: initialSceneId,
+        status: 'active',
+        startedAt: Timestamp.now(),
+        participants: [],
+        currentChoices: {},
+        lastUpdated: Timestamp.now()
+      };
+      
+      transaction.set(sessionRef, sessionData);
+      
+      // Update classroom with new active session
+      transaction.update(classroomRef, {
+        activeSessionId: sessionRef.id,
+        activeScenario: scenarioId,
+        currentScene: initialSceneId,
+        lastActivity: Timestamp.now()
+      });
+      
+      return { sessionId: sessionRef.id, sessionData };
     });
-
-    // Create session notification for all students in the classroom
+    
+    // Create notifications for students (outside transaction for performance)
     const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
     if (classroomDoc.exists()) {
       const classroomData = classroomDoc.data() as Classroom;
       const students = classroomData.students || [];
       
-      console.log("Creating notifications for", students.length, "students");
-      
-      // Create notifications for each student
-      const notificationPromises = students.map(student => {
-        const notificationData: SessionNotification = {
-          type: 'live_session_started',
-          sessionId: docRef.id,
-          classroomId,
-          teacherName,
-          scenarioTitle,
-          studentId: student.id,
-          createdAt: Timestamp.now(),
-          read: false
-        };
+      if (students.length > 0) {
+        const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+        const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
         
-        return setDoc(doc(db, 'notifications', `${docRef.id}_${student.id}`), notificationData);
-      });
-      
-      await Promise.all(notificationPromises);
-      console.log("Notifications created for all students");
+        const notificationPromises = students.map(student => {
+          const notificationData: SessionNotification = {
+            type: 'live_session_started',
+            sessionId: result.sessionId,
+            classroomId,
+            teacherName,
+            scenarioTitle,
+            studentId: student.id,
+            createdAt: Timestamp.now(),
+            read: false
+          };
+          
+          return setDoc(doc(db, 'notifications', `${result.sessionId}_${student.id}`), notificationData);
+        });
+        
+        await Promise.all(notificationPromises);
+        console.log("Notifications created for", students.length, "students");
+      }
     }
 
-    return { id: docRef.id, ...sessionData };
+    return { id: result.sessionId, ...result.sessionData };
   } catch (error) {
     console.error("Error creating live session:", error);
     throw error;
   }
 };
 
-// Join a live session with better error handling
-export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
+// Enhanced session ending with proper cleanup
+export const endLiveSession = async (sessionId: string, classroomId: string) => {
   try {
-    console.log("Attempting to join session:", sessionId, "with student:", studentId);
+    console.log("Ending live session:", sessionId);
     
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    const sessionDoc = await getDoc(sessionRef);
-    
-    if (!sessionDoc.exists()) {
-      console.error("Session not found:", sessionId);
-      throw new Error("Session not found");
-    }
-
-    const sessionData = sessionDoc.data() as LiveSession;
-    console.log("Session found:", sessionData);
-    
-    if (!sessionData.isActive) {
-      throw new Error("Session is not active");
-    }
-    
-    // Add student to participants if not already present
-    if (!sessionData.participants.includes(studentId)) {
-      await updateDoc(sessionRef, {
-        participants: arrayUnion(studentId),
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      
+      const sessionDoc = await transaction.get(sessionRef);
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+      
+      // End the session
+      transaction.update(sessionRef, {
+        status: 'ended',
+        endedAt: Timestamp.now(),
         lastUpdated: Timestamp.now()
       });
-      console.log("Added student to participants array");
-    }
+      
+      // Clear active session from classroom
+      transaction.update(classroomRef, {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null,
+        lastActivity: Timestamp.now()
+      });
+    });
+    
+    // Clean up participants and notifications (outside transaction)
+    const participantsQuery = query(
+      collection(db, 'sessionParticipants'),
+      where('sessionId', '==', sessionId)
+    );
+    const participantsSnapshot = await getDocs(participantsQuery);
+    
+    const cleanupPromises = [
+      ...participantsSnapshot.docs.map(doc => 
+        updateDoc(doc.ref, { isActive: false })
+      )
+    ];
+    
+    // Clean up notifications
+    const notificationsQuery = query(
+      collection(db, 'notifications'),
+      where('sessionId', '==', sessionId)
+    );
+    const notificationsSnapshot = await getDocs(notificationsQuery);
+    cleanupPromises.push(
+      ...notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    );
+    
+    await Promise.all(cleanupPromises);
+    console.log("Session cleanup completed");
+  } catch (error) {
+    console.error("Error ending live session:", error);
+    throw error;
+  }
+};
+
+// Enhanced join session with validation
+export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
+  try {
+    console.log("Student attempting to join session:", sessionId);
+    
+    const result = await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+
+      const sessionData = sessionDoc.data() as LiveSession;
+      
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
+      
+      // Add student to participants if not already present
+      if (!sessionData.participants.includes(studentId)) {
+        transaction.update(sessionRef, {
+          participants: arrayUnion(studentId),
+          lastUpdated: Timestamp.now()
+        });
+      }
+      
+      return sessionData;
+    });
 
     // Create participant record
     const participantData: SessionParticipant = {
@@ -269,9 +361,8 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     };
 
     await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
-    console.log("Created participant record");
 
-    // Mark notification as read if it exists
+    // Mark notification as read
     try {
       await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
         read: true
@@ -280,37 +371,49 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
       console.log("No notification to update:", error);
     }
 
-    return { id: sessionId, ...sessionData };
+    return { id: sessionId, ...result };
   } catch (error) {
     console.error("Error joining live session:", error);
     throw error;
   }
 };
 
-// Submit choice in live session
-export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string) => {
+// Enhanced choice submission with vote tracking
+export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string, questionId?: string) => {
   try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    const sessionDoc = await getDoc(sessionRef);
+    console.log("Submitting choice for session:", sessionId, "choice:", choiceId);
     
-    if (!sessionDoc.exists()) {
-      throw new Error("Session not found");
-    }
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
 
-    const currentChoices = sessionDoc.data().currentChoices || {};
-    currentChoices[studentId] = choiceId;
+      const sessionData = sessionDoc.data() as LiveSession;
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
 
-    await updateDoc(sessionRef, {
-      currentChoices,
-      lastUpdated: Timestamp.now()
+      // Update session choices
+      const currentChoices = sessionData.currentChoices || {};
+      currentChoices[studentId] = choiceId;
+
+      transaction.update(sessionRef, {
+        currentChoices,
+        lastUpdated: Timestamp.now()
+      });
+
+      // Update participant record
+      const participantRef = doc(db, 'sessionParticipants', `${sessionId}_${studentId}`);
+      transaction.update(participantRef, {
+        currentChoice: choiceId,
+        lastActivity: Timestamp.now()
+      });
     });
 
-    // Update participant record
-    await updateDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), {
-      currentChoice: choiceId,
-      lastActivity: Timestamp.now()
-    });
-
+    console.log("Choice submitted successfully");
   } catch (error) {
     console.error("Error submitting live choice:", error);
     throw error;
@@ -332,65 +435,30 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string)
   }
 };
 
-// End live session
-export const endLiveSession = async (sessionId: string, classroomId: string) => {
-  try {
-    await updateDoc(doc(db, 'liveSessions', sessionId), {
-      isActive: false,
-      endedAt: Timestamp.now(),
-      lastUpdated: Timestamp.now()
-    });
-
-    // Remove active session from classroom
-    await updateDoc(doc(db, 'classrooms', classroomId), {
-      activeSessionId: null,
-      activeScenario: null,
-      currentScene: null
-    });
-
-    // Mark all participants as inactive
-    const participantsQuery = query(
-      collection(db, 'sessionParticipants'),
-      where('sessionId', '==', sessionId)
-    );
-    const participantsSnapshot = await getDocs(participantsQuery);
-    
-    const updatePromises = participantsSnapshot.docs.map(doc => 
-      updateDoc(doc.ref, { isActive: false })
-    );
-    await Promise.all(updatePromises);
-
-    // Clean up notifications
-    const notificationsQuery = query(
-      collection(db, 'notifications'),
-      where('sessionId', '==', sessionId)
-    );
-    const notificationsSnapshot = await getDocs(notificationsQuery);
-    const deletePromises = notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(deletePromises);
-  } catch (error) {
-    console.error("Error ending live session:", error);
-    throw error;
-  }
-};
-
 // Get active session for classroom
 export const getActiveSession = async (classroomId: string) => {
   try {
-    const q = query(
-      collection(db, 'liveSessions'),
-      where('classroomId', '==', classroomId),
-      where('isActive', '==', true)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
+    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+    if (!classroomDoc.exists()) {
       return null;
     }
     
-    const sessionDoc = snapshot.docs[0];
-    return { id: sessionDoc.id, ...sessionDoc.data() } as LiveSession;
+    const classroomData = classroomDoc.data() as Classroom;
+    if (!classroomData.activeSessionId) {
+      return null;
+    }
+    
+    const sessionDoc = await getDoc(doc(db, 'liveSessions', classroomData.activeSessionId));
+    if (!sessionDoc.exists()) {
+      return null;
+    }
+    
+    const sessionData = sessionDoc.data() as LiveSession;
+    if (sessionData.status !== 'active') {
+      return null;
+    }
+    
+    return { id: sessionDoc.id, ...sessionData } as LiveSession;
   } catch (error) {
     console.error("Error getting active session:", error);
     return null;
