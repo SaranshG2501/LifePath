@@ -114,7 +114,7 @@ export interface ScenarioChoice {
   metricChanges?: Record<string, number>;
 }
 
-// New Live Session Management Functions
+// Live Session Management Functions
 export interface LiveSession {
   id?: string;
   classroomId: string;
