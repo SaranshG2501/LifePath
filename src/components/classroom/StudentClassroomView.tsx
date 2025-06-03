@@ -16,7 +16,8 @@ import {
   Plus,
   Search,
   Wifi,
-  Radio
+  Radio,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
@@ -47,8 +48,10 @@ const StudentClassroomView = () => {
   const [activeSessions, setActiveSessions] = useState<Record<string, LiveSession>>({});
 
   useEffect(() => {
-    fetchClassrooms();
-  }, [currentUser]);
+    if (currentUser && userProfile?.role === 'student') {
+      fetchClassrooms();
+    }
+  }, [currentUser, userProfile]);
 
   // Set up real-time listeners for each classroom
   useEffect(() => {
@@ -225,6 +228,11 @@ const StudentClassroomView = () => {
     classroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (classroom.teacherName && classroom.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Don't show anything if user is not a student or not logged in
+  if (!currentUser || !userProfile || userProfile.role !== 'student') {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

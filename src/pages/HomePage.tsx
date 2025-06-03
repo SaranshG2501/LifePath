@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -7,8 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { Info, Map, TrendingUp, Brain, Users, Camera, Lightbulb, Sparkles, School, User, BarChart, MessageSquare, Award, BookOpen, LogIn, Play } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
+
 const HomePage = () => {
   const {
     scenarios,
@@ -26,10 +28,12 @@ const HomePage = () => {
   const {
     toast
   } = useToast();
+  
   const handleStartScenario = (id: string) => {
     startScenario(id);
     navigate('/game');
   };
+  
   const handleJoinClassroom = () => {
     if (!currentUser) {
       navigate('/auth');
@@ -49,6 +53,7 @@ const HomePage = () => {
       });
     }
   };
+  
   return <div className="container mx-auto px-4 py-8 md:py-12">
       <section className="text-center mb-16 animate-fade-in">
         <div className="max-w-3xl mx-auto">
@@ -167,9 +172,12 @@ const HomePage = () => {
           </Button>
         </div>
         
-        {!classroomId && userRole === 'student' ? <div className="mb-8">
+        {/* Always show the StudentClassroomView for students when logged in */}
+        {currentUser && userRole === 'student' && (
+          <div className="mb-8">
             <StudentClassroomView />
-          </div> : null}
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
@@ -230,4 +238,5 @@ const HomePage = () => {
       </section>
     </div>;
 };
+
 export default HomePage;

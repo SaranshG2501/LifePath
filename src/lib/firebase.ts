@@ -150,6 +150,8 @@ export const createLiveSession = async (
   initialSceneId: string = "start"
 ) => {
   try {
+    console.log("Creating live session for classroom:", classroomId, "scenario:", scenarioId);
+    
     // Get teacher info
     const teacherDoc = await getDoc(doc(db, 'users', teacherId));
     const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
@@ -170,6 +172,7 @@ export const createLiveSession = async (
     };
 
     const docRef = await addDoc(collection(db, 'liveSessions'), sessionData);
+    console.log("Live session created with ID:", docRef.id);
     
     // Update classroom with active session
     await updateDoc(doc(db, 'classrooms', classroomId), {
@@ -184,6 +187,8 @@ export const createLiveSession = async (
     if (classroomDoc.exists()) {
       const classroomData = classroomDoc.data() as Classroom;
       const students = classroomData.students || [];
+      
+      console.log("Creating notifications for", students.length, "students");
       
       // Create notifications for each student
       const notificationPromises = students.map(student => 
@@ -200,6 +205,7 @@ export const createLiveSession = async (
       );
       
       await Promise.all(notificationPromises);
+      console.log("Notifications created for all students");
     }
 
     return { id: docRef.id, ...sessionData };
@@ -225,6 +231,10 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     const sessionData = sessionDoc.data() as LiveSession;
     console.log("Session found:", sessionData);
     
+    if (!sessionData.isActive) {
+      throw new Error("Session is not active");
+    }
+    
     // Add student to participants if not already present
     if (!sessionData.participants.includes(studentId)) {
       await updateDoc(sessionRef, {
@@ -247,10 +257,14 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
     console.log("Created participant record");
 
-    // Mark notification as read
-    await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
-      read: true
-    });
+    // Mark notification as read if it exists
+    try {
+      await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
+        read: true
+      });
+    } catch (error) {
+      console.log("No notification to update:", error);
+    }
 
     return { id: sessionId, ...sessionData };
   } catch (error) {
@@ -447,16 +461,11 @@ export const createUserProfile = async (uid: string, userData: UserProfileData) 
     history: [],
     metrics: initialMetrics,
     classrooms: [],
-    createdAt: Timestamp.now()
-  };
-  
-  // Merge the default data with provided user data
-  const mergedData = {
-    ...defaultData,
+    createdAt: Timestamp.now(),
     ...userData
   };
   
-  return setDoc(doc(db, 'users', uid), mergedData);
+  return setDoc(doc(db, 'users', uid), defaultData);
 };
 
 export const getUserProfile = async (uid: string) => {
@@ -617,9 +626,11 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Remove student from classroom
+// Remove student from classroom - FIXED VERSION
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
+    console.log(`Removing student ${studentId} from classroom ${classroomId}`);
+    
     const classroomRef = doc(db, 'classrooms', classroomId);
     const classroomDoc = await getDoc(classroomRef);
     
@@ -634,6 +645,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
     await updateDoc(classroomRef, {
       students: updatedStudents
     });
+    console.log("Updated classroom students list");
     
     // Remove classroom from student's profile
     const userRef = doc(db, 'users', studentId);
@@ -647,6 +659,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       await updateDoc(userRef, {
         classrooms: updatedClassrooms
       });
+      console.log("Removed classroom from student's profile");
     }
     
     return true;
@@ -656,7 +669,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   }
 };
 
-// Join classroom function with better multiple classroom support
+// Join classroom function with better multiple classroom support - FIXED VERSION
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
