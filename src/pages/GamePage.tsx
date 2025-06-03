@@ -26,7 +26,8 @@ import {
   endLiveSession,
   getActiveSession,
   onNotificationsUpdated,
-  SessionNotification
+  SessionNotification,
+  onClassroomUpdated
 } from '@/lib/firebase';
 
 const GamePage = () => {
@@ -57,6 +58,10 @@ const GamePage = () => {
   const [pendingSession, setPendingSession] = useState<SessionNotification | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [popupHandledSessionId, setPopupHandledSessionId] = useState<string | null>(null);
+  const [showResultScreen, setShowResultScreen] = useState(false);
+  const [sessionResult, setSessionResult] = useState<any>(null);
+  const [isRemovedFromClass, setIsRemovedFromClass] = useState(false);
 
   useEffect(() => {
     if (!isGameActive) {
@@ -64,7 +69,38 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Listen for live session notifications
+  // Listen for classroom membership changes (student removal)
+  useEffect(() => {
+    if (!currentUser || !classroomId || userRole !== 'student') return;
+
+    console.log("Setting up classroom membership listener for student:", currentUser.uid);
+    
+    const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
+      const isStillMember = classroom.students.some(student => student.id === currentUser.uid);
+      
+      if (!isStillMember && !isRemovedFromClass) {
+        console.log("Student removed from classroom");
+        setIsRemovedFromClass(true);
+        setIsInLiveSession(false);
+        setLiveSession(null);
+        setHasVoted(false);
+        
+        toast({
+          title: "Removed from Classroom",
+          description: "You have been removed from this classroom by the teacher.",
+          variant: "destructive",
+        });
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, classroomId, userRole, isRemovedFromClass, navigate, toast]);
+
+  // Listen for live session notifications with duplicate prevention
   useEffect(() => {
     if (!currentUser || userRole !== 'student') return;
 
@@ -74,15 +110,17 @@ const GamePage = () => {
       console.log("Received notifications:", notifications);
       const liveSessionNotification = notifications.find(n => n.type === 'live_session_started');
       
-      if (liveSessionNotification && !isInLiveSession) {
-        console.log("Found live session notification:", liveSessionNotification);
+      if (liveSessionNotification && 
+          !isInLiveSession && 
+          liveSessionNotification.sessionId !== popupHandledSessionId) {
+        console.log("Found new live session notification:", liveSessionNotification);
         setPendingSession(liveSessionNotification);
         setShowNotification(true);
       }
     });
 
     return () => unsubscribe();
-  }, [currentUser, userRole, isInLiveSession]);
+  }, [currentUser, userRole, isInLiveSession, popupHandledSessionId]);
   
   // Check for active live sessions
   useEffect(() => {
@@ -92,7 +130,10 @@ const GamePage = () => {
       if (gameMode === "classroom" && classroomId && userRole === "student" && !isInLiveSession) {
         try {
           const activeSession = await getActiveSession(classroomId);
-          if (activeSession && activeSession.status === 'active' && !isInLiveSession) {
+          if (activeSession && 
+              activeSession.status === 'active' && 
+              !isInLiveSession && 
+              activeSession.id !== popupHandledSessionId) {
             console.log("Active session found:", activeSession);
             setLiveSession(activeSession);
             setShowJoinModal(true);
@@ -111,7 +152,7 @@ const GamePage = () => {
     return () => {
       if (checkInterval) clearInterval(checkInterval);
     };
-  }, [gameMode, classroomId, userRole, isInLiveSession]);
+  }, [gameMode, classroomId, userRole, isInLiveSession, popupHandledSessionId]);
 
   // Listen to live session updates for real-time sync
   useEffect(() => {
@@ -124,17 +165,26 @@ const GamePage = () => {
         
         // Check if session ended
         if (updatedSession.status === 'ended') {
+          console.log("Session ended, showing results");
           setIsInLiveSession(false);
-          setLiveSession(null);
           setHasVoted(false);
-          toast({
-            title: "Session Ended",
-            description: "The live session has been ended by the teacher.",
-          });
+          setPopupHandledSessionId(null); // Clear handled session ID
+          
+          // Show result screen if result payload exists
+          if (updatedSession.resultPayload) {
+            setSessionResult(updatedSession.resultPayload);
+            setShowResultScreen(true);
+          } else {
+            setLiveSession(null);
+            toast({
+              title: "Session Ended",
+              description: "The live session has been ended by the teacher.",
+            });
+          }
           return;
         }
         
-        // Sync scene with teacher's current scene
+        // Sync scene with teacher's current scene (Scene Progress Sync)
         if (updatedSession.currentSceneId && gameState.currentScene?.id !== updatedSession.currentSceneId) {
           console.log("Syncing to teacher's scene:", updatedSession.currentSceneId);
           setCurrentScene(updatedSession.currentSceneId);
@@ -159,6 +209,9 @@ const GamePage = () => {
     setIsJoining(true);
     try {
       console.log("Joining live session from notification:", pendingSession.sessionId);
+      
+      // Mark popup as handled to prevent duplicates
+      setPopupHandledSessionId(pendingSession.sessionId);
       
       setGameMode("classroom");
       
@@ -198,6 +251,10 @@ const GamePage = () => {
   }, [pendingSession, currentUser, userProfile, setGameMode, startScenario, setCurrentScene, toast]);
 
   const handleDismissNotification = () => {
+    if (pendingSession) {
+      // Mark popup as handled to prevent it from showing again
+      setPopupHandledSessionId(pendingSession.sessionId);
+    }
     setShowNotification(false);
     setPendingSession(null);
   };
@@ -208,6 +265,10 @@ const GamePage = () => {
     setIsJoining(true);
     try {
       console.log("Joining live session:", liveSession.id);
+      
+      // Mark popup as handled to prevent duplicates
+      setPopupHandledSessionId(liveSession.id!);
+      
       const sessionData = await joinLiveSession(liveSession.id!, currentUser.uid, userProfile.displayName || 'Student');
       
       if (sessionData.status === 'active') {
@@ -240,6 +301,10 @@ const GamePage = () => {
   };
 
   const handleDeclineLiveSession = () => {
+    if (liveSession) {
+      // Mark popup as handled to prevent it from showing again
+      setPopupHandledSessionId(liveSession.id!);
+    }
     setShowJoinModal(false);
     setLiveSession(null);
   };
@@ -271,7 +336,18 @@ const GamePage = () => {
     if (liveSession?.id) {
       try {
         console.log("Advancing live session to scene:", nextSceneId);
-        await advanceLiveSession(liveSession.id, nextSceneId);
+        
+        // Calculate next scene index if we have current scene info
+        let nextSceneIndex;
+        if (gameState.currentScenario) {
+          const currentIndex = gameState.currentScenario.scenes.findIndex(s => s.id === gameState.currentScene?.id);
+          const nextIndex = gameState.currentScenario.scenes.findIndex(s => s.id === nextSceneId);
+          if (nextIndex >= 0) {
+            nextSceneIndex = nextIndex;
+          }
+        }
+        
+        await advanceLiveSession(liveSession.id, nextSceneId, nextSceneIndex);
         makeChoice('advance');
       } catch (error) {
         console.error("Error advancing scene:", error);
@@ -282,10 +358,19 @@ const GamePage = () => {
   const handleEndLiveSession = async () => {
     if (liveSession?.id && classroomId) {
       try {
-        await endLiveSession(liveSession.id, classroomId);
+        // Create result payload
+        const resultPayload = {
+          choices: liveSession.currentChoices || {},
+          metrics: gameState.metrics,
+          summary: `Session completed for "${liveSession.scenarioTitle}"`
+        };
+        
+        await endLiveSession(liveSession.id, classroomId, resultPayload);
         setIsInLiveSession(false);
         setLiveSession(null);
         setHasVoted(false);
+        setPopupHandledSessionId(null); // Clear handled session ID
+        
         toast({
           title: "Session Ended",
           description: "The live session has been ended successfully.",
@@ -311,12 +396,16 @@ const GamePage = () => {
 
   const handleReturnHome = () => {
     resetGame();
+    setShowResultScreen(false);
+    setSessionResult(null);
     navigate('/');
   };
 
   const handlePlayAgain = () => {
     if (gameState.currentScenario) {
       resetGame();
+      setShowResultScreen(false);
+      setSessionResult(null);
       setTimeout(() => {
         navigate('/');
         navigate('/game');
@@ -325,19 +414,20 @@ const GamePage = () => {
   };
   
   const toggleGameMode = () => {
-    if (isInLiveSession) {
+    // Role Lock: Prevent teacher from switching mode if they have an active session
+    if (userRole === 'teacher' && liveSession && liveSession.status === 'active') {
       toast({
         title: "Mode Locked",
-        description: "You cannot change modes during a live session. Exit the session first.",
+        description: "You cannot switch to individual mode while running a live session. End the session first.",
         variant: "destructive",
       });
       return;
     }
 
-    if (userRole === 'teacher' && liveSession && liveSession.status === 'active') {
+    if (isInLiveSession) {
       toast({
         title: "Mode Locked",
-        description: "You cannot switch to individual mode while running a live session. End the session first.",
+        description: "You cannot change modes during a live session. Exit the session first.",
         variant: "destructive",
       });
       return;
@@ -379,6 +469,27 @@ const GamePage = () => {
           </div>
           <Loader2 className="h-8 w-8 text-indigo-300 animate-spin" />
           <p className="text-white text-lg">Loading your adventure...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show result screen if session ended with results
+  if (showResultScreen && sessionResult) {
+    return (
+      <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-4">Session Complete!</h1>
+          <p className="text-white/80 text-lg">{sessionResult.summary}</p>
+        </div>
+        
+        <div className="flex gap-4 justify-center">
+          <Button onClick={handleReturnHome} variant="outline" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
+            Return Home
+          </Button>
+          <Button onClick={handlePlayAgain} className="bg-primary hover:bg-primary/90">
+            Play Again
+          </Button>
         </div>
       </div>
     );
@@ -493,7 +604,6 @@ const GamePage = () => {
         teacherName={liveSession?.teacherName || 'Teacher'}
         scenarioTitle={liveSession?.scenarioTitle || ''}
         participantCount={liveSession?.participants.length || 0}
-        isJoining={isJoining}
       />
 
       {/* Session Notification Modal */}

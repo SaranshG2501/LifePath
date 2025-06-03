@@ -12,13 +12,15 @@ interface SceneDisplayProps {
   onChoiceMade: (choiceId: string) => void;
   isLiveSession?: boolean;
   liveSession?: LiveSession | null;
+  disabled?: boolean;
 }
 
 const SceneDisplay: React.FC<SceneDisplayProps> = ({ 
   scene, 
   onChoiceMade, 
   isLiveSession = false,
-  liveSession = null 
+  liveSession = null,
+  disabled = false
 }) => {
   const getMetricIcon = (metric: string) => {
     switch (metric) {
@@ -66,8 +68,9 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
             <div key={choice.id} className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full justify-between py-6 px-6 text-left border-white/10 bg-black/30 hover:bg-white/10 text-white transition-all duration-200 group"
+                className="w-full justify-between py-6 px-6 text-left border-white/10 bg-black/30 hover:bg-white/10 text-white transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => onChoiceMade(choice.id)}
+                disabled={disabled}
               >
                 <span className="text-base leading-relaxed">{choice.text}</span>
                 
@@ -94,6 +97,11 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
               <span>Live Session: {liveSession.scenarioTitle}</span>
               <span>Participants: {liveSession.participants.length}</span>
             </div>
+            {disabled && (
+              <div className="mt-2 text-xs text-yellow-400">
+                ✓ Your vote has been recorded. Waiting for other students...
+              </div>
+            )}
           </div>
         )}
       </CardContent>

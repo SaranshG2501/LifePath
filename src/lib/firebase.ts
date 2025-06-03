@@ -114,7 +114,7 @@ export interface ScenarioChoice {
   metricChanges?: Record<string, number>;
 }
 
-// Enhanced Live Session with proper lifecycle
+// Enhanced Live Session with scene tracking and proper lifecycle
 export interface LiveSession {
   id?: string;
   classroomId: string;
@@ -123,11 +123,17 @@ export interface LiveSession {
   scenarioId: string;
   scenarioTitle: string;
   currentSceneId: string;
+  currentSceneIndex?: number;
   status: 'active' | 'ended';
   startedAt: Timestamp;
   endedAt?: Timestamp;
   participants: string[];
   currentChoices?: Record<string, string>;
+  resultPayload?: {
+    choices: Record<string, any>;
+    metrics: Record<string, any>;
+    summary: string;
+  };
   lastUpdated?: Timestamp;
 }
 
@@ -153,7 +159,7 @@ export interface SessionNotification {
   read: boolean;
 }
 
-// Enhanced session creation with atomic transaction
+// Enhanced session creation with better atomic transaction
 export const createLiveSession = async (
   classroomId: string,
   teacherId: string,
@@ -164,7 +170,6 @@ export const createLiveSession = async (
   try {
     console.log("Creating live session for classroom:", classroomId);
     
-    // Use transaction to ensure atomicity
     const result = await runTransaction(db, async (transaction) => {
       const classroomRef = doc(db, 'classrooms', classroomId);
       const classroomDoc = await transaction.get(classroomRef);
@@ -202,6 +207,7 @@ export const createLiveSession = async (
         scenarioId,
         scenarioTitle,
         currentSceneId: initialSceneId,
+        currentSceneIndex: 0,
         status: 'active',
         startedAt: Timestamp.now(),
         participants: [],
@@ -259,8 +265,8 @@ export const createLiveSession = async (
   }
 };
 
-// Enhanced session ending with proper cleanup
-export const endLiveSession = async (sessionId: string, classroomId: string) => {
+// Enhanced session ending with result payload
+export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
     console.log("Ending live session:", sessionId);
     
@@ -273,12 +279,18 @@ export const endLiveSession = async (sessionId: string, classroomId: string) => 
         throw new Error("Session not found");
       }
       
-      // End the session
-      transaction.update(sessionRef, {
+      // End the session with result payload
+      const updateData: any = {
         status: 'ended',
         endedAt: Timestamp.now(),
         lastUpdated: Timestamp.now()
-      });
+      };
+      
+      if (resultPayload) {
+        updateData.resultPayload = resultPayload;
+      }
+      
+      transaction.update(sessionRef, updateData);
       
       // Clear active session from classroom
       transaction.update(classroomRef, {
@@ -420,15 +432,20 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
   }
 };
 
-// Advance session to next scene
-export const advanceLiveSession = async (sessionId: string, nextSceneId: string) => {
+// Advance session to next scene with scene index tracking
+export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
   try {
-    await updateDoc(doc(db, 'liveSessions', sessionId), {
+    const updateData: any = {
       currentSceneId: nextSceneId,
       currentChoices: {}, // Reset choices for new scene
-      teacherChoiceRevealed: false,
       lastUpdated: Timestamp.now()
-    });
+    };
+    
+    if (nextSceneIndex !== undefined) {
+      updateData.currentSceneIndex = nextSceneIndex;
+    }
+    
+    await updateDoc(doc(db, 'liveSessions', sessionId), updateData);
   } catch (error) {
     console.error("Error advancing live session:", error);
     throw error;
@@ -708,26 +725,42 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Remove student from classroom - FIXED VERSION
+// Remove student from classroom with live session cleanup
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
     console.log(`Removing student ${studentId} from classroom ${classroomId}`);
     
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomDoc = await getDoc(classroomRef);
-    
-    if (!classroomDoc.exists()) {
-      throw new Error("Classroom not found");
-    }
-    
-    const classroomData = classroomDoc.data() as Classroom;
-    const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
-    
-    // Update classroom
-    await updateDoc(classroomRef, {
-      students: updatedStudents
+    await runTransaction(db, async (transaction) => {
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const classroomDoc = await transaction.get(classroomRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
+      
+      // Update classroom
+      transaction.update(classroomRef, {
+        students: updatedStudents
+      });
+      
+      // If there's an active session, remove student from it too
+      if (classroomData.activeSessionId) {
+        const sessionRef = doc(db, 'liveSessions', classroomData.activeSessionId);
+        const sessionDoc = await transaction.get(sessionRef);
+        
+        if (sessionDoc.exists()) {
+          const sessionData = sessionDoc.data() as LiveSession;
+          const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
+          
+          transaction.update(sessionRef, {
+            participants: updatedParticipants
+          });
+        }
+      }
     });
-    console.log("Updated classroom students list");
     
     // Remove classroom from student's profile
     const userRef = doc(db, 'users', studentId);
