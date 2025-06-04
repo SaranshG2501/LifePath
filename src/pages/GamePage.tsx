@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '@/context/GameContext';
@@ -26,7 +27,11 @@ import {
   getActiveSession,
   onNotificationsUpdated,
   SessionNotification,
-  onClassroomUpdated
+  onClassroomUpdated,
+  Classroom,
+  getDoc,
+  doc,
+  db
 } from '@/lib/firebase';
 
 const GamePage = () => {
