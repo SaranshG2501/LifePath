@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -802,186 +801,6 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Atomic student removal with enhanced error handling
-export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
-  try {
-    console.log(`Removing student ${studentId} from classroom ${classroomId}`);
-    
-    await runTransaction(db, async (transaction) => {
-      const classroomRef = doc(db, 'classrooms', classroomId);
-      const classroomDoc = await transaction.get(classroomRef);
-      
-      if (!classroomDoc.exists()) {
-        throw new Error("Classroom not found");
-      }
-      
-      const classroomData = classroomDoc.data() as Classroom;
-      
-      // Remove student from both arrays atomically
-      const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
-      const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
-      
-      transaction.update(classroomRef, {
-        students: updatedStudents,
-        members: updatedMembers
-      });
-      
-      // If there's an active session, remove student from it too
-      if (classroomData.activeSessionId) {
-        const sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
-        const sessionDoc = await transaction.get(sessionRef);
-        
-        if (sessionDoc.exists()) {
-          const sessionData = sessionDoc.data() as LiveSession;
-          const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
-          
-          transaction.update(sessionRef, {
-            participants: updatedParticipants,
-            lastUpdated: Timestamp.now()
-          });
-        }
-      }
-      
-      // Update student's profile to remove classroom
-      const userRef = doc(db, 'users', studentId);
-      const userDoc = await transaction.get(userRef);
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userClassrooms = userData.classrooms || [];
-        const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
-        
-        transaction.update(userRef, {
-          classrooms: updatedClassrooms
-        });
-      }
-    });
-    
-    // Clean up participant records outside of transaction
-    try {
-      const participantQuery = query(
-        collection(db, 'sessionParticipants'),
-        where('studentId', '==', studentId)
-      );
-      const participantSnapshot = await getDocs(participantQuery);
-      
-      const batch = writeBatch(db);
-      participantSnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { isActive: false });
-      });
-      await batch.commit();
-    } catch (error) {
-      console.log("No participant records to clean up:", error);
-    }
-    
-    console.log("Student removal completed successfully");
-    return true;
-  } catch (error) {
-    console.error("Error removing student from classroom:", error);
-    throw error;
-  }
-};
-
-// Enhanced atomic join classroom with reliable code-based joining
-export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
-  try {
-    console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
-    
-    const result = await runTransaction(db, async (transaction) => {
-      // Get the classroom document
-      const classroomRef = doc(db, 'classrooms', classroomId);
-      const classroomDoc = await transaction.get(classroomRef);
-      
-      if (!classroomDoc.exists()) {
-        throw new Error("Classroom not found");
-      }
-      
-      const classroomData = classroomDoc.data() as Classroom;
-      const currentStudents = classroomData.students || [];
-      const currentMembers = classroomData.members || [];
-      
-      // Check if student is already in the classroom
-      const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
-      const isMemberAlready = currentMembers.includes(studentId);
-      
-      if (existingStudentIndex === -1) {
-        // Student is not in the classroom yet, add them
-        const newStudent: ClassroomStudent = {
-          id: studentId,
-          name: studentName,
-          joinedAt: Timestamp.now()
-        };
-        
-        const updatedStudents = [...currentStudents, newStudent];
-        const updatedMembers = isMemberAlready ? currentMembers : [...currentMembers, studentId];
-        
-        // Update classroom with new student atomically
-        transaction.update(classroomRef, { 
-          students: updatedStudents,
-          members: updatedMembers
-        });
-        
-        console.log(`Added student ${studentId} to classroom ${classroomId}`);
-      } else if (!isMemberAlready) {
-        // Student exists in students array but not in members array
-        transaction.update(classroomRef, {
-          members: [...currentMembers, studentId]
-        });
-      }
-      
-      // Update student's profile to include this classroom
-      const userRef = doc(db, 'users', studentId);
-      const userDoc = await transaction.get(userRef);
-      
-      if (!userDoc.exists()) {
-        throw new Error("User not found");
-      }
-      
-      const userData = userDoc.data();
-      const userClassrooms = userData.classrooms || [];
-      
-      // Only add classroom ID if it's not already in the user's classrooms
-      if (!userClassrooms.includes(classroomId)) {
-        const updatedClassrooms = [...userClassrooms, classroomId];
-        transaction.update(userRef, { 
-          classrooms: updatedClassrooms 
-        });
-        console.log(`Added classroom ${classroomId} to user ${studentId}'s profile`);
-      }
-      
-      return classroomData;
-    });
-    
-    // Return the updated classroom data
-    const updatedClassroom = await getClassroom(classroomId);
-    return updatedClassroom;
-    
-  } catch (error) {
-    console.error("Error joining classroom:", error);
-    throw error;
-  }
-};
-
-// Enhanced join by code with direct classroom ID lookup
-export const joinClassroomByCode = async (classCode: string, studentId: string, studentName: string) => {
-  try {
-    console.log(`Student ${studentId} attempting to join by code: ${classCode}`);
-    
-    // First find the classroom by code
-    const classroom = await getClassroomByCode(classCode);
-    if (!classroom || !classroom.id) {
-      throw new Error("Invalid classroom code");
-    }
-    
-    // Join the classroom using the found ID
-    return await joinClassroom(classroom.id, studentId, studentName);
-    
-  } catch (error) {
-    console.error("Error joining classroom by code:", error);
-    throw error;
-  }
-};
-
 export const getClassroomByCode = async (classCode: string) => {
   try {
     const classroomsQuery = query(
@@ -1104,6 +923,194 @@ export const advanceClassroomScene = async (classroomId: string, nextSceneId: st
   });
 };
 
+// Fixed atomic student removal with proper transaction ordering
+export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
+  try {
+    console.log(`Removing student ${studentId} from classroom ${classroomId}`);
+    
+    await runTransaction(db, async (transaction) => {
+      // READ PHASE - All reads must happen first
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const userRef = doc(db, 'users', studentId);
+      
+      const classroomDoc = await transaction.get(classroomRef);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      let sessionRef = null;
+      let sessionDoc = null;
+      
+      // Check for active session
+      if (classroomData.activeSessionId) {
+        sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
+        sessionDoc = await transaction.get(sessionRef);
+      }
+      
+      // WRITE PHASE - All writes happen after reads
+      // Remove student from classroom
+      const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
+      const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
+      
+      transaction.update(classroomRef, {
+        students: updatedStudents,
+        members: updatedMembers
+      });
+      
+      // Remove from active session if exists
+      if (sessionRef && sessionDoc && sessionDoc.exists()) {
+        const sessionData = sessionDoc.data() as LiveSession;
+        const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
+        
+        transaction.update(sessionRef, {
+          participants: updatedParticipants,
+          lastUpdated: Timestamp.now()
+        });
+      }
+      
+      // Update student's profile
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userClassrooms = userData.classrooms || [];
+        const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
+        
+        transaction.update(userRef, {
+          classrooms: updatedClassrooms
+        });
+      }
+    });
+    
+    // Clean up participant records outside of transaction
+    try {
+      const participantQuery = query(
+        collection(db, 'sessionParticipants'),
+        where('studentId', '==', studentId)
+      );
+      const participantSnapshot = await getDocs(participantQuery);
+      
+      const batch = writeBatch(db);
+      participantSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { isActive: false });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.log("No participant records to clean up:", error);
+    }
+    
+    console.log("Student removal completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Error removing student from classroom:", error);
+    throw error;
+  }
+};
+
+// Fixed atomic join classroom with proper validation
+export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
+  try {
+    console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
+    
+    const result = await runTransaction(db, async (transaction) => {
+      // READ PHASE
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const userRef = doc(db, 'users', studentId);
+      
+      const classroomDoc = await transaction.get(classroomRef);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      if (!userDoc.exists()) {
+        throw new Error("User not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      const userData = userDoc.data();
+      
+      const currentStudents = classroomData.students || [];
+      const currentMembers = classroomData.members || [];
+      const userClassrooms = userData.classrooms || [];
+      
+      // Check if already a member
+      const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
+      const isMemberAlready = currentMembers.includes(studentId);
+      const isInUserClassrooms = userClassrooms.includes(classroomId);
+      
+      // WRITE PHASE
+      let needsClassroomUpdate = false;
+      let updatedStudents = [...currentStudents];
+      let updatedMembers = [...currentMembers];
+      
+      if (existingStudentIndex === -1) {
+        // Add to students array
+        const newStudent: ClassroomStudent = {
+          id: studentId,
+          name: studentName,
+          joinedAt: Timestamp.now()
+        };
+        updatedStudents.push(newStudent);
+        needsClassroomUpdate = true;
+      }
+      
+      if (!isMemberAlready) {
+        // Add to members array
+        updatedMembers.push(studentId);
+        needsClassroomUpdate = true;
+      }
+      
+      if (needsClassroomUpdate) {
+        transaction.update(classroomRef, { 
+          students: updatedStudents,
+          members: updatedMembers
+        });
+      }
+      
+      // Update user's classrooms
+      if (!isInUserClassrooms) {
+        const updatedUserClassrooms = [...userClassrooms, classroomId];
+        transaction.update(userRef, { 
+          classrooms: updatedUserClassrooms 
+        });
+      }
+      
+      return classroomData;
+    });
+    
+    // Return the updated classroom data
+    const updatedClassroom = await getClassroom(classroomId);
+    return updatedClassroom;
+    
+  } catch (error) {
+    console.error("Error joining classroom:", error);
+    throw error;
+  }
+};
+
+// Enhanced join by code with better error handling
+export const joinClassroomByCode = async (classCode: string, studentId: string, studentName: string) => {
+  try {
+    console.log(`Student ${studentId} attempting to join by code: ${classCode}`);
+    
+    // First find the classroom by code
+    const classroom = await getClassroomByCode(classCode);
+    if (!classroom || !classroom.id) {
+      throw new Error("Invalid classroom code");
+    }
+    
+    // Join the classroom using the found ID
+    return await joinClassroom(classroom.id, studentId, studentName);
+    
+  } catch (error) {
+    console.error("Error joining classroom by code:", error);
+    throw error;
+  }
+};
+
 // Helper to generate a random class code
 const generateClassCode = () => {
   const prefix = 'LIFE';
@@ -1162,4 +1169,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp, analytics, doc, getDoc };
+export { auth, db, Timestamp, analytics };

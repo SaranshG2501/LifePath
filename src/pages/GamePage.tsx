@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '@/context/GameContext';
@@ -64,8 +65,8 @@ const GamePage = () => {
   const [popupHandledSessionId, setPopupHandledSessionId] = useState<string | null>(null);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [sessionResult, setSessionResult] = useState<any>(null);
-  const [isRemovedFromClass, setIsRemovedFromClass] = useState(false);
   const [sceneAdvanceDebounce, setSceneAdvanceDebounce] = useState(false);
+  const [lastProcessedClassroomData, setLastProcessedClassroomData] = useState<Classroom | null>(null);
 
   useEffect(() => {
     if (!isGameActive) {
@@ -73,22 +74,37 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Listen for classroom membership changes (student removal)
+  // Fixed classroom membership listener with proper state management
   useEffect(() => {
     if (!currentUser || !classroomId || userRole !== 'student') return;
 
     console.log("Setting up classroom membership listener for student:", currentUser.uid);
     
     const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
-      const isStillMember = classroom.students.some(student => student.id === currentUser.uid);
+      console.log("Classroom updated:", classroom);
       
-      if (!isStillMember && !isRemovedFromClass) {
-        console.log("Student removed from classroom");
-        setIsRemovedFromClass(true);
+      // Prevent duplicate processing of the same classroom state
+      if (lastProcessedClassroomData && 
+          JSON.stringify(classroom.members) === JSON.stringify(lastProcessedClassroomData.members) &&
+          JSON.stringify(classroom.students) === JSON.stringify(lastProcessedClassroomData.students)) {
+        return;
+      }
+      
+      setLastProcessedClassroomData(classroom);
+      
+      // Check membership in both arrays for compatibility
+      const isMemberInMembers = classroom.members?.includes(currentUser.uid) || false;
+      const isMemberInStudents = classroom.students?.some(student => student.id === currentUser.uid) || false;
+      const isStillMember = isMemberInMembers || isMemberInStudents;
+      
+      console.log("Membership check:", { isMemberInMembers, isMemberInStudents, isStillMember });
+      
+      if (!isStillMember && isInLiveSession) {
+        console.log("Student removed from classroom during live session");
         setIsInLiveSession(false);
         setLiveSession(null);
         setHasVoted(false);
-        setPopupHandledSessionId(null); // Clear handled sessions
+        setPopupHandledSessionId(null);
         
         toast({
           title: "Removed from Classroom",
@@ -97,13 +113,14 @@ const GamePage = () => {
         });
         
         setTimeout(() => {
+          resetGame();
           navigate('/');
         }, 2000);
       }
     });
 
     return () => unsubscribe();
-  }, [currentUser, classroomId, userRole, isRemovedFromClass, navigate, toast]);
+  }, [currentUser, classroomId, userRole, isInLiveSession, navigate, toast, resetGame, lastProcessedClassroomData]);
 
   // Enhanced notification listener with duplicate prevention
   useEffect(() => {

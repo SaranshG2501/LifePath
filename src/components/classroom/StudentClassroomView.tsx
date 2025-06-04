@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   getUserClassrooms, 
   getClassroomByCode, 
-  joinClassroom, 
+  joinClassroomByCode, 
   Classroom,
   getActiveSession,
   LiveSession,
@@ -146,32 +146,9 @@ const StudentClassroomView = () => {
     try {
       setJoining(true);
       
-      // Find classroom by code
-      const classroom = await getClassroomByCode(joinCode.trim().toUpperCase());
-      
-      if (!classroom) {
-        toast({
-          title: "Invalid Code",
-          description: "No classroom found with that code. Please check and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if already joined
-      const isAlreadyJoined = classrooms.some(c => c.id === classroom.id);
-      if (isAlreadyJoined) {
-        toast({
-          title: "Already Joined",
-          description: "You're already a member of this classroom.",
-        });
-        setJoinCode('');
-        return;
-      }
-
-      // Join the classroom
-      const joinedClassroom = await joinClassroom(
-        classroom.id!,
+      // Use the enhanced joinClassroomByCode function
+      const joinedClassroom = await joinClassroomByCode(
+        joinCode.trim().toUpperCase(),
         currentUser.uid,
         userProfile.displayName || 'Student'
       );
@@ -189,7 +166,7 @@ const StudentClassroomView = () => {
       console.error('Error joining classroom:', error);
       toast({
         title: "Error",
-        description: "Failed to join classroom. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to join classroom. Please try again.",
         variant: "destructive",
       });
     } finally {
