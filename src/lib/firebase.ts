@@ -159,7 +159,7 @@ export interface SessionNotification {
   read: boolean;
 }
 
-// Enhanced session creation with better atomic transaction
+// Enhanced session creation with atomic operations and better error handling
 export const createLiveSession = async (
   classroomId: string,
   teacherId: string,
@@ -198,7 +198,7 @@ export const createLiveSession = async (
       const teacherDoc = await transaction.get(teacherRef);
       const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
 
-      // Create new session
+      // Create new session with scene tracking
       const sessionRef = doc(collection(db, 'liveSessions'));
       const sessionData: LiveSession = {
         classroomId,
@@ -217,7 +217,7 @@ export const createLiveSession = async (
       
       transaction.set(sessionRef, sessionData);
       
-      // Update classroom with new active session
+      // Update classroom with new active session (atomic)
       transaction.update(classroomRef, {
         activeSessionId: sessionRef.id,
         activeScenario: scenarioId,
@@ -265,7 +265,7 @@ export const createLiveSession = async (
   }
 };
 
-// Enhanced session ending with result payload
+// Enhanced session ending with atomic cleanup
 export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
     console.log("Ending live session:", sessionId);
@@ -292,7 +292,7 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
       
       transaction.update(sessionRef, updateData);
       
-      // Clear active session from classroom
+      // Clear active session from classroom (atomic)
       transaction.update(classroomRef, {
         activeSessionId: null,
         activeScenario: null,
@@ -328,6 +328,44 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
     console.log("Session cleanup completed");
   } catch (error) {
     console.error("Error ending live session:", error);
+    throw error;
+  }
+};
+
+// Enhanced scene advancement with atomic operations
+export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
+  try {
+    console.log("Advancing session to scene:", nextSceneId, "index:", nextSceneIndex);
+    
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+      
+      const sessionData = sessionDoc.data() as LiveSession;
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
+      
+      const updateData: any = {
+        currentSceneId: nextSceneId,
+        currentChoices: {}, // Reset choices for new scene
+        lastUpdated: Timestamp.now()
+      };
+      
+      if (nextSceneIndex !== undefined) {
+        updateData.currentSceneIndex = nextSceneIndex;
+      }
+      
+      transaction.update(sessionRef, updateData);
+    });
+    
+    console.log("Scene advanced successfully");
+  } catch (error) {
+    console.error("Error advancing live session:", error);
     throw error;
   }
 };
@@ -432,26 +470,6 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
   }
 };
 
-// Advance session to next scene with scene index tracking
-export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
-  try {
-    const updateData: any = {
-      currentSceneId: nextSceneId,
-      currentChoices: {}, // Reset choices for new scene
-      lastUpdated: Timestamp.now()
-    };
-    
-    if (nextSceneIndex !== undefined) {
-      updateData.currentSceneIndex = nextSceneIndex;
-    }
-    
-    await updateDoc(doc(db, 'liveSessions', sessionId), updateData);
-  } catch (error) {
-    console.error("Error advancing live session:", error);
-    throw error;
-  }
-};
-
 // Get active session for classroom
 export const getActiveSession = async (classroomId: string) => {
   try {
@@ -467,11 +485,23 @@ export const getActiveSession = async (classroomId: string) => {
     
     const sessionDoc = await getDoc(doc(db, 'liveSessions', classroomData.activeSessionId));
     if (!sessionDoc.exists()) {
+      // Clean up stale reference
+      await updateDoc(doc(db, 'classrooms', classroomId), {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null
+      });
       return null;
     }
     
     const sessionData = sessionDoc.data() as LiveSession;
     if (sessionData.status !== 'active') {
+      // Clean up ended session reference
+      await updateDoc(doc(db, 'classrooms', classroomId), {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null
+      });
       return null;
     }
     
@@ -479,6 +509,44 @@ export const getActiveSession = async (classroomId: string) => {
   } catch (error) {
     console.error("Error getting active session:", error);
     return null;
+  }
+};
+
+// Cleanup orphaned sessions utility function
+export const cleanupOrphanedSessions = async () => {
+  try {
+    console.log("Starting orphaned session cleanup...");
+    
+    // Get all active sessions
+    const sessionsQuery = query(
+      collection(db, 'liveSessions'),
+      where('status', '==', 'active')
+    );
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+    
+    const cleanupPromises = sessionsSnapshot.docs.map(async (sessionDoc) => {
+      const sessionData = sessionDoc.data() as LiveSession;
+      
+      // Check if classroom still references this session
+      const classroomDoc = await getDoc(doc(db, 'classrooms', sessionData.classroomId));
+      
+      if (!classroomDoc.exists() || 
+          classroomDoc.data().activeSessionId !== sessionDoc.id) {
+        console.log("Found orphaned session:", sessionDoc.id);
+        
+        // End the orphaned session
+        await updateDoc(sessionDoc.ref, {
+          status: 'ended',
+          endedAt: Timestamp.now(),
+          lastUpdated: Timestamp.now()
+        });
+      }
+    });
+    
+    await Promise.all(cleanupPromises);
+    console.log("Orphaned session cleanup completed");
+  } catch (error) {
+    console.error("Error during orphaned session cleanup:", error);
   }
 };
 
@@ -725,7 +793,7 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Remove student from classroom with live session cleanup
+// Remove student from classroom with enhanced cleanup
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
     console.log(`Removing student ${studentId} from classroom ${classroomId}`);
@@ -741,7 +809,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       const classroomData = classroomDoc.data() as Classroom;
       const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
       
-      // Update classroom
+      // Update classroom atomically
       transaction.update(classroomRef, {
         students: updatedStudents
       });
@@ -775,6 +843,24 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
         classrooms: updatedClassrooms
       });
       console.log("Removed classroom from student's profile");
+    }
+    
+    // Clean up any active participant records
+    try {
+      const participantRef = doc(db, 'sessionParticipants', `*_${studentId}`);
+      const participantQuery = query(
+        collection(db, 'sessionParticipants'),
+        where('studentId', '==', studentId)
+      );
+      const participantSnapshot = await getDocs(participantQuery);
+      
+      const cleanupPromises = participantSnapshot.docs.map(doc => 
+        updateDoc(doc.ref, { isActive: false })
+      );
+      
+      await Promise.all(cleanupPromises);
+    } catch (error) {
+      console.log("No participant records to clean up:", error);
     }
     
     return true;
