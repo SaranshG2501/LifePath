@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,10 +30,10 @@ import {
   SessionNotification,
   onClassroomUpdated,
   Classroom,
-  getDoc,
-  doc,
   db
 } from '@/lib/firebase';
+import { getDoc,doc } from 'firebase/firestore';
+
 
 const GamePage = () => {
   const { 

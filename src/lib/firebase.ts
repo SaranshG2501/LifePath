@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User as FirebaseUser,
+  User as FirebaseUser ,
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
@@ -591,7 +591,7 @@ export const onNotificationsUpdated = (studentId: string, callback: (notificatio
 };
 
 // Helper function to convert Timestamp to Date
-export const convertTimestampToDate = (timestamp: Timestamp | Date): Date => {
+export const convertTimestampToDate = ( timestamp: Timestamp | Date): Date => {
   if (timestamp instanceof Date) {
     return timestamp;
   }
@@ -604,16 +604,16 @@ export const createUser = async (email: string, password: string) => {
   return createUserWithEmailAndPassword(auth, email, password);
 };
 
-export const loginUser = async (email: string, password: string) => {
+export const loginUser  = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
 
-export const logoutUser = async () => {
+export const logoutUser  = async () => {
   return signOut(auth);
 };
 
-export const getCurrentUser = () => {
-  return auth.currentUser;
+export const getCurrentUser  = () => {
+  return auth.currentUser ;
 };
 
 // Firestore functions
@@ -666,7 +666,7 @@ export const awardBadge = async (userId: string, badgeId: string, badgeTitle: st
       
       // Check if user already has this badge
       if (userBadges.some((badge: any) => badge.id === badgeId)) {
-        console.log("User already has this badge:", badgeId);
+        console.log("User  already has this badge:", badgeId);
         return false;
       }
       
@@ -704,7 +704,7 @@ export const saveScenarioHistory = async (
     // Get user's current profile
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
-      throw new Error("User not found");
+      throw new Error("User  not found");
     }
     
     const userData = userDoc.data();
@@ -833,7 +833,8 @@ export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> =>
     
     const snapshot = await getDocs(classroomsQuery);
     return snapshot.docs.map(doc => {
-      return { id: doc.id, ...doc.data() } as Classroom;
+      // Assert that doc.data() is an object to allow spreading
+      return { id: doc.id, ...(doc.data() as object) } as Classroom;
     });
   } catch (error) {
     console.error("Error getting classrooms:", error);
@@ -1026,7 +1027,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       }
       
       if (!userDoc.exists()) {
-        throw new Error("User not found");
+        throw new Error("User  not found");
       }
       
       const classroomData = classroomDoc.data() as Classroom;
@@ -1043,8 +1044,8 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       
       // WRITE PHASE
       let needsClassroomUpdate = false;
-      let updatedStudents = [...currentStudents];
-      let updatedMembers = [...currentMembers];
+      const updatedStudents = [...currentStudents];
+      const updatedMembers = [...currentMembers];
       
       if (existingStudentIndex === -1) {
         // Add to students array
@@ -1166,6 +1167,7 @@ export const onSessionParticipantsUpdated = (sessionId: string, callback: (parti
 
 export const signInWithGoogle = () => {
   const provider = new GoogleAuthProvider();
+ 
   return signInWithPopup(auth, provider);
 };
 
