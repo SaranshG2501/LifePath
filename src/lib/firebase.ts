@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -185,7 +184,7 @@ export const createLiveSession = async (
       
       // Check if there's already an active session
       if (classroomData.activeSessionId) {
-        const existingSessionRef = doc(db, 'liveSessions', classroomData.activeSessionId);
+        const existingSessionRef = doc(db, 'sessions', classroomData.activeSessionId);
         const existingSessionDoc = await transaction.get(existingSessionRef);
         
         if (existingSessionDoc.exists()) {
@@ -202,7 +201,7 @@ export const createLiveSession = async (
       const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
 
       // Create new session with scene tracking
-      const sessionRef = doc(collection(db, 'liveSessions'));
+      const sessionRef = doc(collection(db, 'sessions'));
       const sessionData: LiveSession = {
         classroomId,
         teacherId,
@@ -274,7 +273,7 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
     console.log("Ending live session:", sessionId);
     
     await runTransaction(db, async (transaction) => {
-      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionRef = doc(db, 'sessions', sessionId);
       const classroomRef = doc(db, 'classrooms', classroomId);
       
       const sessionDoc = await transaction.get(sessionRef);
@@ -341,7 +340,7 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
     console.log("Advancing session to scene:", nextSceneId, "index:", nextSceneIndex);
     
     await runTransaction(db, async (transaction) => {
-      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionRef = doc(db, 'sessions', sessionId);
       const sessionDoc = await transaction.get(sessionRef);
       
       if (!sessionDoc.exists()) {
@@ -379,7 +378,7 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
     console.log("Student attempting to join session:", sessionId);
     
     const result = await runTransaction(db, async (transaction) => {
-      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionRef = doc(db, 'sessions', sessionId);
       const sessionDoc = await transaction.get(sessionRef);
       
       if (!sessionDoc.exists()) {
@@ -437,7 +436,7 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
     console.log("Submitting choice for session:", sessionId, "choice:", choiceId);
     
     await runTransaction(db, async (transaction) => {
-      const sessionRef = doc(db, 'liveSessions', sessionId);
+      const sessionRef = doc(db, 'sessions', sessionId);
       const sessionDoc = await transaction.get(sessionRef);
       
       if (!sessionDoc.exists()) {
@@ -486,7 +485,7 @@ export const getActiveSession = async (classroomId: string) => {
       return null;
     }
     
-    const sessionDoc = await getDoc(doc(db, 'liveSessions', classroomData.activeSessionId));
+    const sessionDoc = await getDoc(doc(db, 'sessions', classroomData.activeSessionId));
     if (!sessionDoc.exists()) {
       // Clean up stale reference
       await updateDoc(doc(db, 'classrooms', classroomId), {
@@ -522,7 +521,7 @@ export const cleanupOrphanedSessions = async () => {
     
     // Get all active sessions
     const sessionsQuery = query(
-      collection(db, 'liveSessions'),
+      collection(db, 'sessions'),
       where('status', '==', 'active')
     );
     const sessionsSnapshot = await getDocs(sessionsQuery);
@@ -819,7 +818,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       
       // If there's an active session, remove student from it too
       if (classroomData.activeSessionId) {
-        const sessionRef = doc(db, 'liveSessions', classroomData.activeSessionId);
+        const sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
         const sessionDoc = await transaction.get(sessionRef);
         
         if (sessionDoc.exists()) {
@@ -1099,7 +1098,7 @@ export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => 
 };
 
 export const onLiveSessionUpdated = (sessionId: string, callback: (session: LiveSession) => void) => {
-  return onSnapshot(doc(db, 'liveSessions', sessionId), (doc) => {
+  return onSnapshot(doc(db, 'sessions', sessionId), (doc) => {
     if (doc.exists()) {
       callback({ id: doc.id, ...doc.data() } as LiveSession);
     }
@@ -1124,4 +1123,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp, analytics };
+export { auth, db, Timestamp, analytics, doc, getDoc };
