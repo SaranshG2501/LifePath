@@ -1,87 +1,112 @@
 
-// Firestore rules
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic user authentication rule - users can access their own documents
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow updating just the classrooms field for joining a class
-      allow update: if request.auth != null && 
-                     (request.auth.uid == userId || 
-                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classrooms'])));
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    // Classroom rules
-    match /classrooms/{classroomId} {
-      // Anyone authenticated can read classrooms
-      allow read: if request.auth != null;
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isTeacher(classroomData) {
+      return isAuthenticated() && request.auth.uid == classroomData.teacherId;
+    }
+    
+    function isMember(classroomData) {
+      return isAuthenticated() && 
+             classroomData.members != null &&
+             request.auth.uid in classroomData.members;
+    }
+    
+    function isStudentInClass(classroomData) {
+      return isAuthenticated() && 
+             classroomData.students != null &&
+             classroomData.students.hasAny([{'id': request.auth.uid}]);
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
       
-      // Only teachers can create classrooms
-      allow create: if request.auth != null && 
+      // Allow updating classrooms field when joining
+      allow update: if isAuthenticated() && 
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classrooms']);
+    }
+    
+    // Classrooms collection
+    match /classrooms/{classroomId} {
+      // Read access
+      allow read: if isAuthenticated();
+      
+      // Create access - only teachers
+      allow create: if isAuthenticated() && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Teachers can update their own classrooms or students can join by adding themselves
-      allow update: if request.auth != null && 
-                     (resource.data.teacherId == request.auth.uid || 
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students']) ||
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId']));
+      // Update access
+      allow update: if isAuthenticated() && 
+                     (isTeacher(resource.data) ||  // Teacher can update anything
+                      // Student can join by adding themselves to members
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students']) &&
+                       request.resource.data.members.hasAll(resource.data.members) &&
+                       request.resource.data.members.size() <= resource.data.members.size() + 1) ||
+                      // System updates for sessions
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId', 'activeScenario', 'currentScene', 'lastActivity']));
                       
-      // Only teachers can delete their classrooms
-      allow delete: if request.auth != null && 
-                     resource.data.teacherId == request.auth.uid;
+      // Delete access - only teachers
+      allow delete: if isAuthenticated() && isTeacher(resource.data);
       
-      // Votes subcollection - students can vote
+      // Votes subcollection
       match /votes/{voteId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && voteId == request.auth.uid;
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && voteId == request.auth.uid;
       }
     }
     
-    // Live Sessions rules
-    match /liveSessions/{sessionId} {
-      // Teachers can create sessions for their classrooms
-      allow create: if request.auth != null && 
+    // Live Sessions collection (renamed from liveSessions)
+    match /sessions/{sessionId} {
+      // Create access - only teachers
+      allow create: if isAuthenticated() && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Anyone in the classroom can read the session
-      allow read: if request.auth != null;
+      // Read access - anyone authenticated
+      allow read: if isAuthenticated();
       
-      // Teachers can update their sessions, students can join
-      allow update: if request.auth != null && 
-                     (resource.data.teacherId == request.auth.uid ||
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentChoices']));
+      // Update access
+      allow update: if isAuthenticated() && 
+                     (resource.data.teacherId == request.auth.uid ||  // Teacher can update
+                      // Students can join and submit choices
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentChoices', 'lastUpdated']));
       
-      // Only teachers can delete sessions
-      allow delete: if request.auth != null && 
-                     resource.data.teacherId == request.auth.uid;
+      // Delete access - only teachers
+      allow delete: if isAuthenticated() && resource.data.teacherId == request.auth.uid;
     }
     
-    // Session Participants rules
+    // Session Participants
     match /sessionParticipants/{participantId} {
-      // Students can create their own participant record
-      allow create: if request.auth != null && 
+      allow create: if isAuthenticated() && 
                      request.resource.data.studentId == request.auth.uid;
-      
-      // Anyone can read participant records
-      allow read: if request.auth != null;
-      
-      // Students can update their own records
-      allow update: if request.auth != null && 
-                     resource.data.studentId == request.auth.uid;
-      
-      // Students can delete their own records or teachers can remove them
-      allow delete: if request.auth != null && 
-                     resource.data.studentId == request.auth.uid;
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+                     (resource.data.studentId == request.auth.uid ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isActive']));
+      allow delete: if isAuthenticated() && resource.data.studentId == request.auth.uid;
     }
     
-    // Public reading of class codes for joining
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow write: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow delete: if isAuthenticated();
+    }
+    
+    // Class codes (for joining classrooms)
     match /classCodes/{code} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null; // Allow students to access class codes
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
   }
 }

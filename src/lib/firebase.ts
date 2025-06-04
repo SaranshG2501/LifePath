@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
@@ -76,6 +77,7 @@ export interface Classroom {
   teacherId: string;
   teacherName?: string;
   students: ClassroomStudent[];
+  members?: string[];
   activeScenario?: string | null;
   currentScene?: string | null;
   createdAt: any;
@@ -235,28 +237,32 @@ export const createLiveSession = async (
     if (classroomDoc.exists()) {
       const classroomData = classroomDoc.data() as Classroom;
       const students = classroomData.students || [];
+      const members = classroomData.members || [];
       
-      if (students.length > 0) {
+      // Use members array if available, fallback to students array
+      const studentIds = members.length > 0 ? members : students.map(s => s.id);
+      
+      if (studentIds.length > 0) {
         const teacherDoc = await getDoc(doc(db, 'users', teacherId));
         const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
         
-        const notificationPromises = students.map(student => {
+        const notificationPromises = studentIds.map(studentId => {
           const notificationData: SessionNotification = {
             type: 'live_session_started',
             sessionId: result.sessionId,
             classroomId,
             teacherName,
             scenarioTitle,
-            studentId: student.id,
+            studentId: typeof studentId === 'string' ? studentId : studentId,
             createdAt: Timestamp.now(),
             read: false
           };
           
-          return setDoc(doc(db, 'notifications', `${result.sessionId}_${student.id}`), notificationData);
+          return setDoc(doc(db, 'notifications', `${result.sessionId}_${studentId}`), notificationData);
         });
         
         await Promise.all(notificationPromises);
-        console.log("Notifications created for", students.length, "students");
+        console.log("Notifications created for", studentIds.length, "students");
       }
     }
 
@@ -749,13 +755,14 @@ export const createClassroom = async (teacherId: string, name: string, descripti
     // Generate a unique class code
     const classCode = generateClassCode();
     
-    // Create classroom data
+    // Create classroom data with both students and members arrays for compatibility
     const classroomData = {
       name,
       description: description || "",
       teacherId,
       teacherName,
       students: [],
+      members: [], // New atomic array for member IDs
       activeScenario: null,
       currentScene: null,
       createdAt: Timestamp.now(),
@@ -795,7 +802,7 @@ export const getClassroom = async (classroomId: string) => {
   return null;
 };
 
-// Enhanced student removal with atomic operations
+// Atomic student removal with enhanced error handling
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
     console.log(`Removing student ${studentId} from classroom ${classroomId}`);
@@ -810,10 +817,13 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       
       const classroomData = classroomDoc.data() as Classroom;
       
-      // Remove student from classroom
-      const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
+      // Remove student from both arrays atomically
+      const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
+      const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
+      
       transaction.update(classroomRef, {
-        students: updatedStudents
+        students: updatedStudents,
+        members: updatedMembers
       });
       
       // If there's an active session, remove student from it too
@@ -872,7 +882,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   }
 };
 
-// Fixed join classroom function with proper atomic operations
+// Enhanced atomic join classroom with reliable code-based joining
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
     console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
@@ -888,9 +898,11 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       
       const classroomData = classroomDoc.data() as Classroom;
       const currentStudents = classroomData.students || [];
+      const currentMembers = classroomData.members || [];
       
       // Check if student is already in the classroom
       const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
+      const isMemberAlready = currentMembers.includes(studentId);
       
       if (existingStudentIndex === -1) {
         // Student is not in the classroom yet, add them
@@ -901,13 +913,20 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
         };
         
         const updatedStudents = [...currentStudents, newStudent];
+        const updatedMembers = isMemberAlready ? currentMembers : [...currentMembers, studentId];
         
-        // Update classroom with new student
+        // Update classroom with new student atomically
         transaction.update(classroomRef, { 
-          students: updatedStudents 
+          students: updatedStudents,
+          members: updatedMembers
         });
         
         console.log(`Added student ${studentId} to classroom ${classroomId}`);
+      } else if (!isMemberAlready) {
+        // Student exists in students array but not in members array
+        transaction.update(classroomRef, {
+          members: [...currentMembers, studentId]
+        });
       }
       
       // Update student's profile to include this classroom
@@ -939,6 +958,26 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
     
   } catch (error) {
     console.error("Error joining classroom:", error);
+    throw error;
+  }
+};
+
+// Enhanced join by code with direct classroom ID lookup
+export const joinClassroomByCode = async (classCode: string, studentId: string, studentName: string) => {
+  try {
+    console.log(`Student ${studentId} attempting to join by code: ${classCode}`);
+    
+    // First find the classroom by code
+    const classroom = await getClassroomByCode(classCode);
+    if (!classroom || !classroom.id) {
+      throw new Error("Invalid classroom code");
+    }
+    
+    // Join the classroom using the found ID
+    return await joinClassroom(classroom.id, studentId, studentName);
+    
+  } catch (error) {
+    console.error("Error joining classroom by code:", error);
     throw error;
   }
 };
