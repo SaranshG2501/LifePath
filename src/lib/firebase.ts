@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { 
@@ -75,6 +76,11 @@ export interface ScenarioChoice {
   choiceId: string;
   choiceText: string;
   timestamp: Timestamp;
+  metricChanges?: {
+    environmental: number;
+    social: number;
+    economic: number;
+  };
 }
 
 export interface ScenarioHistory {
@@ -83,6 +89,11 @@ export interface ScenarioHistory {
   scenarioTitle: string;
   choices: ScenarioChoice[];
   metrics: {
+    environmental: number;
+    social: number;
+    economic: number;
+  };
+  finalMetrics?: {
     environmental: number;
     social: number;
     economic: number;
@@ -104,6 +115,7 @@ export interface LiveSession {
   votes: Record<string, string>;
   currentChoices?: Record<string, string>;
   createdAt: Timestamp;
+  startedAt?: Timestamp;
   endedAt?: Timestamp;
   resultPayload?: any;
 }
@@ -111,6 +123,8 @@ export interface LiveSession {
 export interface SessionParticipant {
   userId: string;
   userName: string;
+  studentId?: string;
+  studentName?: string;
   joinedAt: Timestamp;
 }
 
@@ -184,6 +198,9 @@ const createUserDocument = async (user: User) => {
     });
   }
 };
+
+// Alias for compatibility
+export const createUserProfileDocument = createUserDocument;
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
@@ -292,6 +309,30 @@ export const joinClassroom = async (code: string, studentId: string, studentName
   }
 };
 
+// Alias for compatibility
+export const joinClassroomByCode = joinClassroom;
+
+export const getClassroomByCode = async (code: string): Promise<Classroom | null> => {
+  try {
+    const classroomsRef = collection(db, 'classrooms');
+    const q = query(classroomsRef, where('code', '==', code));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    const classroomDoc = querySnapshot.docs[0];
+    return {
+      id: classroomDoc.id,
+      ...classroomDoc.data()
+    } as Classroom;
+  } catch (error) {
+    console.error("Error getting classroom by code", error);
+    return null;
+  }
+};
+
 export const getUserClassrooms = async (userId: string): Promise<Classroom[]> => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -372,7 +413,8 @@ export const createLiveSession = async (
       participants: [],
       votes: {},
       currentChoices: {},
-      createdAt: serverTimestamp() as Timestamp
+      createdAt: serverTimestamp() as Timestamp,
+      startedAt: serverTimestamp() as Timestamp
     };
 
     const sessionRef = await addDoc(collection(db, 'liveSessions'), sessionData);
@@ -415,6 +457,8 @@ export const joinLiveSession = async (sessionId: string, userId: string, userNam
       const newParticipant: SessionParticipant = {
         userId,
         userName,
+        studentId: userId,
+        studentName: userName,
         joinedAt: serverTimestamp() as Timestamp
       };
 
@@ -568,6 +612,16 @@ export const onNotificationsUpdated = (userId: string, callback: (notifications:
   });
 };
 
+export const onSessionParticipantsUpdated = (sessionId: string, callback: (participants: SessionParticipant[]) => void) => {
+  const sessionRef = doc(db, 'liveSessions', sessionId);
+  return onSnapshot(sessionRef, (doc) => {
+    if (doc.exists()) {
+      const sessionData = doc.data() as LiveSession;
+      callback(sessionData.participants || []);
+    }
+  });
+};
+
 // Scenario and voting functions
 export const saveScenarioHistory = async (
   userId: string,
@@ -584,6 +638,7 @@ export const saveScenarioHistory = async (
       scenarioTitle,
       choices,
       metrics,
+      finalMetrics: metrics,
       completedAt: serverTimestamp() as Timestamp
     });
   } catch (error) {
@@ -669,4 +724,10 @@ export const getScenarios = async () => {
   return [];
 };
 
-export { auth, db };
+// Utility functions
+export const convertTimestampToDate = (timestamp: Timestamp): Date => {
+  return timestamp.toDate();
+};
+
+// Type aliases for compatibility
+export type ClassroomStudent = StudentMember;
