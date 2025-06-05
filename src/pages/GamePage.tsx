@@ -541,6 +541,20 @@ const GamePage = () => {
     setPendingSession(null);
   };
 
+  // Show loading if no scenario is loaded
+  if (!gameState.currentScenario) {
+    return (
+      <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-indigo-300" />
+            <p className="text-white/70">Loading scenario...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (showResultScreen && sessionResult) {
     return (
       <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
@@ -569,7 +583,7 @@ const GamePage = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-indigo-300" />
-              {gameState.currentScenario.title}
+              {gameState.currentScenario?.title || 'Loading...'}
               {isInLiveSession && (
                 <div className="flex items-center gap-1 ml-2">
                   <Wifi className="h-4 w-4 text-green-400 animate-pulse" />
@@ -628,7 +642,7 @@ const GamePage = () => {
         <div className="mb-6">
           <LiveSessionTracker
             session={liveSession}
-            onAdvanceScene={handleAdvanceScene}
+            onAdvanceScene={() => {}} // Implement advance scene
             onEndSession={() => {}} // Implement end session
             isTeacher={true}
           />
@@ -636,7 +650,7 @@ const GamePage = () => {
       )}
 
       {/* Main game content */}
-      {gameState.currentScene.isEnding ? (
+      {gameState.currentScene?.isEnding ? (
         <ResultsSummary 
           gameState={gameState} 
           onPlayAgain={() => {}} // Implement play again
@@ -665,7 +679,7 @@ const GamePage = () => {
       <LiveSessionModal
         isOpen={showJoinModal}
         onClose={() => setShowJoinModal(false)}
-        onJoin={handleJoinLiveSession}
+        onJoin={() => {}} // Implement join
         onDecline={() => setShowJoinModal(false)}
         teacherName={liveSession?.teacherName || 'Teacher'}
         scenarioTitle={liveSession?.scenarioTitle || ''}

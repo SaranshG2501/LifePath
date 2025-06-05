@@ -79,6 +79,11 @@ export type Classroom = {
   teacherId: string;
   students: string[];
   activeScenario?: string;
+  classCode?: string;
+  teacherName?: string;
+  createdAt?: any;
+  members?: string[];
+  activeSessionId?: string;
 };
 
 export type VoteStats = {

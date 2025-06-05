@@ -28,6 +28,11 @@ interface GameState {
   currentClassroom?: any;
   currentSession?: LiveSession | null;
   isConnectedToSession: boolean;
+  history: {
+    sceneId: string;
+    choiceId: string;
+    metricChanges: any;
+  }[];
 }
 
 interface GameContextType {
@@ -58,6 +63,8 @@ interface GameContextType {
   classroomVotes: Record<string, number>;
   revealVotes: boolean;
   setRevealVotes: (reveal: boolean) => void;
+  setClassroomId: (id: string | null) => void;
+  setUserRole: (role: UserRole) => void;
 }
 
 const initialGameState: GameState = {
@@ -70,7 +77,8 @@ const initialGameState: GameState = {
   isEnded: false,
   currentClassroom: null,
   currentSession: null,
-  isConnectedToSession: false
+  isConnectedToSession: false,
+  history: []
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -81,13 +89,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState(true);
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
   const [revealVotes, setRevealVotes] = useState(false);
+  const [classroomId, setClassroomId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>('student');
   const { currentUser, userProfile } = useAuth();
   const { toast } = useToast();
 
   // Derived values
   const isGameActive = gameState.currentScenario !== null;
-  const userRole = userProfile?.role || 'student';
-  const classroomId = gameState.currentClassroom?.id || null;
   const currentMirrorQuestion = "What are you thinking about this decision?";
 
   useEffect(() => {
@@ -359,7 +367,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showMirrorMoment,
     gameMode: gameState.gameMode,
     setGameMode,
-    userRole,
+    userRole: userProfile?.role || userRole,
     classroomId,
     mirrorMomentsEnabled,
     toggleMirrorMoments,
@@ -369,7 +377,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setShowMirrorMoment,
     classroomVotes,
     revealVotes,
-    setRevealVotes
+    setRevealVotes,
+    setClassroomId,
+    setUserRole
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
