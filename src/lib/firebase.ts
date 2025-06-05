@@ -48,7 +48,8 @@ export interface ScenarioHistory {
   scenarioId: string;
   scenarioTitle: string;
   completedAt: Timestamp;
-  metrics: any;
+  metrics?: any;
+  finalMetrics?: any;
   choices: any[];
 }
 
@@ -57,6 +58,7 @@ export interface ScenarioChoice {
   choiceId: string;
   choiceText: string;
   timestamp: Timestamp;
+  metricChanges?: any;
 }
 
 // Firestore data structures
@@ -166,6 +168,27 @@ const generateClassCode = (): string => {
     code += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return code;
+};
+
+// Auth Functions
+export const signInWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result;
+  } catch (error) {
+    console.error("Error signing in with Google:", error);
+    throw error;
+  }
+};
+
+export const signOutFirebase = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Error signing out:", error);
+    throw error;
+  }
 };
 
 // FIXED: Export all required functions
@@ -342,7 +365,7 @@ export const getUserClassrooms = async (userId: string, role: 'student' | 'teach
   }
 };
 
-export const joinClassroomByCode = async (classCode: string, userId: string, studentName: string): Promise<Classroom | undefined> => {
+export const joinClassroomByCode = async (classCode: string, userId: string, studentName: string, userRole: 'student' | 'teacher'): Promise<Classroom | undefined> => {
   try {
     const classCodeRef = doc(db, 'classCodes', classCode);
     const classCodeDoc = await getDoc(classCodeRef);
@@ -765,11 +788,15 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   }
 };
 
-export const saveScenarioHistory = async (history: Omit<ScenarioHistory, 'id'>): Promise<void> => {
+export const saveScenarioHistory = async (userId: string, scenarioId: string, scenarioTitle: string, choices: ScenarioChoice[], finalMetrics?: any): Promise<void> => {
   try {
     const historyRef = doc(collection(db, 'scenarioHistory'));
     await setDoc(historyRef, {
-      ...history,
+      userId,
+      scenarioId,
+      scenarioTitle,
+      choices,
+      finalMetrics,
       completedAt: serverTimestamp()
     });
   } catch (error) {

@@ -5,13 +5,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   auth,
   getUserProfile as getUserProfileFromDB,
-  loginUser,
-  logoutUser,
-  createUser,
-  createUserProfile as createUserProfileInDB,
   ScenarioHistory,
+  signInWithGoogle,
+  signOutFirebase,
+  createUserProfileDocument
 } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { UserRole } from '@/types/game';
 
@@ -72,7 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createUserProfile = async (uid: string, data: any): Promise<void> => {
-    return await createUserProfileInDB(uid, data);
+    const user = { uid } as any;
+    await createUserProfileDocument(user);
   };
 
   useEffect(() => {
@@ -108,8 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { user } = await loginUser(email, password);
-      const profileData = await getUserProfile(user.uid);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const profileData = await getUserProfile(result.user.uid);
       setUserProfile(profileData);
       toast({
         title: 'Login successful',
@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, username: string, role: UserRole) => {
     try {
       setIsLoading(true);
-      const { user } = await createUser(email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
 
       const userData: UserProfileData = {
         username,
@@ -142,11 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         badges: [],
         classrooms: [],
         history: [],
-        id: user.uid,
+        id: result.user.uid,
         displayName: username
       };
 
-      await createUserProfile(user.uid, userData);
+      await createUserProfile(result.user.uid, userData);
       setUserProfile(userData);
       toast({
         title: 'Account created',
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setIsLoading(true);
-      await logoutUser();
+      await signOutFirebase();
       setUserProfile(null);
       toast({
         title: 'Logged out',
