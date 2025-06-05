@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { 
@@ -72,6 +73,11 @@ export interface UserProfile {
   role: 'student' | 'teacher';
   createdAt: Timestamp;
   lastLogin: Timestamp;
+  completedScenarios?: string[];
+  xp?: number;
+  level?: number;
+  badges?: string[];
+  history?: ScenarioHistory[];
 }
 
 export interface Classroom {
@@ -210,7 +216,12 @@ export const createUserProfileDocument = async (user: User) => {
         classrooms: [],
         role: 'student',
         createdAt,
-        lastLogin: createdAt
+        lastLogin: createdAt,
+        completedScenarios: [],
+        xp: 0,
+        level: 1,
+        badges: [],
+        history: []
       });
     } catch (error) {
       console.error("Error creating user document", error);
@@ -241,7 +252,12 @@ export const getUserProfileDocument = async (uid: string): Promise<UserProfile |
       classrooms: snapshot.data().classrooms || [],
       role: snapshot.data().role || 'student',
       createdAt: snapshot.data().createdAt,
-      lastLogin: snapshot.data().lastLogin
+      lastLogin: snapshot.data().lastLogin,
+      completedScenarios: snapshot.data().completedScenarios || [],
+      xp: snapshot.data().xp || 0,
+      level: snapshot.data().level || 1,
+      badges: snapshot.data().badges || [],
+      history: snapshot.data().history || []
     };
   }
 
@@ -923,4 +939,4 @@ const getScenarios = async (): Promise<Scenario[]> => {
   }
 };
 
-export { auth, db, signInWithGoogle, signOutFirebase, getScenario, getScenarios };
+export { auth, db, getScenario, getScenarios };

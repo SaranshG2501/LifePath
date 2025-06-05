@@ -1,6 +1,7 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { scenarioData } from '../data/scenarios';
+import { scenarios } from '../data/scenarios';
 import { 
   UserProfile, 
   ScenarioChoice, 
@@ -15,7 +16,13 @@ import {
 } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { Scenario, Scene, Choice, Impact, UserRole } from '../types/game';
+import { Scenario, Scene, Choice, UserRole } from '../types/game';
+
+interface Impact {
+  environmental: number;
+  social: number;
+  economic: number;
+}
 
 interface GameState {
   currentScenario: Scenario | null;
@@ -86,7 +93,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [gameState.currentSession]);
 
   const startScenario = (scenarioId: string) => {
-    const scenario = scenarioData.find(s => s.id === scenarioId);
+    const scenario = scenarios.find(s => s.id === scenarioId);
     if (!scenario) {
       console.error('Scenario not found');
       return;
@@ -124,9 +131,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const newMetrics = {
-      environmental: gameState.userMetrics.environmental + choice.impact.environmental,
-      social: gameState.userMetrics.social + choice.impact.social,
-      economic: gameState.userMetrics.economic + choice.impact.economic
+      environmental: gameState.userMetrics.environmental + (choice as any).impact.environmental,
+      social: gameState.userMetrics.social + (choice as any).impact.social,
+      economic: gameState.userMetrics.economic + (choice as any).impact.economic
     };
 
     const newChoices = [...gameState.choices, newChoice];
@@ -167,9 +174,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userProfile) {
           const updatedProfile: Partial<UserProfile> = {
-            completedScenarios: [...userProfile.completedScenarios, gameState.currentScenario.id],
-            xp: userProfile.xp + 100,
-            level: Math.floor((userProfile.xp + 100) / 500) + 1
+            xp: (userProfile.xp || 0) + 100,
+            level: Math.floor(((userProfile.xp || 0) + 100) / 500) + 1
           };
           await updateUserProfile(currentUser.uid, updatedProfile);
         }
@@ -199,7 +205,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const session = await joinLiveSession(sessionId, currentUser.uid, userProfile.displayName);
+      const session = await joinLiveSession(sessionId, currentUser.uid, userProfile.displayName || '');
       
       setGameState(prev => ({
         ...prev,
@@ -283,7 +289,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     submitVote,
     endGame,
     setCurrentClassroom,
-    scenarios: scenarioData
+    scenarios: scenarios
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
