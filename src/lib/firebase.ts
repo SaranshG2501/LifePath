@@ -209,8 +209,10 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
       badges: snapshot.data().badges || [],
       history: snapshot.data().history || []
     };
+  } catch (error) {
+    console.error("Error getting user profile", error);
+    return null;
   }
-  return null;
 };
 
 export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>) => {
