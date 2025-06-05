@@ -1,4 +1,5 @@
 
+
 export type Metrics = {
   health: number;
   money: number;
@@ -71,6 +72,8 @@ export type UserProfile = {
   completedScenarios: string[];
   badges: string[];
   classrooms: string[];
+  displayName?: string;
+  level?: number;
 };
 
 export type Classroom = {
@@ -79,10 +82,10 @@ export type Classroom = {
   teacherId: string;
   students: string[];
   activeScenario?: string;
-  classCode?: string;
-  teacherName?: string;
-  createdAt?: any;
-  members?: string[];
+  classCode: string;
+  teacherName: string;
+  createdAt: any;
+  members: string[];
   activeSessionId?: string;
 };
 

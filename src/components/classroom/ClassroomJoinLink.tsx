@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { School, Users, LogIn } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms } from '@/lib/firebase';
+import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms, Classroom } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const ClassroomJoinLink: React.FC = () => {
@@ -31,7 +32,7 @@ const ClassroomJoinLink: React.FC = () => {
       if (!currentUser || !userProfile?.role) return;
       
       try {
-        const classrooms = await getUserClassrooms(currentUser.uid, userProfile.role);
+        const classrooms = await getUserClassrooms(currentUser.uid);
         setUserHasClassrooms(classrooms.length > 0);
         
         if (classrooms.length > 0 && !classroomId) {
@@ -87,7 +88,8 @@ const ClassroomJoinLink: React.FC = () => {
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
-        classDescription
+        classDescription,
+        userProfile?.displayName || currentUser.email?.split('@')[0] || 'Teacher'
       );
       
       if (newClassroom && newClassroom.id) {

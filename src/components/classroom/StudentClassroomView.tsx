@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,7 @@ const StudentClassroomView = () => {
       }
 
       try {
-        const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
+        const userClassrooms = await getUserClassrooms(currentUser.uid);
         console.log("Loaded student classrooms:", userClassrooms);
         setClassrooms(userClassrooms);
         
