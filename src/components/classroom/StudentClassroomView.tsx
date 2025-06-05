@@ -17,7 +17,7 @@ const StudentClassroomView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [liveSessions, setLiveSessions] = useState<Record<string, LiveSession>>({});
   const { currentUser, userProfile } = useAuth();
-  const { setGameMode, setClassroomId, userRole } = useGameContext();
+  const { setGameMode, setClassroomId, userRole, loadScenario } = useGameContext();
   const { toast } = useToast();
 
   // Load user's classrooms on mount
@@ -60,7 +60,7 @@ const StudentClassroomView = () => {
     loadClassrooms();
   }, [currentUser, userRole, toast]);
 
-  // FIXED: Enhanced classroom listener for live session updates
+  // Enhanced classroom listener for live session updates
   useEffect(() => {
     if (!currentUser || userRole !== 'student' || classrooms.length === 0) return;
 
@@ -119,7 +119,7 @@ const StudentClassroomView = () => {
     };
   }, [currentUser, userRole, classrooms.length, toast]);
 
-  // FIXED: Enhanced join classroom function
+  // Enhanced join classroom function
   const handleJoinClassroom = async () => {
     if (!classCode.trim()) {
       toast({
@@ -206,20 +206,37 @@ const StudentClassroomView = () => {
     }
   };
 
-  // FIXED: Handle joining live session
-  const handleJoinLiveSession = (classroom: Classroom) => {
+  // ENHANCED: Handle joining live session with proper redirection
+  const handleJoinLiveSession = async (classroom: Classroom) => {
     const liveSession = liveSessions[classroom.id!];
     if (liveSession && classroom.id) {
-      setClassroomId(classroom.id);
-      setGameMode("classroom");
-      
-      toast({
-        title: "🎯 Joining Live Session",
-        description: `Connecting to "${liveSession.scenarioTitle}"...`,
-      });
-      
-      // Navigate to game page where session join logic will handle the rest
-      window.location.href = '/game';
+      try {
+        // Set classroom context
+        setClassroomId(classroom.id);
+        setGameMode("classroom");
+        
+        // Load the scenario first
+        console.log("Loading scenario for live session:", liveSession.scenarioId);
+        await loadScenario(liveSession.scenarioId);
+        
+        toast({
+          title: "🎯 Joining Live Session",
+          description: `Connecting to "${liveSession.scenarioTitle}"...`,
+        });
+        
+        // Navigate to game page
+        setTimeout(() => {
+          window.location.href = '/game';
+        }, 1000);
+        
+      } catch (error) {
+        console.error("Error loading scenario for live session:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load the live session. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -236,7 +253,7 @@ const StudentClassroomView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Join Classroom Section - ALWAYS VISIBLE */}
+      {/* Join Classroom Section */}
       <Card className="bg-black/20 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
@@ -310,7 +327,7 @@ const StudentClassroomView = () => {
                           Code: {classroom.classCode}
                         </p>
                         
-                        {/* FIXED: Live Session Indicator */}
+                        {/* Live Session Indicator */}
                         {hasLiveSession && (
                           <div className="mt-2 flex items-center gap-2">
                             <Badge className="bg-green-500/20 text-green-300 border-0 animate-pulse">
