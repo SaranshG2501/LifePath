@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { scenarios } from '../data/scenarios';
@@ -16,20 +15,14 @@ import {
 } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { Scenario, Scene, Choice, UserRole } from '../types/game';
-
-interface Impact {
-  environmental: number;
-  social: number;
-  economic: number;
-}
+import { Scenario, Scene, Choice, UserRole, Metrics } from '../types/game';
 
 interface GameState {
   currentScenario: Scenario | null;
   currentScene: Scene | null;
   sceneIndex: number;
   choices: ScenarioChoice[];
-  userMetrics: Impact;
+  metrics: Metrics;
   gameMode: 'individual' | 'classroom';
   isEnded: boolean;
   currentClassroom?: any;
@@ -72,7 +65,7 @@ const initialGameState: GameState = {
   currentScene: null,
   sceneIndex: 0,
   choices: [],
-  userMetrics: { environmental: 0, social: 0, economic: 0 },
+  metrics: { health: 50, money: 50, happiness: 50, knowledge: 50, relationships: 50 },
   gameMode: 'individual',
   isEnded: false,
   currentClassroom: null,
@@ -132,7 +125,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentScene: scenario.scenes[0],
       sceneIndex: 0,
       choices: [],
-      userMetrics: { environmental: 0, social: 0, economic: 0 },
+      metrics: scenario.initialMetrics,
       isEnded: false
     }));
   };
@@ -150,7 +143,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentScene: scenario.scenes[0],
       sceneIndex: 0,
       choices: [],
-      userMetrics: { environmental: 0, social: 0, economic: 0 },
+      metrics: scenario.initialMetrics,
       isEnded: false
     }));
   };
@@ -184,10 +177,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       timestamp: new Date() as any
     };
 
-    const newMetrics = {
-      environmental: gameState.userMetrics.environmental + (choice as any).impact.environmental,
-      social: gameState.userMetrics.social + (choice as any).impact.social,
-      economic: gameState.userMetrics.economic + (choice as any).impact.economic
+    const newMetrics: Metrics = {
+      health: Math.max(0, Math.min(100, gameState.metrics.health + (choice.metricChanges.health || 0))),
+      money: Math.max(0, Math.min(100, gameState.metrics.money + (choice.metricChanges.money || 0))),
+      happiness: Math.max(0, Math.min(100, gameState.metrics.happiness + (choice.metricChanges.happiness || 0))),
+      knowledge: Math.max(0, Math.min(100, gameState.metrics.knowledge + (choice.metricChanges.knowledge || 0))),
+      relationships: Math.max(0, Math.min(100, gameState.metrics.relationships + (choice.metricChanges.relationships || 0)))
     };
 
     const newChoices = [...gameState.choices, newChoice];
@@ -200,7 +195,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentScene: nextScene,
           sceneIndex: prev.sceneIndex + 1,
           choices: newChoices,
-          userMetrics: newMetrics
+          metrics: newMetrics
         }));
       }
     } else {
@@ -208,22 +203,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const endGameWithResults = async (finalChoices: ScenarioChoice[], finalMetrics: Impact) => {
+  const endGameWithResults = async (finalChoices: ScenarioChoice[], finalMetrics: Metrics) => {
     setGameState(prev => ({
       ...prev,
       isEnded: true,
       choices: finalChoices,
-      userMetrics: finalMetrics
+      metrics: finalMetrics
     }));
 
     if (currentUser && gameState.currentScenario) {
       try {
+        // Convert Metrics to the format expected by Firebase
+        const firebaseMetrics = {
+          environmental: finalMetrics.health + finalMetrics.knowledge,
+          social: finalMetrics.happiness + finalMetrics.relationships,
+          economic: finalMetrics.money
+        };
+
         await saveScenarioHistory(
           currentUser.uid,
           gameState.currentScenario.id,
           gameState.currentScenario.title,
           finalChoices,
-          finalMetrics
+          firebaseMetrics
         );
 
         if (userProfile) {

@@ -11,6 +11,12 @@ interface MetricsDisplayProps {
 }
 
 const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = false }) => {
+  // Safety check for metrics
+  if (!metrics) {
+    console.warn('MetricsDisplay: metrics prop is undefined');
+    return null;
+  }
+
   const metricsConfig = [
     { key: 'health', label: 'Health', icon: Heart, color: 'bg-neon-red', textColor: 'text-neon-red', bgColor: 'bg-neon-red/20' },
     { key: 'money', label: 'Money', icon: DollarSign, color: 'bg-neon-green', textColor: 'text-neon-green', bgColor: 'bg-neon-green/20' },
@@ -23,7 +29,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
     return (
       <div className="flex flex-wrap gap-2 justify-center">
         {metricsConfig.map(({ key, icon: Icon, color, textColor, bgColor }, index) => {
-          const value = metrics[key as keyof Metrics];
+          const value = metrics[key as keyof Metrics] || 0;
           const animationDelay = `${index * 0.1}s`;
           
           return (
@@ -52,7 +58,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({ metrics, compact = fals
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {metricsConfig.map(({ key, label, icon: Icon, color, bgColor }, index) => {
-        const value = metrics[key as keyof Metrics];
+        const value = metrics[key as keyof Metrics] || 0;
         const animationDelay = `${index * 0.1}s`;
         
         return (
