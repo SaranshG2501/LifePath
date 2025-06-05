@@ -248,8 +248,8 @@ const GamePage = () => {
         
         // FIXED: Check if user has voted on current scene (reset when votes are cleared)
         if (currentUser) {
-          const userVoted = updatedSession.votes?.[currentUser.uid] || updatedSession.currentChoices?.[currentUser.uid];
-          const votesCleared = Object.keys(updatedSession.votes || {}).length === 0;
+          const userVoted = (updatedSession.votes && updatedSession.votes[currentUser.uid]) || updatedSession.currentChoices?.[currentUser.uid];
+          const votesCleared = !updatedSession.votes || Object.keys(updatedSession.votes).length === 0;
           
           if (votesCleared && hasVoted) {
             console.log("Votes cleared for new scene, resetting vote status");

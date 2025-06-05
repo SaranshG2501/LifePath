@@ -21,6 +21,14 @@ service cloud.firestore {
              request.auth.uid in classroomData.members;
     }
     
+    function isValidJoin(classroomData) {
+      return isAuthenticated() && 
+             request.resource.data.members.hasAll(resource.data.get('members', [])) &&
+             request.resource.data.members.size() == resource.data.get('members', []).size() + 1 &&
+             request.auth.uid in request.resource.data.members &&
+             !(request.auth.uid in resource.data.get('members', []));
+    }
+    
     // Users collection
     match /users/{userId} {
       allow read: if isOwner(userId);
@@ -33,26 +41,24 @@ service cloud.firestore {
     
     // Classrooms collection
     match /classrooms/{classroomId} {
-      // Read access
+      // Read access - any authenticated user can read
       allow read: if isAuthenticated();
       
-      // Create access - only teachers
+      // Create access - only authenticated users can create
       allow create: if isAuthenticated() && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Update access - FIXED for better joining and removal
+      // Update access - ENHANCED for better joining and removal
       allow update: if isAuthenticated() && 
                      (isTeacher(resource.data) ||  // Teacher can update anything
                       // Student can join by adding themselves to members
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-                       request.resource.data.members.hasAll(resource.data.members) &&
-                       request.resource.data.members.size() == resource.data.members.size() + 1 &&
-                       request.auth.uid in request.resource.data.members &&
-                       !(request.auth.uid in resource.data.members)) ||
-                      // Student can also be added to students array (compatibility)
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students', 'members']) &&
-                       request.resource.data.members.hasAll(resource.data.members) &&
-                       request.resource.data.members.size() <= resource.data.members.size() + 1));
+                      isValidJoin(resource.data) ||
+                      // Allow adding to both members and students arrays for compatibility
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students']) &&
+                       request.resource.data.members.hasAll(resource.data.get('members', [])) &&
+                       request.resource.data.members.size() <= resource.data.get('members', []).size() + 1) ||
+                      // Allow updating activeSessionId
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId', 'lastUpdated'])));
                       
       // Delete access - only teachers
       allow delete: if isAuthenticated() && isTeacher(resource.data);
@@ -66,21 +72,24 @@ service cloud.firestore {
     
     // Live Sessions collection
     match /sessions/{sessionId} {
-      // Create access - only teachers
+      // Create access - only authenticated users
       allow create: if isAuthenticated() && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Read access - anyone authenticated
+      // Read access - any authenticated user
       allow read: if isAuthenticated();
       
-      // Update access - ENHANCED for better scene syncing
+      // Update access - ENHANCED for better scene syncing and voting
       allow update: if isAuthenticated() && 
-                     (resource.data.teacherId == request.auth.uid ||  // Teacher can update
-                      // Students can join and submit choices
+                     (resource.data.teacherId == request.auth.uid ||  // Teacher can update everything
+                      // Students can join and submit choices/votes
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentChoices', 'votes', 'lastUpdated']) ||
                       // Allow scene updates and vote resets from teacher
                       (resource.data.teacherId == request.auth.uid && 
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentSceneId', 'currentSceneIndex', 'votes', 'lastUpdated'])));
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentSceneId', 'currentSceneIndex', 'votes', 'currentChoices', 'lastUpdated'])) ||
+                      // Allow status updates for ending sessions
+                      (resource.data.teacherId == request.auth.uid && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resultPayload', 'lastUpdated'])));
       
       // Delete access - only teachers
       allow delete: if isAuthenticated() && resource.data.teacherId == request.auth.uid;
