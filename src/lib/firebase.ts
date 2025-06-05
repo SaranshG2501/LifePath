@@ -201,7 +201,7 @@ export const createLiveSession = async (
       const teacherDoc = await transaction.get(teacherRef);
       const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
 
-      // Create new session with scene tracking
+      // Create new session with enhanced tracking
       const sessionRef = doc(collection(db, 'sessions'));
       const sessionData: LiveSession = {
         classroomId,
@@ -215,12 +215,13 @@ export const createLiveSession = async (
         startedAt: Timestamp.now(),
         participants: [],
         currentChoices: {},
+        votes: {}, // Add votes tracking
         lastUpdated: Timestamp.now()
       };
       
       transaction.set(sessionRef, sessionData);
       
-      // Update classroom with new active session (atomic)
+      // Update classroom with new active session
       transaction.update(classroomRef, {
         activeSessionId: sessionRef.id,
         activeScenario: scenarioId,
@@ -231,28 +232,24 @@ export const createLiveSession = async (
       return { sessionId: sessionRef.id, sessionData };
     });
     
-    // Create notifications for students (outside transaction for performance)
+    // Create notifications for students
     const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
     if (classroomDoc.exists()) {
       const classroomData = classroomDoc.data() as Classroom;
-      const students = classroomData.students || [];
       const members = classroomData.members || [];
       
-      // Use members array if available, fallback to students array
-      const studentIds = members.length > 0 ? members : students.map(s => s.id);
-      
-      if (studentIds.length > 0) {
+      if (members.length > 0) {
         const teacherDoc = await getDoc(doc(db, 'users', teacherId));
         const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
         
-        const notificationPromises = studentIds.map(studentId => {
+        const notificationPromises = members.map(studentId => {
           const notificationData: SessionNotification = {
             type: 'live_session_started',
             sessionId: result.sessionId,
             classroomId,
             teacherName,
             scenarioTitle,
-            studentId: typeof studentId === 'string' ? studentId : studentId,
+            studentId,
             createdAt: Timestamp.now(),
             read: false
           };
@@ -261,7 +258,7 @@ export const createLiveSession = async (
         });
         
         await Promise.all(notificationPromises);
-        console.log("Notifications created for", studentIds.length, "students");
+        console.log("Notifications created for", members.length, "students");
       }
     }
 
@@ -299,7 +296,7 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
       
       transaction.update(sessionRef, updateData);
       
-      // Clear active session from classroom (atomic)
+      // Clear active session from classroom
       transaction.update(classroomRef, {
         activeSessionId: null,
         activeScenario: null,
@@ -308,7 +305,7 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
       });
     });
     
-    // Clean up participants and notifications (outside transaction)
+    // Clean up participants and notifications
     const participantsQuery = query(
       collection(db, 'sessionParticipants'),
       where('sessionId', '==', sessionId)
@@ -360,6 +357,7 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
       const updateData: any = {
         currentSceneId: nextSceneId,
         currentChoices: {}, // Reset choices for new scene
+        votes: {}, // Reset votes for new scene - CRITICAL FIX
         lastUpdated: Timestamp.now()
       };
       
@@ -370,7 +368,7 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
       transaction.update(sessionRef, updateData);
     });
     
-    console.log("Scene advanced successfully");
+    console.log("Scene advanced successfully with votes reset");
   } catch (error) {
     console.error("Error advancing live session:", error);
     throw error;
@@ -453,12 +451,16 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
         throw new Error("Session is not active");
       }
 
-      // Update session choices
+      // Update session choices and votes
       const currentChoices = sessionData.currentChoices || {};
+      const currentVotes = sessionData.votes || {};
+      
       currentChoices[studentId] = choiceId;
+      currentVotes[studentId] = choiceId; // Track votes separately
 
       transaction.update(sessionRef, {
         currentChoices,
+        votes: currentVotes,
         lastUpdated: Timestamp.now()
       });
 
@@ -666,7 +668,7 @@ export const awardBadge = async (userId: string, badgeId: string, badgeTitle: st
       
       // Check if user already has this badge
       if (userBadges.some((badge: any) => badge.id === badgeId)) {
-        console.log("User  already has this badge:", badgeId);
+        console.log("User already has this badge:", badgeId);
         return false;
       }
       
@@ -704,7 +706,7 @@ export const saveScenarioHistory = async (
     // Get user's current profile
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
-      throw new Error("User  not found");
+      throw new Error("User not found");
     }
     
     const userData = userDoc.data();
@@ -1027,7 +1029,7 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       }
       
       if (!userDoc.exists()) {
-        throw new Error("User  not found");
+        throw new Error("User not found");
       }
       
       const classroomData = classroomDoc.data() as Classroom;
@@ -1040,39 +1042,36 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       // Check if already a member
       const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
       const isMemberAlready = currentMembers.includes(studentId);
-      const isInUserClassrooms = userClassrooms.includes(classroomId);
       
-      // WRITE PHASE
-      let needsClassroomUpdate = false;
+      if (isMemberAlready && existingStudentIndex !== -1) {
+        console.log("Student already a member");
+        return classroomData;
+      }
+      
+      // WRITE PHASE - Add student to classroom
       const updatedStudents = [...currentStudents];
       const updatedMembers = [...currentMembers];
       
       if (existingStudentIndex === -1) {
-        // Add to students array
         const newStudent: ClassroomStudent = {
           id: studentId,
           name: studentName,
           joinedAt: Timestamp.now()
         };
         updatedStudents.push(newStudent);
-        needsClassroomUpdate = true;
       }
       
       if (!isMemberAlready) {
-        // Add to members array
         updatedMembers.push(studentId);
-        needsClassroomUpdate = true;
       }
       
-      if (needsClassroomUpdate) {
-        transaction.update(classroomRef, { 
-          students: updatedStudents,
-          members: updatedMembers
-        });
-      }
+      transaction.update(classroomRef, { 
+        students: updatedStudents,
+        members: updatedMembers
+      });
       
       // Update user's classrooms
-      if (!isInUserClassrooms) {
+      if (!userClassrooms.includes(classroomId)) {
         const updatedUserClassrooms = [...userClassrooms, classroomId];
         transaction.update(userRef, { 
           classrooms: updatedUserClassrooms 
@@ -1082,9 +1081,8 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       return classroomData;
     });
     
-    // Return the updated classroom data
-    const updatedClassroom = await getClassroom(classroomId);
-    return updatedClassroom;
+    console.log("Successfully joined classroom");
+    return await getClassroom(classroomId); // Return updated classroom
     
   } catch (error) {
     console.error("Error joining classroom:", error);
@@ -1100,7 +1098,7 @@ export const joinClassroomByCode = async (classCode: string, studentId: string, 
     // First find the classroom by code
     const classroom = await getClassroomByCode(classCode);
     if (!classroom || !classroom.id) {
-      throw new Error("Invalid classroom code");
+      throw new Error("Invalid classroom code. Please check and try again.");
     }
     
     // Join the classroom using the found ID

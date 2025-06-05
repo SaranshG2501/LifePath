@@ -210,10 +210,9 @@ const GamePage = () => {
           setIsInLiveSession(false);
           setHasVoted(false);
           setPopupHandledSessionId(null);
-          setModeLocked(false); // FIXED: Unlock mode when session ends
+          setModeLocked(false);
           localStorage.removeItem('lockMode');
           
-          // Show result screen if result payload exists
           if (updatedSession.resultPayload) {
             setSessionResult(updatedSession.resultPayload);
             setShowResultScreen(true);
@@ -227,7 +226,7 @@ const GamePage = () => {
           return;
         }
         
-        // ENHANCED: Better Scene Progress Sync
+        // CRITICAL FIX: Enhanced Scene Progress Sync
         if (updatedSession.currentSceneId && 
             gameState.currentScene?.id !== updatedSession.currentSceneId &&
             !sceneAdvanceDebounce) {
@@ -239,20 +238,31 @@ const GamePage = () => {
             setCurrentScene(updatedSession.currentSceneId);
             setHasVoted(false); // Reset vote status for new scene
             setSceneAdvanceDebounce(false);
+            
+            toast({
+              title: "📄 New Scene",
+              description: "The teacher has advanced to the next scene.",
+            });
           }, 100);
         }
         
-        // Check if user has voted on current scene
-        if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
-          setHasVoted(true);
-        } else if (!sceneAdvanceDebounce) {
-          setHasVoted(false);
+        // FIXED: Check if user has voted on current scene (reset when votes are cleared)
+        if (currentUser) {
+          const userVoted = updatedSession.votes?.[currentUser.uid] || updatedSession.currentChoices?.[currentUser.uid];
+          const votesCleared = Object.keys(updatedSession.votes || {}).length === 0;
+          
+          if (votesCleared && hasVoted) {
+            console.log("Votes cleared for new scene, resetting vote status");
+            setHasVoted(false);
+          } else if (userVoted && !hasVoted) {
+            setHasVoted(true);
+          }
         }
       });
 
       return unsubscribe;
     }
-  }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, currentUser, toast, sceneAdvanceDebounce]);
+  }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, currentUser, toast, sceneAdvanceDebounce, hasVoted]);
 
   const handleJoinFromNotification = useCallback(async () => {
     if (!pendingSession || !currentUser || !userProfile) return;
@@ -391,7 +401,7 @@ const GamePage = () => {
     }
   };
 
-  // ENHANCED: Better scene advancement with proper Firestore updates
+  // CRITICAL FIX: Better scene advancement with vote reset
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id && !sceneAdvanceDebounce) {
       try {
@@ -411,11 +421,22 @@ const GamePage = () => {
         await advanceLiveSession(liveSession.id, nextSceneId, nextSceneIndex);
         makeChoice('advance');
         
+        toast({
+          title: "📄 Scene Advanced",
+          description: "Moving to the next scene. All votes have been reset.",
+        });
+        
         // Clear debounce after operation completes
         setTimeout(() => setSceneAdvanceDebounce(false), 1000);
       } catch (error) {
         console.error("Error advancing scene:", error);
         setSceneAdvanceDebounce(false);
+        
+        toast({
+          title: "Error",
+          description: "Failed to advance to next scene. Please try again.",
+          variant: "destructive",
+        });
       }
     }
   };
