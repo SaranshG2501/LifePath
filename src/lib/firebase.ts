@@ -26,11 +26,12 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
-  authDomain: "lifepath-game-e74eb.firebaseapp.com",
-  projectId: "lifepath-game-e74eb",
-  storageBucket: "lifepath-game-e74eb.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  authDomain: "lifepath-3ff8f.firebaseapp.com",
+  projectId: "lifepath-3ff8f",
+  storageBucket: "lifepath-3ff8f.firebasestorage.app",
+  messagingSenderId: "185300197020",
+  appId: "1:185300197020:web:d3c7701675bc4972fbd759",
+  measurementId: "G-N5CCD171WX"
 };
 
 const app = initializeApp(firebaseConfig);
