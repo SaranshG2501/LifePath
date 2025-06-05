@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
@@ -24,7 +25,7 @@ import {
 } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBpZmKqbMYf5v-QhEJvF6iCQqXWWQKHf5o",
+  apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
   authDomain: "lifepath-game-e74eb.firebaseapp.com",
   projectId: "lifepath-game-e74eb",
   storageBucket: "lifepath-game-e74eb.appspot.com",
