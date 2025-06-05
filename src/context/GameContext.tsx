@@ -48,6 +48,23 @@ interface GameContextType {
   endGame: () => void;
   setCurrentClassroom: (classroom: any) => void;
   scenarios: Scenario[];
+  
+  // Additional properties that components expect
+  isGameActive: boolean;
+  showMirrorMoment: boolean;
+  gameMode: 'individual' | 'classroom';
+  setGameMode: (mode: 'individual' | 'classroom') => void;
+  userRole: UserRole;
+  classroomId: string | null;
+  mirrorMomentsEnabled: boolean;
+  toggleMirrorMoments: () => void;
+  setCurrentScene: (sceneId: string) => void;
+  loadScenario: (scenarioId: string) => Promise<void>;
+  currentMirrorQuestion: string;
+  setShowMirrorMoment: (show: boolean) => void;
+  classroomVotes: Record<string, number>;
+  revealVotes: boolean;
+  setRevealVotes: (reveal: boolean) => void;
 }
 
 const initialGameState: GameState = {
@@ -67,8 +84,18 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const [showMirrorMoment, setShowMirrorMoment] = useState(false);
+  const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState(true);
+  const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
+  const [revealVotes, setRevealVotes] = useState(false);
   const { currentUser, userProfile } = useAuth();
   const { toast } = useToast();
+
+  // Derived values
+  const isGameActive = gameState.currentScenario !== null;
+  const userRole = userProfile?.role || 'student';
+  const classroomId = gameState.currentClassroom?.id || null;
+  const currentMirrorQuestion = "What are you thinking about this decision?";
 
   useEffect(() => {
     if (gameState.gameMode === 'classroom' && gameState.currentClassroom && !gameState.currentSession) {
@@ -108,6 +135,33 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userMetrics: { environmental: 0, social: 0, economic: 0 },
       isEnded: false
     }));
+  };
+
+  const loadScenario = async (scenarioId: string) => {
+    const scenario = scenarios.find(s => s.id === scenarioId);
+    if (!scenario) {
+      console.error('Scenario not found');
+      return;
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      currentScenario: scenario,
+      currentScene: scenario.scenes[0],
+      sceneIndex: 0,
+      choices: [],
+      userMetrics: { environmental: 0, social: 0, economic: 0 },
+      isEnded: false
+    }));
+  };
+
+  const setCurrentScene = (sceneId: string) => {
+    if (!gameState.currentScenario) return;
+    
+    const scene = gameState.currentScenario.scenes.find(s => s.id === sceneId);
+    if (scene) {
+      setGameState(prev => ({ ...prev, currentScene: scene }));
+    }
   };
 
   const makeChoice = async (choiceId: string) => {
@@ -264,8 +318,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  const setGameMode = (mode: 'individual' | 'classroom') => {
+    switchMode(mode);
+  };
+
+  const toggleMirrorMoments = () => {
+    setMirrorMomentsEnabled(!mirrorMomentsEnabled);
+  };
+
   const resetGame = () => {
     setGameState(initialGameState);
+    setShowMirrorMoment(false);
   };
 
   const endGame = () => {
@@ -289,7 +352,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     submitVote,
     endGame,
     setCurrentClassroom,
-    scenarios: scenarios
+    scenarios: scenarios,
+    isGameActive,
+    showMirrorMoment,
+    gameMode: gameState.gameMode,
+    setGameMode,
+    userRole,
+    classroomId,
+    mirrorMomentsEnabled,
+    toggleMirrorMoments,
+    setCurrentScene,
+    loadScenario,
+    currentMirrorQuestion,
+    setShowMirrorMoment,
+    classroomVotes,
+    revealVotes,
+    setRevealVotes
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
@@ -302,3 +380,6 @@ export const useGame = (): GameContextType => {
   }
   return context;
 };
+
+// Export useGameContext as an alias for useGame for backward compatibility
+export const useGameContext = useGame;
