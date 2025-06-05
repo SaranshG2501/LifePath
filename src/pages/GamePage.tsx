@@ -34,7 +34,6 @@ import {
 } from '@/lib/firebase';
 import { getDoc,doc } from 'firebase/firestore';
 
-
 const GamePage = () => {
   const { 
     gameState, 
@@ -68,6 +67,7 @@ const GamePage = () => {
   const [sessionResult, setSessionResult] = useState<any>(null);
   const [sceneAdvanceDebounce, setSceneAdvanceDebounce] = useState(false);
   const [lastProcessedClassroomData, setLastProcessedClassroomData] = useState<Classroom | null>(null);
+  const [modeLocked, setModeLocked] = useState(false); // NEW: Mode locking state
 
   useEffect(() => {
     if (!isGameActive) {
@@ -75,7 +75,15 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Fixed classroom membership listener with proper state management
+  // Check for mode lock on component mount
+  useEffect(() => {
+    const lockMode = localStorage.getItem('lockMode');
+    if (lockMode === 'true') {
+      setModeLocked(true);
+    }
+  }, []);
+
+  // Enhanced classroom membership listener with proper state management
   useEffect(() => {
     if (!currentUser || !classroomId || userRole !== 'student') return;
 
@@ -100,12 +108,15 @@ const GamePage = () => {
       
       console.log("Membership check:", { isMemberInMembers, isMemberInStudents, isStillMember });
       
+      // FIXED: Only show removal message if student was actually in a live session
       if (!isStillMember && isInLiveSession) {
         console.log("Student removed from classroom during live session");
         setIsInLiveSession(false);
         setLiveSession(null);
         setHasVoted(false);
         setPopupHandledSessionId(null);
+        setModeLocked(false); // Unlock mode when removed
+        localStorage.removeItem('lockMode');
         
         toast({
           title: "Removed from Classroom",
@@ -184,7 +195,7 @@ const GamePage = () => {
     };
   }, [gameMode, classroomId, userRole, isInLiveSession, popupHandledSessionId]);
 
-  // Enhanced live session listener with better sync and cleanup
+  // ENHANCED: Live session listener with better scene syncing
   useEffect(() => {
     if (liveSession?.id && isInLiveSession) {
       console.log("Setting up live session listener for:", liveSession.id);
@@ -198,7 +209,9 @@ const GamePage = () => {
           console.log("Session ended, showing results");
           setIsInLiveSession(false);
           setHasVoted(false);
-          setPopupHandledSessionId(null); // Clear to allow new sessions
+          setPopupHandledSessionId(null);
+          setModeLocked(false); // FIXED: Unlock mode when session ends
+          localStorage.removeItem('lockMode');
           
           // Show result screen if result payload exists
           if (updatedSession.resultPayload) {
@@ -214,23 +227,25 @@ const GamePage = () => {
           return;
         }
         
-        // Enhanced Scene Progress Sync
+        // ENHANCED: Better Scene Progress Sync
         if (updatedSession.currentSceneId && 
             gameState.currentScene?.id !== updatedSession.currentSceneId &&
             !sceneAdvanceDebounce) {
           console.log("Syncing to teacher's scene:", updatedSession.currentSceneId);
           setSceneAdvanceDebounce(true);
-          setCurrentScene(updatedSession.currentSceneId);
-          setHasVoted(false); // Reset vote status for new scene
           
-          // Clear debounce after a short delay
-          setTimeout(() => setSceneAdvanceDebounce(false), 1000);
+          // Force scene update with proper state management
+          setTimeout(() => {
+            setCurrentScene(updatedSession.currentSceneId);
+            setHasVoted(false); // Reset vote status for new scene
+            setSceneAdvanceDebounce(false);
+          }, 100);
         }
         
         // Check if user has voted on current scene
         if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
           setHasVoted(true);
-        } else {
+        } else if (!sceneAdvanceDebounce) {
           setHasVoted(false);
         }
       });
@@ -256,6 +271,8 @@ const GamePage = () => {
       if (sessionData && sessionData.status === 'active') {
         setLiveSession(sessionData);
         setIsInLiveSession(true);
+        setModeLocked(true); // FIXED: Lock mode when joining session
+        localStorage.setItem('lockMode', 'true');
         
         console.log("Auto-loading scenario:", sessionData.scenarioId);
         startScenario(sessionData.scenarioId);
@@ -312,6 +329,8 @@ const GamePage = () => {
       if (sessionData.status === 'active') {
         setIsInLiveSession(true);
         setShowJoinModal(false);
+        setModeLocked(true); // FIXED: Lock mode when joining session
+        localStorage.setItem('lockMode', 'true');
         
         startScenario(liveSession.scenarioId);
         
@@ -372,6 +391,7 @@ const GamePage = () => {
     }
   };
 
+  // ENHANCED: Better scene advancement with proper Firestore updates
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id && !sceneAdvanceDebounce) {
       try {
@@ -414,7 +434,9 @@ const GamePage = () => {
         setIsInLiveSession(false);
         setLiveSession(null);
         setHasVoted(false);
-        setPopupHandledSessionId(null); // Clear to allow new sessions
+        setPopupHandledSessionId(null);
+        setModeLocked(false); // FIXED: Unlock mode when teacher ends session
+        localStorage.removeItem('lockMode');
         
         toast({
           title: "Session Ended",
@@ -443,7 +465,9 @@ const GamePage = () => {
     resetGame();
     setShowResultScreen(false);
     setSessionResult(null);
-    setPopupHandledSessionId(null); // Clear session tracking
+    setPopupHandledSessionId(null);
+    setModeLocked(false); // Unlock mode when returning home
+    localStorage.removeItem('lockMode');
     navigate('/');
   };
 
@@ -452,7 +476,9 @@ const GamePage = () => {
       resetGame();
       setShowResultScreen(false);
       setSessionResult(null);
-      setPopupHandledSessionId(null); // Clear session tracking
+      setPopupHandledSessionId(null);
+      setModeLocked(false); // Unlock mode when playing again
+      localStorage.removeItem('lockMode');
       setTimeout(() => {
         navigate('/');
         navigate('/game');
@@ -460,21 +486,23 @@ const GamePage = () => {
     }
   };
   
+  // ENHANCED: Mode toggle with proper locking logic
   const toggleGameMode = () => {
-    // Role Lock: Prevent teacher from switching mode if they have an active session
-    if (userRole === 'teacher' && liveSession && liveSession.status === 'active') {
+    // FIXED: Check if mode is locked due to active session
+    if (modeLocked || isInLiveSession) {
       toast({
         title: "Mode Locked",
-        description: "You cannot switch to individual mode while running a live session. End the session first.",
+        description: "You cannot change modes during a live session. Exit the session first.",
         variant: "destructive",
       });
       return;
     }
 
-    if (isInLiveSession) {
+    // Role Lock: Prevent teacher from switching mode if they have an active session
+    if (userRole === 'teacher' && liveSession && liveSession.status === 'active') {
       toast({
         title: "Mode Locked",
-        description: "You cannot change modes during a live session. Exit the session first.",
+        description: "You cannot switch to individual mode while running a live session. End the session first.",
         variant: "destructive",
       });
       return;
@@ -583,9 +611,9 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20"
                 onClick={toggleGameMode}
-                disabled={(!classroomId && gameMode === "individual") || isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')}
+                disabled={(!classroomId && gameMode === "individual") || modeLocked || isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')}
               >
-                {(isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')) && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
+                {(modeLocked || isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')) && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
                 {gameMode === "classroom" ? (
                   <>
                     <Users className="h-4 w-4 text-indigo-300" />

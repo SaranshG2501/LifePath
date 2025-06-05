@@ -21,12 +21,6 @@ service cloud.firestore {
              request.auth.uid in classroomData.members;
     }
     
-    function isStudentInClass(classroomData) {
-      return isAuthenticated() && 
-             classroomData.students != null &&
-             classroomData.students.hasAny([{'id': request.auth.uid}]);
-    }
-    
     // Users collection
     match /users/{userId} {
       allow read: if isOwner(userId);
@@ -49,8 +43,13 @@ service cloud.firestore {
       // Update access
       allow update: if isAuthenticated() && 
                      (isTeacher(resource.data) ||  // Teacher can update anything
-                      // Student can join by adding themselves to members
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students']) &&
+                      // Student can join by adding themselves to members (FIXED: proper member addition)
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+                       request.resource.data.members.hasAll(resource.data.members) &&
+                       request.resource.data.members.size() == resource.data.members.size() + 1 &&
+                       request.resource.data.members.hasAny([request.auth.uid])) ||
+                      // Student can also join via students array for compatibility
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['students', 'members']) &&
                        request.resource.data.members.hasAll(resource.data.members) &&
                        request.resource.data.members.size() <= resource.data.members.size() + 1) ||
                       // System updates for sessions
@@ -66,7 +65,7 @@ service cloud.firestore {
       }
     }
     
-    // Live Sessions collection (renamed from liveSessions)
+    // Live Sessions collection
     match /sessions/{sessionId} {
       // Create access - only teachers
       allow create: if isAuthenticated() && 
@@ -75,11 +74,14 @@ service cloud.firestore {
       // Read access - anyone authenticated
       allow read: if isAuthenticated();
       
-      // Update access
+      // Update access - FIXED: Better scene sync permissions
       allow update: if isAuthenticated() && 
                      (resource.data.teacherId == request.auth.uid ||  // Teacher can update
                       // Students can join and submit choices
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentChoices', 'lastUpdated']));
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentChoices', 'lastUpdated']) ||
+                      // Allow scene updates from teacher
+                      (resource.data.teacherId == request.auth.uid && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentSceneId', 'currentSceneIndex', 'lastUpdated'])));
       
       // Delete access - only teachers
       allow delete: if isAuthenticated() && resource.data.teacherId == request.auth.uid;
