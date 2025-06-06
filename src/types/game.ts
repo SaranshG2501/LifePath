@@ -90,6 +90,7 @@ export interface UserProfile {
   uid: string;
   displayName: string;
   email: string;
+  photoURL?: string;
   role: UserRole;
   createdAt: Date;
   lastLogin?: Date;
