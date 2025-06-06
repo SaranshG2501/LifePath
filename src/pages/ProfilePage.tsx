@@ -13,9 +13,11 @@ import { ScenarioHistory, getUserProfile, UserProfile as FirebaseUserProfile } f
 import { useToast } from '@/hooks/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import { useNavigate } from 'react-router-dom';
+import { signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const ProfilePage = () => {
-  const { currentUser, userProfile, signOut } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { userRole } = useGameContext();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -47,7 +49,7 @@ const ProfilePage = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await firebaseSignOut(auth);
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
@@ -95,7 +97,7 @@ const ProfilePage = () => {
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20 border-2 border-primary">
               <AvatarImage 
-                src={profile.photoURL || currentUser.photoURL || ''} 
+                src={currentUser.photoURL || ''} 
                 alt={profile.displayName} 
               />
               <AvatarFallback className="bg-primary/20 text-primary text-xl">
@@ -207,7 +209,9 @@ const ProfilePage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg font-bold text-white">
-                    {profile.createdAt ? new Date(profile.createdAt.seconds * 1000).toLocaleDateString() : 'Recently'}
+                    {profile.createdAt && 'seconds' in profile.createdAt 
+                      ? new Date(profile.createdAt.seconds * 1000).toLocaleDateString() 
+                      : 'Recently'}
                   </div>
                   <p className="text-white/70 text-sm">Join date</p>
                 </CardContent>
