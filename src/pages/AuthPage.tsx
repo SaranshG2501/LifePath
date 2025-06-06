@@ -1,395 +1,193 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { useGameContext } from '@/context/GameContext';
-import { useAuth } from '@/context/AuthContext';
-import { LogIn, UserPlus, AtSign, Github, Mail } from 'lucide-react';
-import RoleSelectionDialog from '@/components/auth/RoleSelectionDialog';
-import { signInWithGoogle } from '@/lib/firebase';
-import { UserRole } from '@/types/game';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { setDoc, doc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { User } from 'lucide-react';
+import { UserProfileData } from '@/lib/firebase';
 
-const AuthPage: React.FC = () => {
+const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | 'guest'>('student');
   const [isLoading, setIsLoading] = useState(false);
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [signupData, setSignupData] = useState<{email: string; password: string; displayName: string} | null>(null);
-  const [isGoogleSignup, setIsGoogleSignup] = useState(false);
-  const [googleUserData, setGoogleUserData] = useState<any>(null);
-  
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setGameMode } = useGameContext();
-  const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile, refreshUserProfile } = useAuth();
-  
-  // If user becomes authenticated during the process, automatically redirect
-  useEffect(() => {
-    if (currentUser && userProfile && !showRoleDialog) {
-      if (userProfile.role === 'teacher') {
-        setGameMode('classroom');
-        navigate('/teacher');
-      } else {
-        navigate('/profile');
-      }
-    }
-  }, [currentUser, userProfile, showRoleDialog, navigate, setGameMode]);
-  
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+
+  const signUp = async () => {
     if (!email || !password) {
       toast({
-        title: "Error",
-        description: "Please enter your email and password.",
+        title: "Missing Information",
+        description: "Please enter both email and password.",
         variant: "destructive",
       });
       return;
     }
-    
+
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await login(email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
       
+      // Update profile with display name
+      if (displayName) {
+        await updateProfile(firebaseUser, { displayName });
+      }
+
+      // Create user profile in Firestore
+      const userProfile: UserProfileData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        displayName: displayName || firebaseUser.email?.split('@')[0] || 'User',
+        photoURL: firebaseUser.photoURL || undefined,
+        role: selectedRole,
+        createdAt: new Date(),
+        xp: 0,
+        level: 1,
+        badges: [],
+        completedScenarios: [],
+        history: [],
+        classrooms: []
+      };
+
+      await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
+
       toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
+        title: "Account created!",
+        description: `Welcome to LifePath as a ${selectedRole}!`,
       });
-      
-      // Navigation is handled by the useEffect
+
+      navigate('/');
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials. Please try again.",
+        title: "Sign Up Failed",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const handleSignupStart = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password || !displayName) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Store the signup data and show the role selection dialog
-    setSignupData({ email, password, displayName });
-    setIsGoogleSignup(false);
-    setShowRoleDialog(true);
   };
 
-  const handleSignupComplete = async (selectedRole: UserRole) => {
+  const signIn = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
-    
     try {
-      if (isGoogleSignup && googleUserData) {
-        // Google signup flow
-        const uid = googleUserData.uid;
-        
-        await createUserProfile(uid, {
-          displayName: googleUserData.displayName || '',
-          username: googleUserData.displayName || '',
-          email: googleUserData.email || '',
-          role: selectedRole
-        });
-        
-        // Refresh the user profile to get the latest data
-        await refreshUserProfile();
-        
-        toast({
-          title: "Account created",
-          description: "Your Google account has been set up successfully.",
-        });
-        
-        if (selectedRole === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
-      } else if (signupData) {
-        // Email/password signup flow
-        await signup(signupData.email, signupData.password, signupData.displayName, selectedRole);
-        
-        toast({
-          title: "Account created",
-          description: "Your account has been created successfully.",
-        });
-        
-        if (selectedRole === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
-      }
-    } catch (error: any) {
+      // Sign in with email and password
+      await auth.signInWithEmailAndPassword(email, password);
+
       toast({
-        title: "Signup failed",
-        description: error.message || "Failed to create your account. Please try again.",
-        variant: "destructive",
+        title: "Signed in!",
+        description: "You have successfully signed in.",
       });
-    } finally {
-      setIsLoading(false);
-      setShowRoleDialog(false);
-      setGoogleUserData(null);
-    }
-  };
-  
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      
-      const result = await signInWithGoogle();
-      const user = result.user;
-      
-      // Check if the user already has a profile
-      const profile = await getUserProfile(user.uid);
-      
-      if (!profile || !profile.role) {
-        // New user or existing user without role - show role selection dialog
-        setGoogleUserData({
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email
-        });
-        setIsGoogleSignup(true);
-        setShowRoleDialog(true);
-      } else {
-        // Existing user - proceed to appropriate page
-        toast({
-          title: "Welcome!",
-          description: `You're logged in as ${profile.displayName || profile.email}`,
-        });
-        
-        // Ensure user profile is loaded correctly
-        await refreshUserProfile();
-        
-        if (profile.role === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
-      }
+
+      navigate('/');
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
-        title: "Google login failed",
-        description: error.message || "Failed to log in with Google. Please try again.",
+        title: "Sign In Failed",
+        description: error.message || "Failed to sign in. Please check your credentials.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleGuestLogin = async () => {
-    // Guest login functionality would go here
-    toast({
-      title: "Guest Login",
-      description: "Guest login is not implemented yet.",
-    });
-    navigate('/');
-  };
-  
+
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-md border-none bg-black/40 backdrop-blur shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center text-white">Welcome to LifePath</CardTitle>
-          <CardDescription className="text-center text-white/70">
-            Sign in or create an account to track your progress
+    <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-screen">
+      <Card className="max-w-md w-full bg-black/30 border-primary/20">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-4">
+            <User className="w-6 h-6 text-primary" />
+          </div>
+          <CardTitle className="text-white">Sign Up / Sign In</CardTitle>
+          <CardDescription className="text-white/70">
+            Create a new account or sign in to an existing one
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 bg-black/20 border-white/10">
-              <TabsTrigger value="login" className="data-[state=active]:bg-primary/20">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-primary/20">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="login-email" className="text-sm font-medium text-white">Email</label>
-                  <div className="relative">
-                    <AtSign className="absolute left-3 top-2.5 h-5 w-5 text-white/40" />
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-black/20 border-white/20 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="login-password" className="text-sm font-medium text-white">Password</label>
-                    <a href="#" className="text-sm text-primary hover:text-primary/80">
-                      Forgot password?
-                    </a>
-                  </div>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary/90"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign In
-                    </>
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignupStart} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="signup-name" className="text-sm font-medium text-white">Display Name</label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Your Name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="signup-email" className="text-sm font-medium text-white">Email</label>
-                  <div className="relative">
-                    <AtSign className="absolute left-3 top-2.5 h-5 w-5 text-white/40" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-black/20 border-white/20 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="signup-password" className="text-sm font-medium text-white">Password</label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-black/20 border-white/20 text-white placeholder:text-white/30"
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary/90"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Create Account
-                    </>
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-white/80">Email</Label>
+            <Input 
+              type="email" 
+              id="email" 
+              placeholder="Enter your email" 
+              className="bg-black/20 border-white/20 text-white"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-white/80">Password</Label>
+            <Input 
+              type="password" 
+              id="password" 
+              placeholder="Enter your password" 
+              className="bg-black/20 border-white/20 text-white"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="displayName" className="text-white/80">Display Name (Optional)</Label>
+            <Input 
+              type="text" 
+              id="displayName" 
+              placeholder="Enter your display name" 
+              className="bg-black/20 border-white/20 text-white"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="role" className="text-white/80">Role</Label>
+            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as 'student' | 'teacher' | 'guest')}>
+              <SelectTrigger className="bg-black/20 border-white/20 text-white">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/30 border-white/20 text-white">
+                <SelectItem value="student">Student</SelectItem>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="guest">Guest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-white"
+              onClick={signUp}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing Up...' : 'Sign Up'}
+            </Button>
+            <Button 
+              variant="outline" 
+              className="border-white/20 text-white hover:bg-white/10"
+              onClick={signIn}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </div>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-3">
-          <div className="relative w-full mb-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-black/70 px-2 text-white/50">or continue with</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <Button 
-              variant="outline" 
-              className="border-white/20 text-white bg-black/30 hover:bg-white/10"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2" aria-hidden="true">
-                <path
-                  d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
-                  fill="#EA4335"
-                />
-                <path
-                  d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12.0004 24C15.2404 24 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24 12.0004 24Z"
-                  fill="#34A853"
-                />
-              </svg>
-              Google
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-white/20 text-white bg-black/30 hover:bg-white/10"
-              onClick={handleGuestLogin}
-              disabled={isLoading}
-            >
-              <Mail className="h-5 w-5 mr-2" />
-              Guest
-            </Button>
-          </div>
-        </CardFooter>
       </Card>
-
-      {/* Role selection dialog */}
-      <RoleSelectionDialog 
-        open={showRoleDialog} 
-        onSelectRole={handleSignupComplete}
-        onClose={() => {
-          setShowRoleDialog(false);
-          setGoogleUserData(null);
-        }}
-      />
     </div>
   );
 };

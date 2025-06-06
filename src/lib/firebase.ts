@@ -764,3 +764,41 @@ export const convertTimestampToDate = (timestamp: Timestamp): Date => {
 
 // Type aliases for compatibility
 export type ClassroomStudent = StudentMember;
+
+export interface UserProfileData {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: 'student' | 'teacher' | 'guest';
+  createdAt: Date;
+  xp?: number;
+  level?: number;
+  badges?: string[];
+  completedScenarios?: string[];
+  history?: ScenarioHistory[];
+  classrooms?: string[];
+}
+
+export const removeStudentFromClassroom = async (classroomId: string, studentId: string): Promise<void> => {
+  try {
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    const classroomDoc = await getDoc(classroomRef);
+    
+    if (!classroomDoc.exists()) {
+      throw new Error('Classroom not found');
+    }
+    
+    const classroom = classroomDoc.data() as Classroom;
+    const updatedMembers = classroom.members.filter(id => id !== studentId);
+    
+    await updateDoc(classroomRef, {
+      members: updatedMembers
+    });
+    
+    console.log('Student removed from classroom successfully');
+  } catch (error) {
+    console.error('Error removing student from classroom:', error);
+    throw error;
+  }
+};

@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +54,14 @@ const ProfilePage = () => {
   if (!currentUser || !userProfile) {
     return (
       <ClassroomAccessGuard>
-        <div></div>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto bg-black/30 border-primary/20">
+            <CardContent className="p-6 text-center">
+              <User className="h-12 w-12 text-white/30 mx-auto mb-4" />
+              <p className="text-white/70">Please sign in to view your profile.</p>
+            </CardContent>
+          </Card>
+        </div>
       </ClassroomAccessGuard>
     );
   }

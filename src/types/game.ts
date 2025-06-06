@@ -1,101 +1,55 @@
+export interface Scenario {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  ageGroup: string;
+  duration: string;
+  image: string;
+  scenes: Scene[];
+  initialMetrics: Metrics;
+}
 
+export interface Scene {
+  id: string;
+  title: string;
+  content: string;
+  choices: Choice[];
+  image?: string;
+}
 
-export type Metrics = {
+export interface Choice {
+  id: string;
+  text: string;
+  nextSceneId?: string;
+  metricChanges: MetricChanges;
+}
+
+export interface MetricChanges {
   health: number;
   money: number;
   happiness: number;
   knowledge: number;
   relationships: number;
-};
+}
 
-export type MetricChange = {
-  [K in keyof Metrics]?: number;
-};
+export interface Metrics {
+  health: number;
+  money: number;
+  happiness: number;
+  knowledge: number;
+  relationships: number;
+}
 
-export type Choice = {
-  id: string;
-  text: string;
-  nextSceneId: string;
-  metricChanges: MetricChange;
-  tooltip?: string;
-};
+export type UserRole = 'student' | 'teacher' | 'guest';
 
-export type Scene = {
-  id: string;
-  title: string;
-  description: string;
-  image?: string;
-  choices: Choice[];
-  isEnding?: boolean;
-  isEndScene?: boolean;
-};
-
-export type Scenario = {
-  id: string;
-  title: string;
-  description: string;
-  ageGroup: string;
-  category: string;
-  thumbnail: string;
-  initialMetrics: Metrics;
-  scenes: Scene[];
-};
-
-export type GameState = {
-  currentScenario: Scenario | null;
-  currentScene: Scene | null;
-  metrics: Metrics;
-  history: {
-    sceneId: string;
-    choiceId: string;
-    metricChanges: MetricChange;
-  }[];
-};
-
-export type GameMode = "individual" | "classroom";
-export type UserRole = "student" | "teacher" | "guest";
-
-export type Badge = {
-  id: string;
+export interface Classroom {
+  id?: string;
   name: string;
-  description: string;
-  icon: string;
-  criteria: (gameState: GameState) => boolean;
-};
-
-export type UserProfile = {
-  id: string;
-  username: string;
-  email: string;
-  role: UserRole;
-  xp: number;
-  completedScenarios: string[];
-  badges: string[];
-  classrooms: string[];
-  displayName?: string;
-  level?: number;
-};
-
-export type Classroom = {
-  id: string;
-  name: string;
-  teacherId: string;
-  students: string[];
-  activeScenario?: string;
   classCode: string;
+  teacherId: string;
   teacherName: string;
-  createdAt: any;
   members: string[];
+  createdAt: Date;
   activeSessionId?: string;
-};
-
-export type VoteStats = {
-  choiceId: string;
-  count: number;
-  percentage: number;
-};
-
-export interface ScenarioCardProps {
-  scenario: Scenario;
-  onClick?: () => void;
 }
