@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { 
@@ -245,52 +244,79 @@ export const updateUserProfile = async (uid: string, updates: Partial<UserProfil
   }
 };
 
-// Classroom functions
-export const createClassroom = async (name: string, teacherId: string, teacherName: string): Promise<string> => {
+// Enhanced classroom creation with proper code format
+export const createClassroom = async (teacherId: string, name: string, description?: string, teacherName?: string): Promise<Classroom> => {
   try {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const classroomRef = await addDoc(collection(db, 'classrooms'), {
-      name,
+    console.log("Creating classroom with teacherId:", teacherId, "name:", name);
+    
+    // Generate classroom code in LIFE-XXXX format
+    const randomNumber = Math.floor(1000 + Math.random() * 9000);
+    const code = `LIFE-${randomNumber}`;
+    
+    const classroomData = {
+      name: name.trim(),
       code,
       teacherId,
-      teacherName,
+      teacherName: teacherName || 'Teacher',
       createdAt: serverTimestamp() as Timestamp,
       students: [],
-      members: []
-    });
+      members: [teacherId] // Include teacher as a member
+    };
+
+    console.log("Creating classroom with data:", classroomData);
+    
+    const classroomRef = await addDoc(collection(db, 'classrooms'), classroomData);
+    console.log("Classroom created with ID:", classroomRef.id);
 
     // Add classroom to teacher's profile
     const teacherRef = doc(db, 'users', teacherId);
     await updateDoc(teacherRef, {
       classrooms: arrayUnion(classroomRef.id)
     });
+    
+    console.log("Added classroom to teacher profile");
 
-    return classroomRef.id;
+    return {
+      id: classroomRef.id,
+      ...classroomData
+    } as Classroom;
   } catch (error) {
-    console.error("Error creating classroom", error);
+    console.error("Error creating classroom:", error);
     throw error;
   }
 };
 
-export const joinClassroom = async (code: string, studentId: string, studentName: string, studentEmail: string): Promise<string> => {
+// Enhanced classroom joining with better error handling
+export const joinClassroom = async (classroomId: string, studentId: string, studentName: string): Promise<Classroom> => {
   try {
-    // Find classroom by code
-    const classroomsRef = collection(db, 'classrooms');
-    const q = query(classroomsRef, where('code', '==', code));
-    const querySnapshot = await getDocs(q);
+    console.log("Joining classroom:", classroomId, "as student:", studentId, studentName);
     
-    if (querySnapshot.empty) {
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    const classroomSnap = await getDoc(classroomRef);
+    
+    if (!classroomSnap.exists()) {
       throw new Error('Classroom not found');
     }
 
-    const classroomDoc = querySnapshot.docs[0];
-    const classroomRef = doc(db, 'classrooms', classroomDoc.id);
+    const classroomData = classroomSnap.data() as Classroom;
     
+    // Check if student is already a member
+    const isAlreadyMember = classroomData.members?.includes(studentId) || 
+                           classroomData.students?.some(s => s.id === studentId);
+    
+    if (isAlreadyMember) {
+      console.log("Student already a member, returning classroom data");
+      return {
+        id: classroomSnap.id,
+        ...classroomData
+      } as Classroom;
+    }
+
     // Add student to classroom
     const studentMember: StudentMember = {
       id: studentId,
       name: studentName,
-      email: studentEmail,
+      email: '', // We'll get this from user profile if needed
       joinedAt: serverTimestamp() as Timestamp
     };
 
@@ -302,23 +328,48 @@ export const joinClassroom = async (code: string, studentId: string, studentName
     // Add classroom to student's profile
     const studentRef = doc(db, 'users', studentId);
     await updateDoc(studentRef, {
-      classrooms: arrayUnion(classroomDoc.id)
+      classrooms: arrayUnion(classroomId)
     });
+    
+    console.log("Successfully joined classroom");
 
-    return classroomDoc.id;
+    return {
+      id: classroomId,
+      ...classroomData,
+      students: [...(classroomData.students || []), studentMember],
+      members: [...(classroomData.members || []), studentId]
+    } as Classroom;
   } catch (error) {
-    console.error("Error joining classroom", error);
+    console.error("Error joining classroom:", error);
     throw error;
   }
 };
 
-// Alias for compatibility
-export const joinClassroomByCode = joinClassroom;
+export const joinClassroomByCode = async (code: string, studentId: string, studentName: string): Promise<Classroom> => {
+  try {
+    console.log("Joining classroom by code:", code);
+    
+    // Find classroom by code
+    const classroomsRef = collection(db, 'classrooms');
+    const q = query(classroomsRef, where('code', '==', code.toUpperCase()));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      throw new Error('Invalid classroom code');
+    }
+
+    const classroomDoc = querySnapshot.docs[0];
+    return await joinClassroom(classroomDoc.id, studentId, studentName);
+  } catch (error) {
+    console.error("Error joining classroom by code:", error);
+    throw error;
+  }
+};
 
 export const getClassroomByCode = async (code: string): Promise<Classroom | null> => {
   try {
     const classroomsRef = collection(db, 'classrooms');
-    const q = query(classroomsRef, where('code', '==', code));
+    const q = query(classroomsRef, where('code', '==', code.toUpperCase()));
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
@@ -331,13 +382,16 @@ export const getClassroomByCode = async (code: string): Promise<Classroom | null
       ...classroomDoc.data()
     } as Classroom;
   } catch (error) {
-    console.error("Error getting classroom by code", error);
+    console.error("Error getting classroom by code:", error);
     return null;
   }
 };
 
-export const getUserClassrooms = async (userId: string): Promise<Classroom[]> => {
+// Enhanced getUserClassrooms with role filtering
+export const getUserClassrooms = async (userId: string, role?: 'teacher' | 'student'): Promise<Classroom[]> => {
   try {
+    console.log("Getting classrooms for user:", userId, "role:", role);
+    
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
     
@@ -350,47 +404,25 @@ export const getUserClassrooms = async (userId: string): Promise<Classroom[]> =>
       const classroomRef = doc(db, 'classrooms', id);
       const classroomSnap = await getDoc(classroomRef);
       if (classroomSnap.exists()) {
-        classrooms.push({
+        const classroom = {
           id: classroomSnap.id,
           ...classroomSnap.data()
-        } as Classroom);
+        } as Classroom;
+        
+        // Filter by role if specified
+        if (!role || 
+            (role === 'teacher' && classroom.teacherId === userId) ||
+            (role === 'student' && classroom.teacherId !== userId)) {
+          classrooms.push(classroom);
+        }
       }
     }
     
+    console.log("Found classrooms:", classrooms.length);
     return classrooms;
   } catch (error) {
-    console.error("Error getting user classrooms", error);
+    console.error("Error getting user classrooms:", error);
     return [];
-  }
-};
-
-export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
-  try {
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomSnap = await getDoc(classroomRef);
-    
-    if (!classroomSnap.exists()) {
-      throw new Error('Classroom not found');
-    }
-    
-    const classroomData = classroomSnap.data() as Classroom;
-    const updatedStudents = classroomData.students.filter(student => student.id !== studentId);
-    const updatedMembers = (classroomData.members || []).filter(id => id !== studentId);
-    
-    await updateDoc(classroomRef, {
-      students: updatedStudents,
-      members: updatedMembers
-    });
-
-    // Remove classroom from student's profile
-    const studentRef = doc(db, 'users', studentId);
-    await updateDoc(studentRef, {
-      classrooms: arrayRemove(classroomId)
-    });
-    
-  } catch (error) {
-    console.error("Error removing student from classroom", error);
-    throw error;
   }
 };
 
@@ -398,16 +430,16 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
 export const createLiveSession = async (
   classroomId: string, 
   teacherId: string, 
-  teacherName: string, 
   scenarioId: string, 
   scenarioTitle: string, 
-  initialSceneId: string
+  initialSceneId: string,
+  teacherName?: string
 ): Promise<LiveSession> => {
   try {
     const sessionData = {
       classroomId,
       teacherId,
-      teacherName,
+      teacherName: teacherName || 'Teacher',
       scenarioId,
       scenarioTitle,
       currentSceneId: initialSceneId,
@@ -513,7 +545,7 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
   }
 };
 
-export const endLiveSession = async (sessionId: string, resultPayload?: any) => {
+export const endLiveSession = async (sessionId: string, classroomId?: string, resultPayload?: any) => {
   try {
     const sessionRef = doc(db, 'liveSessions', sessionId);
     const updates: any = {
@@ -528,10 +560,8 @@ export const endLiveSession = async (sessionId: string, resultPayload?: any) => 
     await updateDoc(sessionRef, updates);
 
     // Remove active session from classroom
-    const sessionSnap = await getDoc(sessionRef);
-    if (sessionSnap.exists()) {
-      const sessionData = sessionSnap.data();
-      const classroomRef = doc(db, 'classrooms', sessionData.classroomId);
+    if (classroomId) {
+      const classroomRef = doc(db, 'classrooms', classroomId);
       await updateDoc(classroomRef, {
         activeSessionId: null
       });

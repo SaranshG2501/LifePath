@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { scenarios } from '../data/scenarios';
@@ -14,7 +15,7 @@ import {
   LiveSession
 } from '../lib/firebase';
 import { useAuth } from './AuthContext';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Scenario, Scene, Choice, UserRole, Metrics } from '../types/game';
 
 interface GameState {
@@ -65,6 +66,7 @@ interface GameContextType {
   setRevealVotes: (reveal: boolean) => void;
   setClassroomId: (id: string | null) => void;
   setUserRole: (role: UserRole) => void;
+  canPlayScenarios: boolean;
 }
 
 const initialGameState: GameState = {
@@ -98,6 +100,42 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isGameActive = gameState.currentScenario !== null;
   const currentMirrorQuestion = "What are you thinking about this decision?";
 
+  // NEW: Determine if user can play scenarios independently
+  const canPlayScenarios = React.useMemo(() => {
+    console.log("Checking canPlayScenarios...");
+    console.log("- currentUser:", !!currentUser);
+    console.log("- userProfile:", userProfile);
+    console.log("- gameMode:", gameState.gameMode);
+    console.log("- currentSession:", !!gameState.currentSession);
+    
+    // Guest users cannot play scenarios
+    if (!currentUser || !userProfile) {
+      console.log("- Result: false (no user or profile)");
+      return false;
+    }
+    
+    // Users with 'guest' role cannot play scenarios
+    if (userProfile.role === 'guest') {
+      console.log("- Result: false (guest role)");
+      return false;
+    }
+    
+    // In individual mode, authenticated users can always play
+    if (gameState.gameMode === 'individual') {
+      console.log("- Result: true (individual mode)");
+      return true;
+    }
+    
+    // In classroom mode, check if there's an active session blocking individual play
+    if (gameState.gameMode === 'classroom' && gameState.currentSession?.status === 'active') {
+      console.log("- Result: false (active classroom session)");
+      return false;
+    }
+    
+    console.log("- Result: true (default)");
+    return true;
+  }, [currentUser, userProfile, gameState.gameMode, gameState.currentSession]);
+
   useEffect(() => {
     if (gameState.gameMode === 'classroom' && gameState.currentClassroom && !gameState.currentSession) {
       const fetchActiveSession = async () => {
@@ -121,9 +159,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [gameState.currentSession]);
 
   const startScenario = (scenarioId: string) => {
+    console.log("Starting scenario:", scenarioId);
+    console.log("Can play scenarios:", canPlayScenarios);
+    
+    if (!canPlayScenarios) {
+      toast({
+        title: "Access Restricted",
+        description: "Please sign in to play scenarios or wait for the current classroom session to end.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const scenario = scenarios.find(s => s.id === scenarioId);
     if (!scenario) {
       console.error('Scenario not found');
+      toast({
+        title: "Error",
+        description: "Scenario not found. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -136,9 +191,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       metrics: scenario.initialMetrics,
       isEnded: false
     }));
+    
+    console.log("Scenario started successfully");
   };
 
   const loadScenario = async (scenarioId: string) => {
+    console.log("Loading scenario:", scenarioId);
+    
     const scenario = scenarios.find(s => s.id === scenarioId);
     if (!scenario) {
       console.error('Scenario not found');
@@ -154,6 +213,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       metrics: scenario.initialMetrics,
       isEnded: false
     }));
+    
+    console.log("Scenario loaded successfully");
   };
 
   const setCurrentScene = (sceneId: string) => {
@@ -166,10 +227,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const makeChoice = async (choiceId: string) => {
-    if (!gameState.currentScene || !gameState.currentScenario) return;
+    console.log("Making choice:", choiceId);
+    
+    if (!canPlayScenarios) {
+      toast({
+        title: "Access Restricted",
+        description: "You cannot make choices at this time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!gameState.currentScene || !gameState.currentScenario) {
+      console.error("No current scene or scenario");
+      return;
+    }
 
     const choice = gameState.currentScene.choices.find(c => c.id === choiceId);
-    if (!choice) return;
+    if (!choice) {
+      console.error("Choice not found");
+      return;
+    }
 
     // For classroom mode, submit vote instead of making choice directly
     if (gameState.gameMode === 'classroom' && gameState.currentSession) {
@@ -313,7 +391,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchMode = (mode: 'individual' | 'classroom') => {
-    if (mode === 'classroom' && userProfile?.role === 'guest') {
+    console.log("Switching to mode:", mode);
+    
+    if (mode === 'classroom' && (!currentUser || !userProfile || userProfile.role === 'guest')) {
       toast({
         title: 'Sign in required',
         description: 'Please sign in to use classroom mode',
@@ -379,7 +459,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     revealVotes,
     setRevealVotes,
     setClassroomId,
-    setUserRole
+    setUserRole,
+    canPlayScenarios
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
