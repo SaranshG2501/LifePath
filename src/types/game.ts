@@ -5,8 +5,9 @@ export interface Scenario {
   description: string;
   category: string;
   ageGroup: string;
-  duration: string;
-  image: string;
+  duration?: string;
+  image?: string;
+  thumbnail?: string;
   scenes: Scene[];
   initialMetrics: Metrics;
 }
@@ -14,7 +15,7 @@ export interface Scenario {
 export interface Scene {
   id: string;
   title: string;
-  content: string;
+  content?: string; // Make content optional since we're using description
   description?: string;
   choices: Choice[];
   image?: string;
@@ -30,7 +31,7 @@ export interface Choice {
   choiceId?: string;
   choiceText?: string;
   timestamp?: any;
-  tooltip?: string; // Add tooltip support
+  tooltip?: string;
 }
 
 export interface MetricChanges {
@@ -69,5 +70,33 @@ export interface Classroom {
   members: string[];
   createdAt: Date;
   activeSessionId?: string;
-  liveSessionActive?: boolean; // Add for student notifications
+  liveSessionActive?: boolean;
+}
+
+export interface ScenarioCompletion {
+  scenarioId: string;
+  title: string;
+  completedAt: Date;
+  score?: number;
+  choices: any[];
+  metrics: {
+    environmental: number;
+    social: number;
+    economic: number;
+  };
+}
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: UserRole;
+  createdAt: Date;
+  lastLogin?: Date;
+  xp?: number;
+  level?: number;
+  completedScenarios?: string[];
+  scenarioHistory?: ScenarioCompletion[];
+  classrooms?: string[];
+  achievements?: string[];
 }
