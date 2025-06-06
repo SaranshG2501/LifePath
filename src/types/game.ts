@@ -30,6 +30,7 @@ export interface Choice {
   choiceId?: string;
   choiceText?: string;
   timestamp?: any;
+  tooltip?: string; // Add tooltip support
 }
 
 export interface MetricChanges {
@@ -68,4 +69,5 @@ export interface Classroom {
   members: string[];
   createdAt: Date;
   activeSessionId?: string;
+  liveSessionActive?: boolean; // Add for student notifications
 }

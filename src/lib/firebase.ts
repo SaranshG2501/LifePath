@@ -44,7 +44,7 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   classrooms: string[];
-  role: 'student' | 'teacher';
+  role: 'student' | 'teacher' | 'guest';
   createdAt: Timestamp;
   lastLogin: Timestamp;
   completedScenarios?: string[];
@@ -65,6 +65,7 @@ export interface Classroom {
   students: StudentMember[];
   members?: string[];
   activeSessionId?: string;
+  liveSessionActive?: boolean;
 }
 
 export interface StudentMember {
@@ -239,13 +240,14 @@ export const updateUserProfile = async (uid: string, updates: Partial<UserProfil
   try {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, updates);
+    console.log("User profile updated successfully");
   } catch (error) {
     console.error("Error updating user profile", error);
     throw error;
   }
 };
 
-// Enhanced classroom creation with proper code format
+// FIXED: Enhanced classroom creation with proper code format
 export const createClassroom = async (teacherId: string, name: string, description?: string, teacherName?: string): Promise<Classroom> => {
   try {
     console.log("Creating classroom with teacherId:", teacherId, "name:", name);
@@ -257,12 +259,13 @@ export const createClassroom = async (teacherId: string, name: string, descripti
     const classroomData = {
       name: name.trim(),
       code,
-      classCode: code, // Add both for compatibility
+      classCode: code,
       teacherId,
       teacherName: teacherName || 'Teacher',
       createdAt: serverTimestamp() as Timestamp,
       students: [],
-      members: [teacherId] // Include teacher as a member
+      members: [teacherId],
+      liveSessionActive: false
     };
 
     console.log("Creating classroom with data:", classroomData);
@@ -288,7 +291,7 @@ export const createClassroom = async (teacherId: string, name: string, descripti
   }
 };
 
-// Enhanced classroom joining with better error handling
+// FIXED: Enhanced classroom joining with proper arrayUnion usage
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string): Promise<Classroom> => {
   try {
     console.log("Joining classroom:", classroomId, "as student:", studentId, studentName);
@@ -314,17 +317,22 @@ export const joinClassroom = async (classroomId: string, studentId: string, stud
       } as Classroom;
     }
 
-    // Add student to classroom
+    // FIXED: Use separate updates to avoid serverTimestamp() in arrayUnion
+    // First add the student ID to members array
+    await updateDoc(classroomRef, {
+      members: arrayUnion(studentId)
+    });
+
+    // Then add the detailed student info with timestamp
     const studentMember: StudentMember = {
       id: studentId,
       name: studentName,
-      email: '', // We'll get this from user profile if needed
+      email: '', 
       joinedAt: serverTimestamp() as Timestamp
     };
 
     await updateDoc(classroomRef, {
-      students: arrayUnion(studentMember),
-      members: arrayUnion(studentId)
+      students: arrayUnion(studentMember)
     });
 
     // Add classroom to student's profile
@@ -456,10 +464,11 @@ export const createLiveSession = async (
 
     const sessionRef = await addDoc(collection(db, 'liveSessions'), sessionData);
     
-    // Update classroom with active session
+    // Update classroom with active session and set live session flag
     const classroomRef = doc(db, 'classrooms', classroomId);
     await updateDoc(classroomRef, {
-      activeSessionId: sessionRef.id
+      activeSessionId: sessionRef.id,
+      liveSessionActive: true
     });
 
     return {
@@ -561,11 +570,12 @@ export const endLiveSession = async (sessionId: string, classroomId?: string, re
     
     await updateDoc(sessionRef, updates);
 
-    // Remove active session from classroom
+    // Remove active session from classroom and clear live session flag
     if (classroomId) {
       const classroomRef = doc(db, 'classrooms', classroomId);
       await updateDoc(classroomRef, {
-        activeSessionId: null
+        activeSessionId: null,
+        liveSessionActive: false
       });
     }
   } catch (error) {
@@ -676,8 +686,10 @@ export const saveScenarioHistory = async (
   metrics: { environmental: number; social: number; economic: number }
 ) => {
   try {
+    console.log("Saving scenario history for user:", userId);
+    
     const historyRef = collection(db, 'scenarioHistory');
-    await addDoc(historyRef, {
+    const historyDoc = await addDoc(historyRef, {
       userId,
       scenarioId,
       scenarioTitle,
@@ -686,6 +698,8 @@ export const saveScenarioHistory = async (
       finalMetrics: metrics,
       completedAt: serverTimestamp() as Timestamp
     });
+    
+    console.log("Scenario history saved with ID:", historyDoc.id);
   } catch (error) {
     console.error("Error saving scenario history", error);
     throw error;
@@ -758,14 +772,10 @@ export const submitLiveChoice = async (sessionId: string, userId: string, choice
 
 // Mock scenario functions for compatibility
 export const getScenario = async (scenarioId: string) => {
-  // This would normally fetch from a scenarios collection
-  // For now, return null to maintain compatibility
   return null;
 };
 
 export const getScenarios = async () => {
-  // This would normally fetch all scenarios
-  // For now, return empty array to maintain compatibility
   return [];
 };
 

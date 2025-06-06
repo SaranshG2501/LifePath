@@ -12,7 +12,8 @@ import {
   onLiveSessionUpdated,
   joinLiveSession,
   submitStudentVote,
-  LiveSession
+  LiveSession,
+  onClassroomUpdated
 } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -67,6 +68,8 @@ interface GameContextType {
   setClassroomId: (id: string | null) => void;
   setUserRole: (role: UserRole) => void;
   canPlayScenarios: boolean;
+  isModeLocked: boolean; // NEW: Track if mode is locked during sessions
+  playAgain: () => void; // NEW: Properly handle replay
 }
 
 const initialGameState: GameState = {
@@ -93,6 +96,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [revealVotes, setRevealVotes] = useState(false);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('student');
+  const [isModeLocked, setIsModeLocked] = useState(false);
   const { currentUser, userProfile, refreshUserProfile } = useAuth();
   const { toast } = useToast();
 
@@ -100,7 +104,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isGameActive = gameState.currentScenario !== null;
   const currentMirrorQuestion = "What are you thinking about this decision?";
 
-  // NEW: Determine if user can play scenarios independently
+  // Check if user can play scenarios
   const canPlayScenarios = React.useMemo(() => {
     console.log("Checking canPlayScenarios...");
     console.log("- currentUser:", !!currentUser);
@@ -108,25 +112,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("- gameMode:", gameState.gameMode);
     console.log("- currentSession:", !!gameState.currentSession);
     
-    // Guest users cannot play scenarios
     if (!currentUser || !userProfile) {
       console.log("- Result: false (no user or profile)");
       return false;
     }
     
-    // Users with 'guest' role cannot play scenarios
     if (userProfile.role === 'guest') {
       console.log("- Result: false (guest role)");
       return false;
     }
     
-    // In individual mode, authenticated users can always play
     if (gameState.gameMode === 'individual') {
       console.log("- Result: true (individual mode)");
       return true;
     }
     
-    // In classroom mode, check if there's an active session blocking individual play
     if (gameState.gameMode === 'classroom' && gameState.currentSession?.status === 'active') {
       console.log("- Result: false (active classroom session)");
       return false;
@@ -135,6 +135,30 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("- Result: true (default)");
     return true;
   }, [currentUser, userProfile, gameState.gameMode, gameState.currentSession]);
+
+  // Listen for classroom updates to detect live sessions
+  useEffect(() => {
+    if (classroomId && currentUser && userProfile?.role === 'student') {
+      console.log("Setting up classroom listener for live sessions");
+      
+      const unsubscribe = onClassroomUpdated(classroomId, (classroom) => {
+        console.log("Classroom updated:", classroom);
+        
+        // Check if a live session just started
+        if (classroom.liveSessionActive && !gameState.currentSession) {
+          console.log("Live session detected, showing notification");
+          
+          toast({
+            title: "🎯 Live Session Started!",
+            description: "Your teacher has started a live session. Join now!",
+            duration: 10000,
+          });
+        }
+      });
+
+      return unsubscribe;
+    }
+  }, [classroomId, currentUser, userProfile, gameState.currentSession, toast]);
 
   useEffect(() => {
     if (gameState.gameMode === 'classroom' && gameState.currentClassroom && !gameState.currentSession) {
@@ -290,6 +314,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const endGameWithResults = async (finalChoices: ScenarioChoice[], finalMetrics: Metrics) => {
+    console.log("Ending game with results...");
+    
     setGameState(prev => ({
       ...prev,
       isEnded: true,
@@ -306,6 +332,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           economic: finalMetrics.money
         };
 
+        console.log("Saving scenario history to Firebase...");
         await saveScenarioHistory(
           currentUser.uid,
           gameState.currentScenario.id,
@@ -320,10 +347,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             level: Math.floor(((userProfile.xp || 0) + 100) / 500) + 1,
             completedScenarios: [...(userProfile.completedScenarios || []), gameState.currentScenario.id]
           };
+          
+          console.log("Updating user profile...");
           await updateUserProfile(currentUser.uid, updatedProfile);
           
-          // Refresh user profile to update UI immediately
+          // Force refresh user profile to update UI immediately
           if (refreshUserProfile) {
+            console.log("Refreshing user profile...");
             await refreshUserProfile();
           }
         }
@@ -372,6 +402,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         gameMode: 'classroom'
       }));
 
+      setIsModeLocked(true); // Lock mode during session
+
       toast({
         title: 'Joined session',
         description: 'You have successfully joined the classroom session',
@@ -409,6 +441,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchMode = (mode: 'individual' | 'classroom') => {
     console.log("Switching to mode:", mode);
     
+    // Prevent mode switching if locked (during live session)
+    if (isModeLocked) {
+      toast({
+        title: 'Mode locked',
+        description: 'Cannot switch modes during a live session',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     if (mode === 'classroom' && (!currentUser || !userProfile || userProfile.role === 'guest')) {
       toast({
         title: 'Sign in required',
@@ -433,8 +475,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetGame = () => {
+    console.log("Resetting game completely...");
     setGameState(initialGameState);
     setShowMirrorMoment(false);
+    setIsModeLocked(false); // Unlock mode when resetting
+  };
+
+  // NEW: Proper play again functionality
+  const playAgain = () => {
+    console.log("Playing again...");
+    
+    if (gameState.currentScenario) {
+      const scenario = gameState.currentScenario;
+      
+      setGameState(prev => ({
+        ...prev,
+        currentScene: scenario.scenes[0],
+        sceneIndex: 0,
+        choices: [],
+        metrics: scenario.initialMetrics,
+        isEnded: false,
+        history: []
+      }));
+
+      console.log("Game reset for replay");
+    }
   };
 
   const endGame = () => {
@@ -476,7 +541,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRevealVotes,
     setClassroomId,
     setUserRole,
-    canPlayScenarios
+    canPlayScenarios,
+    isModeLocked,
+    playAgain
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
