@@ -1,109 +1,105 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Play, Lock, Users } from 'lucide-react';
 import { Scenario } from '@/types/game';
-import { useGameContext } from '@/context/GameContext';
-import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Play, Sparkles, CalendarClock, Image } from 'lucide-react';
 
 interface ScenarioCardProps {
   scenario: Scenario;
-  onStart?: (scenarioId: string) => void;
+  onStart: (id: string) => void;
   onClick?: () => void;
-  disabled?: boolean;
 }
 
-const ScenarioCard: React.FC<ScenarioCardProps> = ({ 
-  scenario, 
-  onStart, 
-  onClick, 
-  disabled = false 
-}) => {
-  const { canPlayScenarios, gameMode } = useGameContext();
-  const { currentUser } = useAuth();
-
-  const handleClick = () => {
-    if (disabled || !canPlayScenarios) {
-      return;
-    }
-    
-    if (onClick) {
-      onClick();
-    } else if (onStart) {
-      onStart(scenario.id);
+const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, onClick }) => {
+  // Add specific images for different scenarios
+  const getScenarioImage = () => {
+    switch(scenario.id) {
+      case "climate-council":
+        return "https://images.unsplash.com/photo-1518495973542-4542c06a5843";
+      case "college-choice":
+        return "https://images.unsplash.com/photo-1523050854058-8df90110c9f1";
+      case "first-job":
+        return "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40";
+      case "financial-emergency":
+        return "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e";
+      default:
+        return scenario.thumbnail;
     }
   };
-
-  const isPlayable = canPlayScenarios && !disabled;
-  const needsAuth = !currentUser;
-
+  
+  // Get scenario image
+  const scenarioImage = getScenarioImage();
+  
   return (
-    <Card 
-      className={`
-        bg-black/30 border-primary/20 hover:border-primary/40 transition-all duration-200 cursor-pointer
-        ${!isPlayable ? 'opacity-50' : 'hover:scale-105'}
-      `}
-      onClick={handleClick}
-    >
-      <CardHeader className="relative">
-        <div className="flex justify-between items-start mb-2">
-          <Badge className="bg-primary/20 text-primary border-0">
-            {scenario.ageGroup}
+    <Card className="overflow-hidden h-full flex flex-col bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md hover:border-indigo-300/30 transition-all duration-300 shadow-lg hover:shadow-indigo-500/10">
+      <div className="relative h-44 overflow-hidden">
+        {scenarioImage ? (
+          <img 
+            src={scenarioImage} 
+            alt={scenario.title} 
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center">
+            <Image className="h-12 w-12 text-white/30" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        <div className="absolute bottom-3 left-3">
+          <Badge variant="outline" className="bg-indigo-500/40 text-white border-none">
+            {scenario.category}
           </Badge>
-          {gameMode === 'classroom' && (
-            <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
-              <Users className="w-3 h-3 mr-1" />
-              Classroom
-            </Badge>
-          )}
         </div>
-        
-        <CardTitle className="text-white text-lg line-clamp-2">
+        <div className="absolute top-3 right-3">
+          <Badge variant="outline" className="bg-black/60 text-white border-none flex items-center gap-1">
+            <CalendarClock className="h-3 w-3" />
+            Ages {scenario.ageGroup}
+          </Badge>
+        </div>
+      </div>
+      
+      <CardHeader className="pb-2 space-y-1">
+        <CardTitle className="text-xl text-white">
           {scenario.title}
         </CardTitle>
-        
-        <CardDescription className="text-white/70 line-clamp-3">
+        <CardDescription className="line-clamp-2 text-white/70">
           {scenario.description}
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        <div className="flex justify-between items-center">
-          <Badge variant="outline" className="border-white/20 text-white/80">
-            {scenario.category}
-          </Badge>
-          
-          <Button 
-            size="sm" 
-            disabled={!isPlayable}
-            className={`
-              ${isPlayable 
-                ? 'bg-primary hover:bg-primary/90 text-white' 
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              }
-            `}
-          >
-            {needsAuth ? (
-              <>
-                <Lock className="w-4 h-4 mr-1" />
-                Sign In
-              </>
-            ) : !canPlayScenarios ? (
-              <>
-                <Lock className="w-4 h-4 mr-1" />
-                Restricted
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-1" />
-                Play
-              </>
-            )}
-          </Button>
+      <CardContent className="pb-4 pt-0">
+        <div className="flex gap-2 flex-wrap">
+          {Object.entries(scenario.initialMetrics).map(([key, value]) => {
+            if (value === 0) return null; // Don't show metrics that start at 0
+            
+            let bgColor = "";
+            switch(key) {
+              case "health": bgColor = "bg-red-500/20 text-red-300"; break;
+              case "money": bgColor = "bg-green-500/20 text-green-300"; break;
+              case "happiness": bgColor = "bg-yellow-500/20 text-yellow-300"; break;
+              case "knowledge": bgColor = "bg-blue-500/20 text-blue-300"; break;
+              case "relationships": bgColor = "bg-purple-500/20 text-purple-300"; break;
+              default: bgColor = "bg-white/10 text-white/80";
+            }
+            return (
+              <span key={key} className={`text-xs px-2 py-1 rounded-full ${bgColor} capitalize`}>
+                {key}
+              </span>
+            );
+          })}
         </div>
       </CardContent>
+      
+      <CardFooter className="mt-auto">
+        <Button 
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg transition-all"
+          onClick={() => onStart(scenario.id)}
+        >
+          <Play className="w-4 h-4 mr-2" /> Start Adventure
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

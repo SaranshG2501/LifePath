@@ -1,128 +1,131 @@
 
-
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, LogIn, ExternalLink, Loader2, Radio, Wifi } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  Users, 
+  BookOpen, 
+  Play, 
+  Clock, 
+  Trophy, 
+  GraduationCap,
+  Plus,
+  Search,
+  Wifi,
+  Radio,
+  AlertCircle
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { getUserClassrooms, joinClassroomByCode, Classroom, getActiveSession, LiveSession, onClassroomUpdated } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  getUserClassrooms, 
+  getClassroomByCode, 
+  joinClassroomByCode, 
+  Classroom,
+  getActiveSession,
+  LiveSession,
+  joinLiveSession,
+  onClassroomUpdated
+} from '@/lib/firebase';
+import { useNavigate } from 'react-router-dom';
 
 const StudentClassroomView = () => {
-  const [classCode, setClassCode] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [liveSessions, setLiveSessions] = useState<Record<string, LiveSession>>({});
   const { currentUser, userProfile } = useAuth();
-  const { setGameMode, setClassroomId, userRole, loadScenario } = useGameContext();
+  const { setClassroomId, setGameMode, startScenario } = useGameContext();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSessions, setActiveSessions] = useState<Record<string, LiveSession>>({});
 
-  // Load user's classrooms on mount
   useEffect(() => {
-    const loadClassrooms = async () => {
-      if (!currentUser || userRole !== 'student') {
-        setIsLoading(false);
-        return;
-      }
+    if (currentUser && userProfile?.role === 'student') {
+      fetchClassrooms();
+    }
+  }, [currentUser, userProfile]);
 
-      try {
-        const userClassrooms = await getUserClassrooms(currentUser.uid);
-        console.log("Loaded student classrooms:", userClassrooms);
-        setClassrooms(userClassrooms);
-        
-        // Check for active sessions in each classroom
-        userClassrooms.forEach(async (classroom) => {
-          if (classroom.id) {
-            const activeSession = await getActiveSession(classroom.id);
-            if (activeSession) {
-              setLiveSessions(prev => ({
-                ...prev,
-                [classroom.id!]: activeSession
-              }));
-            }
-          }
-        });
-      } catch (error) {
-        console.error("Error loading classrooms:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your classrooms.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadClassrooms();
-  }, [currentUser, userRole, toast]);
-
-  // Enhanced classroom listener for live session updates
+  // Set up real-time listeners for each classroom
   useEffect(() => {
-    if (!currentUser || userRole !== 'student' || classrooms.length === 0) return;
+    if (classrooms.length === 0) return;
 
-    const unsubscribes = classrooms.map(classroom => {
-      if (!classroom.id) return () => {};
-      
-      return onClassroomUpdated(classroom.id, (updatedClassroom) => {
-        console.log("Classroom updated:", updatedClassroom);
-        
-        // Update classroom in state
-        setClassrooms(prev => prev.map(c => 
-          c.id === updatedClassroom.id ? updatedClassroom : c
-        ));
-        
-        // Check for live session updates
-        if (updatedClassroom.activeSessionId) {
-          getActiveSession(updatedClassroom.id!).then(activeSession => {
-            if (activeSession) {
-              setLiveSessions(prev => ({
-                ...prev,
-                [updatedClassroom.id!]: activeSession
-              }));
-            }
-          });
-        } else {
-          // Remove live session if no longer active
-          setLiveSessions(prev => {
-            const updated = { ...prev };
-            delete updated[updatedClassroom.id!];
-            return updated;
-          });
-        }
-        
-        // Check if student was removed from classroom
-        const isMember = updatedClassroom.members?.includes(currentUser.uid) || false;
-        if (!isMember) {
-          console.log("Student removed from classroom:", updatedClassroom.id);
-          setClassrooms(prev => prev.filter(c => c.id !== updatedClassroom.id));
-          setLiveSessions(prev => {
-            const updated = { ...prev };
-            delete updated[updatedClassroom.id!];
-            return updated;
-          });
-          
-          toast({
-            title: "Removed from Classroom",
-            description: `You have been removed from "${updatedClassroom.name}".`,
-            variant: "destructive",
-          });
-        }
-      });
+    const unsubscribes: (() => void)[] = [];
+
+    classrooms.forEach(classroom => {
+      if (classroom.id) {
+        const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
+          setClassrooms(prev => 
+            prev.map(c => c.id === updatedClassroom.id ? updatedClassroom : c)
+          );
+        });
+        unsubscribes.push(unsubscribe);
+      }
     });
 
     return () => {
       unsubscribes.forEach(unsubscribe => unsubscribe());
     };
-  }, [currentUser, userRole, classrooms.length, toast]);
+  }, [classrooms.length]);
 
-  // Enhanced join classroom function
+  // Check for active sessions in all classrooms
+  useEffect(() => {
+    const checkActiveSessions = async () => {
+      const sessions: Record<string, LiveSession> = {};
+      
+      for (const classroom of classrooms) {
+        if (classroom.id) {
+          try {
+            const activeSession = await getActiveSession(classroom.id);
+            if (activeSession) {
+              sessions[classroom.id] = activeSession;
+            }
+          } catch (error) {
+            console.error(`Error checking active session for classroom ${classroom.id}:`, error);
+          }
+        }
+      }
+      
+      setActiveSessions(sessions);
+    };
+
+    if (classrooms.length > 0) {
+      checkActiveSessions();
+      // Check every 5 seconds for active sessions
+      const interval = setInterval(checkActiveSessions, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [classrooms]);
+
+  const fetchClassrooms = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoading(true);
+      const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
+      console.log("Fetched student classrooms:", userClassrooms);
+      setClassrooms(userClassrooms);
+    } catch (error) {
+      console.error('Error fetching classrooms:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your classrooms.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleJoinClassroom = async () => {
-    if (!classCode.trim()) {
+    if (!joinCode.trim()) {
       toast({
         title: "Class Code Required",
         description: "Please enter a valid class code.",
@@ -133,248 +136,254 @@ const StudentClassroomView = () => {
 
     if (!currentUser || !userProfile) {
       toast({
-        title: "Authentication Required",
+        title: "Login Required",
         description: "Please log in to join a classroom.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsJoining(true);
     try {
-      console.log("Attempting to join classroom with code:", classCode);
+      setJoining(true);
       
-      const classroom = await joinClassroomByCode(
-        classCode.trim().toUpperCase(),
+      // Use the enhanced joinClassroomByCode function
+      const joinedClassroom = await joinClassroomByCode(
+        joinCode.trim().toUpperCase(),
         currentUser.uid,
-        userProfile.displayName || currentUser.email?.split('@')[0] || 'Student'
+        userProfile.displayName || 'Student'
       );
 
-      if (classroom) {
-        console.log("Successfully joined classroom:", classroom);
-        
-        // Update local state
-        setClassrooms(prev => {
-          const exists = prev.some(c => c.id === classroom.id);
-          return exists ? prev : [...prev, classroom];
-        });
-        
-        setClassCode('');
-        
+      if (joinedClassroom) {
         toast({
-          title: "✅ Joined Classroom!",
-          description: `Welcome to "${classroom.name}"`,
+          title: "Successfully Joined!",
+          description: `Welcome to ${joinedClassroom.name}`,
         });
-      } else {
-        throw new Error("Failed to join classroom");
+        
+        setJoinCode('');
+        await fetchClassrooms(); // Refresh the list
       }
     } catch (error) {
-      console.error("Error joining classroom:", error);
-      
-      let errorMessage = "Failed to join classroom. Please check the code and try again.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Invalid')) {
-          errorMessage = "Invalid classroom code. Please check and try again.";
-        } else if (error.message.includes('permission')) {
-          errorMessage = "You don't have permission to join this classroom.";
-        } else if (error.message.includes('already')) {
-          errorMessage = "You are already a member of this classroom.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
+      console.error('Error joining classroom:', error);
       toast({
-        title: "Join Failed",
-        description: errorMessage,
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join classroom. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsJoining(false);
+      setJoining(false);
     }
   };
 
-  const handleSelectClassroom = (classroom: Classroom) => {
-    if (classroom.id) {
-      setClassroomId(classroom.id);
+  const handleJoinLiveSession = async (classroom: Classroom, session: LiveSession) => {
+    if (!currentUser || !userProfile) return;
+
+    try {
+      console.log("Joining live session:", session.id);
+      await joinLiveSession(session.id!, currentUser.uid, userProfile.displayName || 'Student');
+      
+      setClassroomId(classroom.id!);
       setGameMode("classroom");
+      startScenario(session.scenarioId);
       
       toast({
-        title: "Classroom Selected",
-        description: `Switched to "${classroom.name}" classroom mode.`,
+        title: "Joined Live Session",
+        description: `You're now part of the live session for "${session.scenarioTitle}"`,
+      });
+      
+      navigate('/game');
+    } catch (error) {
+      console.error("Error joining live session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to join the live session. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
-  // ENHANCED: Handle joining live session with proper redirection
-  const handleJoinLiveSession = async (classroom: Classroom) => {
-    const liveSession = liveSessions[classroom.id!];
-    if (liveSession && classroom.id) {
-      try {
-        // Set classroom context
-        setClassroomId(classroom.id);
-        setGameMode("classroom");
-        
-        // Load the scenario first
-        console.log("Loading scenario for live session:", liveSession.scenarioId);
-        await loadScenario(liveSession.scenarioId);
-        
-        toast({
-          title: "🎯 Joining Live Session",
-          description: `Connecting to "${liveSession.scenarioTitle}"...`,
-        });
-        
-        // Navigate to game page
-        setTimeout(() => {
-          window.location.href = '/game';
-        }, 1000);
-        
-      } catch (error) {
-        console.error("Error loading scenario for live session:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load the live session. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+  const filteredClassrooms = classrooms.filter(classroom =>
+    classroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (classroom.teacherName && classroom.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  if (!currentUser || userRole !== 'student') {
-    return (
-      <Card className="bg-black/20 border-white/10">
-        <CardContent className="p-6 text-center">
-          <Users className="h-12 w-12 text-white/30 mx-auto mb-4" />
-          <p className="text-white/70">Please log in as a student to access classrooms.</p>
-        </CardContent>
-      </Card>
-    );
+  // Don't show anything if user is not a student or not logged in
+  if (!currentUser || !userProfile || userProfile.role !== 'student') {
+    return null;
   }
 
   return (
     <div className="space-y-6">
       {/* Join Classroom Section */}
-      <Card className="bg-black/20 border-white/10">
+      <Card className="bg-black/30 border-primary/20">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-blue-300" />
-            Join a Classroom
+            <Plus className="h-5 w-5 text-primary" />
+            Join a New Classroom
           </CardTitle>
           <CardDescription className="text-white/70">
-            Enter the class code provided by your teacher to join their classroom.
+            Enter the class code provided by your teacher
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
             <Input
               placeholder="Enter class code (e.g., LIFE-1234)"
-              value={classCode}
-              onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-              className="bg-black/20 border-white/20 text-white"
-              onKeyPress={(e) => e.key === 'Enter' && handleJoinClassroom()}
-              disabled={isJoining}
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              className="bg-black/40 border-white/20 text-white"
+              disabled={joining}
             />
             <Button 
-              onClick={handleJoinClassroom} 
-              disabled={isJoining || !classCode.trim()}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={handleJoinClassroom}
+              disabled={joining || !joinCode.trim()}
+              className="bg-primary hover:bg-primary/90 min-w-[80px]"
             >
-              {isJoining ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LogIn className="h-4 w-4" />
-              )}
+              {joining ? "Joining..." : "Join"}
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* My Classrooms Section */}
-      <Card className="bg-black/20 border-white/10">
+      <Card className="bg-black/30 border-primary/20">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-300" />
-            My Classrooms ({classrooms.length})
-          </CardTitle>
-          <CardDescription className="text-white/70">
-            Classrooms you've joined will appear here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-white/50" />
-              <span className="ml-2 text-white/70">Loading classrooms...</span>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              My Classrooms ({classrooms.length})
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={fetchClassrooms}
+              disabled={loading}
+              className="border-white/20 bg-black/20 text-white hover:bg-white/10"
+            >
+              {loading ? "Loading..." : "Refresh"}
+            </Button>
+          </div>
+          
+          {classrooms.length > 0 && (
+            <div className="relative mt-2">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/50" />
+              <Input
+                placeholder="Search classrooms or teachers..."
+                className="pl-8 bg-black/20 border-white/20 text-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          ) : classrooms.length > 0 ? (
-            <div className="space-y-3">
-              {classrooms.map((classroom) => {
-                const liveSession = liveSessions[classroom.id!];
-                const hasLiveSession = !!liveSession;
-                
-                return (
-                  <div 
-                    key={classroom.id} 
-                    className="bg-black/20 rounded-lg p-4 border border-white/10 hover:border-blue-300/30 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{classroom.name}</h4>
-                        <p className="text-white/60 text-sm">
-                          Teacher: {classroom.teacherName || 'Unknown'}
-                        </p>
-                        <p className="text-white/50 text-xs">
-                          Code: {classroom.classCode}
-                        </p>
+          )}
+        </CardHeader>
+        
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-white/70">Loading your classrooms...</div>
+            </div>
+          ) : filteredClassrooms.length > 0 ? (
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-4">
+                {filteredClassrooms.map((classroom) => {
+                  const activeSession = activeSessions[classroom.id!];
+                  
+                  return (
+                    <div key={classroom.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-white font-medium text-lg">{classroom.name}</h3>
+                          <p className="text-white/70 text-sm">
+                            Teacher: {classroom.teacherName || 'Unknown'}
+                          </p>
+                          {classroom.description && (
+                            <p className="text-white/60 text-sm mt-1">{classroom.description}</p>
+                          )}
+                        </div>
                         
-                        {/* Live Session Indicator */}
-                        {hasLiveSession && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <Badge className="bg-green-500/20 text-green-300 border-0 animate-pulse">
-                              <Radio className="h-3 w-3 mr-1" />
-                              Live Session Ongoing
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-500/20 text-blue-300 border-0">
+                            {classroom.students?.length || 0} students
+                          </Badge>
+                          
+                          {activeSession && (
+                            <Badge className="bg-green-500/20 text-green-300 border-0">
+                              <Wifi className="h-3 w-3 mr-1" />
+                              Live
                             </Badge>
-                            <span className="text-green-300 text-xs">
-                              "{liveSession.scenarioTitle}"
-                            </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        {hasLiveSession ? (
+                      <Separator className="bg-white/10 my-3" />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-sm text-white/70">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            <span>{classroom.students?.length || 0} students</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <span>
+                              Joined {classroom.createdAt ? 
+                                new Date((classroom.createdAt as any).seconds * 1000).toLocaleDateString() : 
+                                'recently'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {activeSession ? (
                           <Button 
-                            size="sm" 
-                            onClick={() => handleJoinLiveSession(classroom)}
-                            className="bg-green-500 hover:bg-green-600 text-white animate-pulse"
+                            size="sm"
+                            onClick={() => handleJoinLiveSession(classroom, activeSession)}
+                            className="bg-green-500 hover:bg-green-600 text-white"
                           >
-                            <Wifi className="h-4 w-4 mr-1" />
-                            Join Live
+                            <Radio className="h-4 w-4 mr-1" />
+                            Join Live Session
                           </Button>
                         ) : (
                           <Button 
-                            size="sm" 
-                            onClick={() => handleSelectClassroom(classroom)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white"
+                            variant="outline" 
+                            size="sm"
+                            disabled
+                            className="border-white/20 bg-black/20 text-white/50"
                           >
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Enter
+                            <Play className="h-4 w-4 mr-1" />
+                            No Active Session
                           </Button>
                         )}
                       </div>
+                      
+                      {activeSession && (
+                        <div className="mt-3 p-3 bg-green-500/10 rounded-md border border-green-500/20">
+                          <div className="flex items-center gap-2 text-green-300">
+                            <Radio className="h-4 w-4" />
+                            <span className="font-medium">Live Session Active</span>
+                          </div>
+                          <div className="text-green-200 text-sm mt-1">
+                            Scenario: {activeSession.scenarioTitle}
+                          </div>
+                          <div className="text-green-200/70 text-xs mt-1">
+                            {activeSession.participants.length} students participating
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          ) : searchTerm ? (
+            <div className="text-center py-8">
+              <Search className="h-12 w-12 text-white/30 mx-auto mb-2" />
+              <div className="text-white/70">No classrooms match your search</div>
             </div>
           ) : (
             <div className="text-center py-8">
-              <Users className="h-12 w-12 text-white/30 mx-auto mb-4" />
-              <h4 className="text-white font-medium mb-2">No Classrooms Yet</h4>
-              <p className="text-white/70 text-sm">
-                Use the join classroom feature above to get started.
-              </p>
+              <BookOpen className="h-12 w-12 text-white/30 mx-auto mb-2" />
+              <div className="text-white/70 mb-2">You haven't joined any classrooms yet</div>
+              <div className="text-white/50 text-sm">Use the class code from your teacher to join your first classroom</div>
             </div>
           )}
         </CardContent>

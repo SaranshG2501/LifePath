@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -70,33 +71,25 @@ const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
 )
 
-interface FormItemProps {
-  children: React.ReactNode;
-  className?: string;
-}
+const FormItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  const id = React.useId()
 
-const FormItem = React.forwardRef<HTMLDivElement, FormItemProps>(
-  ({ className, children, ...props }, ref) => {
-    const id = React.useId()
-
-    return (
-      <FormItemContext.Provider value={{ id }}>
-        <div ref={ref} className={cn("space-y-2", className)} {...props}>
-          {children}
-        </div>
-      </FormItemContext.Provider>
-    )
-  }
-)
+  return (
+    <FormItemContext.Provider value={{ id }}>
+      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+    </FormItemContext.Provider>
+  )
+})
 FormItem.displayName = "FormItem"
 
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & {
-    className?: string;
-  }
->(({ className, children, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+>(({ className, ...props }, ref) => {
+  const { error, formItemId } = useFormField()
 
   return (
     <Label
@@ -104,11 +97,9 @@ const FormLabel = React.forwardRef<
       className={cn(error && "text-destructive", className)}
       htmlFor={formItemId}
       {...props}
-    >
-      {children}
-    </Label>
-  );
-});
+    />
+  )
+})
 FormLabel.displayName = "FormLabel"
 
 const FormControl = React.forwardRef<
@@ -180,7 +171,7 @@ export {
   FormItem,
   FormLabel,
   FormControl,
-  FormField,
   FormDescription,
   FormMessage,
+  FormField,
 }

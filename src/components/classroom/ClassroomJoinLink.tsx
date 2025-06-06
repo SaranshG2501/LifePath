@@ -7,7 +7,7 @@ import { School, Users, LogIn } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { createClassroom, getClassroomByCode, joinClassroomByCode, getUserClassrooms } from '@/lib/firebase';
+import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const ClassroomJoinLink: React.FC = () => {
@@ -31,11 +31,11 @@ const ClassroomJoinLink: React.FC = () => {
       if (!currentUser || !userProfile?.role) return;
       
       try {
-        const classrooms = await getUserClassrooms(currentUser.uid);
+        const classrooms = await getUserClassrooms(currentUser.uid, userProfile.role);
         setUserHasClassrooms(classrooms.length > 0);
         
         if (classrooms.length > 0 && !classroomId) {
-          setClassroomId(classrooms[0].id || null);
+          setClassroomId(classrooms[0].id);
         }
       } catch (error) {
         console.error("Error checking user classrooms:", error);
@@ -87,23 +87,16 @@ const ClassroomJoinLink: React.FC = () => {
       const newClassroom = await createClassroom(
         currentUser.uid,
         className,
-        classDescription,
-        userProfile?.displayName || currentUser.email?.split('@')[0] || 'Teacher'
+        classDescription
       );
       
       if (newClassroom && newClassroom.id) {
         setClassroomId(newClassroom.id);
         setGameMode("classroom");
         setUserHasClassrooms(true);
-        
-        // Refresh user profile to update classrooms list
-        if (refreshUserProfile) {
-          await refreshUserProfile();
-        }
-        
         toast({
           title: "Classroom Created",
-          description: `Your classroom '${className}' has been created with code: ${newClassroom.code}`,
+          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
         });
         setIsCreateModalOpen(false);
         setClassName('');
@@ -150,16 +143,28 @@ const ClassroomJoinLink: React.FC = () => {
       setJoinError('');
       console.log("Attempting to join classroom with code:", normalizedCode);
 
+      // First get the classroom by code
+      const classroom = await getClassroomByCode(normalizedCode);
+      if (!classroom || !classroom.id) {
+        setJoinError(`No classroom found with code ${normalizedCode}.`);
+        toast({
+          title: "Invalid Code",
+          description: `No classroom found with code ${normalizedCode}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      console.log("Classroom found:", classroom);
+
       // Determine the display name for the student
       const displayName = userProfile?.displayName || 
-                         userProfile?.username ||
                          (currentUser.email ? currentUser.email.split("@")[0] : "Student");
       
       console.log("Joining as:", displayName);
       
-      // Join the classroom using the improved function
-      const joinedClassroom = await joinClassroomByCode(
-        normalizedCode,
+      // Join the classroom with our improved function
+      const joinedClassroom = await joinClassroom(
+        classroom.id,
         currentUser.uid,
         displayName
       );
@@ -189,11 +194,11 @@ const ClassroomJoinLink: React.FC = () => {
       navigate("/profile");
     } catch (error) {
       console.error("Error joining classroom:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to join classroom";
-      setJoinError(errorMessage);
+      setJoinError(error instanceof Error ? error.message : "Failed to join classroom");
       toast({
         title: "Error",
-        description: errorMessage,
+        description:
+          error instanceof Error ? error.message : "Failed to join classroom. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -1,29 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser ,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
 import { 
   getFirestore, 
   doc, 
   setDoc, 
   getDoc, 
-  updateDoc, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs, 
-  onSnapshot, 
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
   deleteDoc,
+  orderBy,
+  onSnapshot,
+  DocumentData,
+  Timestamp,
   arrayUnion,
   arrayRemove,
-  Timestamp,
-  serverTimestamp,
-  writeBatch,
-  increment
+  FieldValue,
+  runTransaction,
+  increment,
+  writeBatch
 } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
+import { Metrics } from '@/types/game';
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC7yz9uNDKfCNwx0qPEgJ8EOBJHVp1R_o8",
   authDomain: "lifepath-3ff8f.firebaseapp.com",
@@ -34,793 +49,1126 @@ const firebaseConfig = {
   measurementId: "G-N5CCD171WX"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-export interface UserProfile {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  classrooms: string[];
-  role: 'student' | 'teacher' | 'guest';
-  createdAt: Timestamp;
-  lastLogin: Timestamp;
-  completedScenarios?: string[];
-  xp?: number;
-  level?: number;
-  badges?: string[];
-  history?: ScenarioHistory[];
+// Initialize Analytics with error handling
+let analytics;
+try {
+  analytics = getAnalytics(app);
+} catch (error) {
+  console.log("Analytics failed to initialize:", error);
+}
+
+// Define types
+export interface ClassroomStudent {
+  id: string;
+  name: string;
+  joinedAt: Timestamp | Date;
 }
 
 export interface Classroom {
-  id: string;
+  id?: string;
   name: string;
-  code: string;
-  classCode: string;
+  description?: string;
   teacherId: string;
-  teacherName: string;
-  createdAt: Timestamp;
-  students: StudentMember[];
+  teacherName?: string;
+  students: ClassroomStudent[];
   members?: string[];
-  activeSessionId?: string;
-  liveSessionActive?: boolean;
+  activeScenario?: string | null;
+  currentScene?: string | null;
+  createdAt: any;
+  classCode: string;
+  isActive: boolean;
+  activeSessionId?: string | null;
 }
 
-export interface StudentMember {
-  id: string;
-  name: string;
-  email: string;
-  joinedAt: Timestamp;
+export interface UserProfileData {
+  displayName?: string;
+  email?: string;
+  role?: string;
+  xp?: number;
+  level?: number;
+  completedScenarios?: string[];
+  badges?: string[];
+  history?: ScenarioHistory[];
+  metrics?: Metrics;
+  classrooms?: string[];
+  createdAt?: Date | Timestamp;
+}
+
+// New type for scenario history
+export interface ScenarioHistory {
+  scenarioId: string;
+  scenarioTitle?: string;
+  startedAt: Timestamp | Date;
+  completedAt?: Timestamp | Date;
+  choices: ScenarioChoice[];
+  finalMetrics?: Metrics;
 }
 
 export interface ScenarioChoice {
   sceneId: string;
   choiceId: string;
-  choiceText: string;
-  timestamp: Timestamp;
-  metricChanges?: {
-    environmental: number;
-    social: number;
-    economic: number;
-  };
+  choiceText?: string;
+  timestamp: Timestamp | Date;
+  metricChanges?: Record<string, number>;
 }
 
-export interface ScenarioHistory {
-  id: string;
-  scenarioId: string;
-  scenarioTitle: string;
-  choices: ScenarioChoice[];
-  metrics: {
-    environmental: number;
-    social: number;
-    economic: number;
-  };
-  finalMetrics?: {
-    environmental: number;
-    social: number;
-    economic: number;
-  };
-  completedAt: Timestamp;
-}
-
+// Enhanced Live Session with scene tracking and proper lifecycle
 export interface LiveSession {
   id?: string;
   classroomId: string;
   teacherId: string;
-  teacherName: string;
+  teacherName?: string;
   scenarioId: string;
   scenarioTitle: string;
   currentSceneId: string;
-  currentSceneIndex: number;
+  currentSceneIndex?: number;
   status: 'active' | 'ended';
-  participants: SessionParticipant[];
-  votes: Record<string, string>;
-  currentChoices?: Record<string, string>;
-  createdAt: Timestamp;
-  startedAt?: Timestamp;
+  startedAt: Timestamp;
   endedAt?: Timestamp;
-  resultPayload?: any;
+  participants: string[];
+  currentChoices?: Record<string, string>;
+  resultPayload?: {
+    choices: Record<string, any>;
+    metrics: Record<string, any>;
+    summary: string;
+  };
+  lastUpdated?: Timestamp;
 }
 
 export interface SessionParticipant {
-  userId: string;
-  userName: string;
-  studentId?: string;
-  studentName?: string;
+  sessionId: string;
+  studentId: string;
+  studentName: string;
   joinedAt: Timestamp;
+  isActive: boolean;
+  currentChoice?: string;
+  lastActivity?: Timestamp;
 }
 
 export interface SessionNotification {
-  id: string;
-  userId: string;
+  id?: string;
   type: 'live_session_started';
   sessionId: string;
+  classroomId: string;
   teacherName: string;
   scenarioTitle: string;
-  classroomName: string;
+  studentId: string;
   createdAt: Timestamp;
   read: boolean;
 }
 
-// Auth functions
-export const signInWithGoogle = async () => {
-  const provider = new GoogleAuthProvider();
+// Enhanced session creation with atomic operations and better error handling
+export const createLiveSession = async (
+  classroomId: string,
+  teacherId: string,
+  scenarioId: string,
+  scenarioTitle: string,
+  initialSceneId: string = "start"
+) => {
   try {
-    const result = await signInWithPopup(auth, provider);
-    await createUserDocument(result.user);
-    return result.user;
+    console.log("Creating live session for classroom:", classroomId);
+    
+    const result = await runTransaction(db, async (transaction) => {
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const classroomDoc = await transaction.get(classroomRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      
+      // Check if there's already an active session
+      if (classroomData.activeSessionId) {
+        const existingSessionRef = doc(db, 'sessions', classroomData.activeSessionId);
+        const existingSessionDoc = await transaction.get(existingSessionRef);
+        
+        if (existingSessionDoc.exists()) {
+          const existingSession = existingSessionDoc.data() as LiveSession;
+          if (existingSession.status === 'active') {
+            throw new Error("Cannot start new session: another session is already active. End the current session first.");
+          }
+        }
+      }
+      
+      // Get teacher info
+      const teacherRef = doc(db, 'users', teacherId);
+      const teacherDoc = await transaction.get(teacherRef);
+      const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+
+      // Create new session with scene tracking
+      const sessionRef = doc(collection(db, 'sessions'));
+      const sessionData: LiveSession = {
+        classroomId,
+        teacherId,
+        teacherName,
+        scenarioId,
+        scenarioTitle,
+        currentSceneId: initialSceneId,
+        currentSceneIndex: 0,
+        status: 'active',
+        startedAt: Timestamp.now(),
+        participants: [],
+        currentChoices: {},
+        lastUpdated: Timestamp.now()
+      };
+      
+      transaction.set(sessionRef, sessionData);
+      
+      // Update classroom with new active session (atomic)
+      transaction.update(classroomRef, {
+        activeSessionId: sessionRef.id,
+        activeScenario: scenarioId,
+        currentScene: initialSceneId,
+        lastActivity: Timestamp.now()
+      });
+      
+      return { sessionId: sessionRef.id, sessionData };
+    });
+    
+    // Create notifications for students (outside transaction for performance)
+    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+    if (classroomDoc.exists()) {
+      const classroomData = classroomDoc.data() as Classroom;
+      const students = classroomData.students || [];
+      const members = classroomData.members || [];
+      
+      // Use members array if available, fallback to students array
+      const studentIds = members.length > 0 ? members : students.map(s => s.id);
+      
+      if (studentIds.length > 0) {
+        const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+        const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+        
+        const notificationPromises = studentIds.map(studentId => {
+          const notificationData: SessionNotification = {
+            type: 'live_session_started',
+            sessionId: result.sessionId,
+            classroomId,
+            teacherName,
+            scenarioTitle,
+            studentId: typeof studentId === 'string' ? studentId : studentId,
+            createdAt: Timestamp.now(),
+            read: false
+          };
+          
+          return setDoc(doc(db, 'notifications', `${result.sessionId}_${studentId}`), notificationData);
+        });
+        
+        await Promise.all(notificationPromises);
+        console.log("Notifications created for", studentIds.length, "students");
+      }
+    }
+
+    return { id: result.sessionId, ...result.sessionData };
   } catch (error) {
-    console.error("Error signing in with Google", error);
+    console.error("Error creating live session:", error);
     throw error;
   }
 };
 
-export const signOutFirebase = async () => {
+// Enhanced session ending with atomic cleanup
+export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
-    await signOut(auth);
+    console.log("Ending live session:", sessionId);
+    
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      
+      const sessionDoc = await transaction.get(sessionRef);
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+      
+      // End the session with result payload
+      const updateData: any = {
+        status: 'ended',
+        endedAt: Timestamp.now(),
+        lastUpdated: Timestamp.now()
+      };
+      
+      if (resultPayload) {
+        updateData.resultPayload = resultPayload;
+      }
+      
+      transaction.update(sessionRef, updateData);
+      
+      // Clear active session from classroom (atomic)
+      transaction.update(classroomRef, {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null,
+        lastActivity: Timestamp.now()
+      });
+    });
+    
+    // Clean up participants and notifications (outside transaction)
+    const participantsQuery = query(
+      collection(db, 'sessionParticipants'),
+      where('sessionId', '==', sessionId)
+    );
+    const participantsSnapshot = await getDocs(participantsQuery);
+    
+    const cleanupPromises = [
+      ...participantsSnapshot.docs.map(doc => 
+        updateDoc(doc.ref, { isActive: false })
+      )
+    ];
+    
+    // Clean up notifications
+    const notificationsQuery = query(
+      collection(db, 'notifications'),
+      where('sessionId', '==', sessionId)
+    );
+    const notificationsSnapshot = await getDocs(notificationsQuery);
+    cleanupPromises.push(
+      ...notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    );
+    
+    await Promise.all(cleanupPromises);
+    console.log("Session cleanup completed");
   } catch (error) {
-    console.error("Error signing out", error);
+    console.error("Error ending live session:", error);
     throw error;
   }
 };
 
-// User management
-const createUserDocument = async (user: User) => {
-  if (!user) return;
-  
-  const userRef = doc(db, 'users', user.uid);
-  const userSnap = await getDoc(userRef);
-  
-  if (!userSnap.exists()) {
-    const createdAt = serverTimestamp() as Timestamp;
+// Enhanced scene advancement with atomic operations
+export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
+  try {
+    console.log("Advancing session to scene:", nextSceneId, "index:", nextSceneIndex);
+    
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+      
+      const sessionData = sessionDoc.data() as LiveSession;
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
+      
+      const updateData: any = {
+        currentSceneId: nextSceneId,
+        currentChoices: {}, // Reset choices for new scene
+        lastUpdated: Timestamp.now()
+      };
+      
+      if (nextSceneIndex !== undefined) {
+        updateData.currentSceneIndex = nextSceneIndex;
+      }
+      
+      transaction.update(sessionRef, updateData);
+    });
+    
+    console.log("Scene advanced successfully");
+  } catch (error) {
+    console.error("Error advancing live session:", error);
+    throw error;
+  }
+};
+
+// Enhanced join session with validation
+export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
+  try {
+    console.log("Student attempting to join session:", sessionId);
+    
+    const result = await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+
+      const sessionData = sessionDoc.data() as LiveSession;
+      
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
+      
+      // Add student to participants if not already present
+      if (!sessionData.participants.includes(studentId)) {
+        transaction.update(sessionRef, {
+          participants: arrayUnion(studentId),
+          lastUpdated: Timestamp.now()
+        });
+      }
+      
+      return sessionData;
+    });
+
+    // Create participant record
+    const participantData: SessionParticipant = {
+      sessionId,
+      studentId,
+      studentName,
+      joinedAt: Timestamp.now(),
+      isActive: true,
+      lastActivity: Timestamp.now()
+    };
+
+    await setDoc(doc(db, 'sessionParticipants', `${sessionId}_${studentId}`), participantData);
+
+    // Mark notification as read
     try {
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        classrooms: [],
-        role: 'student',
-        createdAt,
-        lastLogin: createdAt,
-        completedScenarios: [],
-        xp: 0,
-        level: 1,
-        badges: [],
-        history: []
+      await updateDoc(doc(db, 'notifications', `${sessionId}_${studentId}`), {
+        read: true
       });
     } catch (error) {
-      console.error("Error creating user document", error);
-      throw error;
+      console.log("No notification to update:", error);
     }
-  } else {
-    // Update last login
-    await updateDoc(userRef, {
-      lastLogin: serverTimestamp() as Timestamp
-    });
+
+    return { id: sessionId, ...result };
+  } catch (error) {
+    console.error("Error joining live session:", error);
+    throw error;
   }
 };
 
-// Alias for compatibility
-export const createUserProfileDocument = createUserDocument;
-
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+// Enhanced choice submission with vote tracking
+export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string, questionId?: string) => {
   try {
-    const userRef = doc(db, 'users', uid);
-    const snapshot = await getDoc(userRef);
+    console.log("Submitting choice for session:", sessionId, "choice:", choiceId);
     
-    if (!snapshot.exists()) {
+    await runTransaction(db, async (transaction) => {
+      const sessionRef = doc(db, 'sessions', sessionId);
+      const sessionDoc = await transaction.get(sessionRef);
+      
+      if (!sessionDoc.exists()) {
+        throw new Error("Session not found");
+      }
+
+      const sessionData = sessionDoc.data() as LiveSession;
+      if (sessionData.status !== 'active') {
+        throw new Error("Session is not active");
+      }
+
+      // Update session choices
+      const currentChoices = sessionData.currentChoices || {};
+      currentChoices[studentId] = choiceId;
+
+      transaction.update(sessionRef, {
+        currentChoices,
+        lastUpdated: Timestamp.now()
+      });
+
+      // Update participant record
+      const participantRef = doc(db, 'sessionParticipants', `${sessionId}_${studentId}`);
+      transaction.update(participantRef, {
+        currentChoice: choiceId,
+        lastActivity: Timestamp.now()
+      });
+    });
+
+    console.log("Choice submitted successfully");
+  } catch (error) {
+    console.error("Error submitting live choice:", error);
+    throw error;
+  }
+};
+
+// Get active session for classroom
+export const getActiveSession = async (classroomId: string) => {
+  try {
+    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+    if (!classroomDoc.exists()) {
       return null;
     }
-
-    return {
-      uid: snapshot.id,
-      email: snapshot.data().email,
-      displayName: snapshot.data().displayName,
-      photoURL: snapshot.data().photoURL,
-      classrooms: snapshot.data().classrooms || [],
-      role: snapshot.data().role || 'student',
-      createdAt: snapshot.data().createdAt,
-      lastLogin: snapshot.data().lastLogin,
-      completedScenarios: snapshot.data().completedScenarios || [],
-      xp: snapshot.data().xp || 0,
-      level: snapshot.data().level || 1,
-      badges: snapshot.data().badges || [],
-      history: snapshot.data().history || []
-    };
+    
+    const classroomData = classroomDoc.data() as Classroom;
+    if (!classroomData.activeSessionId) {
+      return null;
+    }
+    
+    const sessionDoc = await getDoc(doc(db, 'sessions', classroomData.activeSessionId));
+    if (!sessionDoc.exists()) {
+      // Clean up stale reference
+      await updateDoc(doc(db, 'classrooms', classroomId), {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null
+      });
+      return null;
+    }
+    
+    const sessionData = sessionDoc.data() as LiveSession;
+    if (sessionData.status !== 'active') {
+      // Clean up ended session reference
+      await updateDoc(doc(db, 'classrooms', classroomId), {
+        activeSessionId: null,
+        activeScenario: null,
+        currentScene: null
+      });
+      return null;
+    }
+    
+    return { id: sessionDoc.id, ...sessionData } as LiveSession;
   } catch (error) {
-    console.error("Error getting user profile", error);
+    console.error("Error getting active session:", error);
     return null;
   }
 };
 
-export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>) => {
+// Cleanup orphaned sessions utility function
+export const cleanupOrphanedSessions = async () => {
   try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, updates);
-    console.log("User profile updated successfully");
+    console.log("Starting orphaned session cleanup...");
+    
+    // Get all active sessions
+    const sessionsQuery = query(
+      collection(db, 'sessions'),
+      where('status', '==', 'active')
+    );
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+    
+    const cleanupPromises = sessionsSnapshot.docs.map(async (sessionDoc) => {
+      const sessionData = sessionDoc.data() as LiveSession;
+      
+      // Check if classroom still references this session
+      const classroomDoc = await getDoc(doc(db, 'classrooms', sessionData.classroomId));
+      
+      if (!classroomDoc.exists() || 
+          classroomDoc.data().activeSessionId !== sessionDoc.id) {
+        console.log("Found orphaned session:", sessionDoc.id);
+        
+        // End the orphaned session
+        await updateDoc(sessionDoc.ref, {
+          status: 'ended',
+          endedAt: Timestamp.now(),
+          lastUpdated: Timestamp.now()
+        });
+      }
+    });
+    
+    await Promise.all(cleanupPromises);
+    console.log("Orphaned session cleanup completed");
   } catch (error) {
-    console.error("Error updating user profile", error);
+    console.error("Error during orphaned session cleanup:", error);
+  }
+};
+
+// Get student notifications
+export const getStudentNotifications = async (studentId: string) => {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('studentId', '==', studentId),
+      where('read', '==', false),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error getting notifications:", error);
+    return [];
+  }
+};
+
+// Listen to notifications with real-time updates
+export const onNotificationsUpdated = (studentId: string, callback: (notifications: SessionNotification[]) => void) => {
+  const q = query(
+    collection(db, 'notifications'),
+    where('studentId', '==', studentId),
+    where('read', '==', false),
+    orderBy('createdAt', 'desc')
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SessionNotification[];
+    callback(notifications);
+  });
+};
+
+// Helper function to convert Timestamp to Date
+export const convertTimestampToDate = ( timestamp: Timestamp | Date): Date => {
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  // It's a Firestore Timestamp
+  return (timestamp as any).toDate();
+};
+
+// Auth functions
+export const createUser = async (email: string, password: string) => {
+  return createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const loginUser  = async (email: string, password: string) => {
+  return signInWithEmailAndPassword(auth, email, password);
+};
+
+export const logoutUser  = async () => {
+  return signOut(auth);
+};
+
+export const getCurrentUser  = () => {
+  return auth.currentUser ;
+};
+
+// Firestore functions
+export const createUserProfile = async (uid: string, userData: UserProfileData) => {
+  // Initialize metrics at 0
+  const initialMetrics: Metrics = {
+    health: 0,
+    money: 0,
+    happiness: 0,
+    knowledge: 0,
+    relationships: 0
+  };
+  
+  const defaultData: UserProfileData = {
+    xp: 0,
+    level: 1,
+    completedScenarios: [],
+    badges: [],
+    history: [],
+    metrics: initialMetrics,
+    classrooms: [],
+    createdAt: Timestamp.now(),
+    ...userData
+  };
+  
+  return setDoc(doc(db, 'users', uid), defaultData);
+};
+
+export const getUserProfile = async (uid: string) => {
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (userDoc.exists()) {
+    return userDoc.data();
+  }
+  return null;
+};
+
+export const updateUserProfile = async (uid: string, data: Record<string, any>) => {
+  return updateDoc(doc(db, 'users', uid), data);
+};
+
+// Award a badge to a user
+export const awardBadge = async (userId: string, badgeId: string, badgeTitle: string) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userBadges = userData.badges || [];
+      
+      // Check if user already has this badge
+      if (userBadges.some((badge: any) => badge.id === badgeId)) {
+        console.log("User  already has this badge:", badgeId);
+        return false;
+      }
+      
+      // Add new badge with timestamp
+      const newBadge = {
+        id: badgeId,
+        title: badgeTitle,
+        awardedAt: Timestamp.now()
+      };
+      
+      await updateDoc(userRef, {
+        badges: [...userBadges, newBadge],
+        xp: (userData.xp || 0) + 25 // Award XP for getting a badge
+      });
+      
+      console.log("Badge awarded:", badgeId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error awarding badge:", error);
+    return false;
+  }
+};
+
+// Scenario History functions
+export const saveScenarioHistory = async (
+  userId: string, 
+  scenarioId: string, 
+  scenarioTitle: string, 
+  choices: ScenarioChoice[], 
+  finalMetrics: Metrics
+) => {
+  try {
+    // Get user's current profile
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error("User  not found");
+    }
+    
+    const userData = userDoc.data();
+    const history = userData.history || [];
+    
+    // Create new history entry
+    const historyEntry: ScenarioHistory = {
+      scenarioId,
+      scenarioTitle,
+      startedAt: choices.length > 0 ? choices[0].timestamp : Timestamp.now(),
+      completedAt: Timestamp.now(),
+      choices,
+      finalMetrics
+    };
+    
+    // Add to history array
+    const updatedHistory = [...history, historyEntry];
+    
+    // Update completed scenarios
+    const completedScenarios = userData.completedScenarios || [];
+    if (!completedScenarios.includes(scenarioId)) {
+      completedScenarios.push(scenarioId);
+    }
+    
+    // Update user profile
+    await updateDoc(doc(db, 'users', userId), {
+      history: updatedHistory,
+      completedScenarios,
+      metrics: finalMetrics,
+      xp: (userData.xp || 0) + 50 // Award XP for completion
+    });
+    
+    return historyEntry;
+  } catch (error) {
+    console.error('Error saving scenario history:', error);
     throw error;
   }
 };
 
-// FIXED: Enhanced classroom creation with proper code format
-export const createClassroom = async (teacherId: string, name: string, description?: string, teacherName?: string): Promise<Classroom> => {
+// Classroom functions
+export const createClassroom = async (teacherId: string, name: string, description?: string) => {
   try {
-    console.log("Creating classroom with teacherId:", teacherId, "name:", name);
+    // Get teacher info
+    const teacherDoc = await getDoc(doc(db, 'users', teacherId));
+    const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+
+    // Generate a unique class code
+    const classCode = generateClassCode();
     
-    // Generate classroom code in LIFE-XXXX format
-    const randomNumber = Math.floor(1000 + Math.random() * 9000);
-    const code = `LIFE-${randomNumber}`;
-    
+    // Create classroom data with both students and members arrays for compatibility
     const classroomData = {
-      name: name.trim(),
-      code,
-      classCode: code,
+      name,
+      description: description || "",
       teacherId,
-      teacherName: teacherName || 'Teacher',
-      createdAt: serverTimestamp() as Timestamp,
+      teacherName,
       students: [],
-      members: [teacherId],
-      liveSessionActive: false
+      members: [], // New atomic array for member IDs
+      activeScenario: null,
+      currentScene: null,
+      createdAt: Timestamp.now(),
+      classCode,
+      isActive: true,
+      activeSessionId: null
     };
-
-    console.log("Creating classroom with data:", classroomData);
     
-    const classroomRef = await addDoc(collection(db, 'classrooms'), classroomData);
-    console.log("Classroom created with ID:", classroomRef.id);
-
-    // Add classroom to teacher's profile
+    // Add to Firestore
+    const docRef = await addDoc(collection(db, 'classrooms'), classroomData);
+    
+    // Update teacher's profile to include the new classroom
     const teacherRef = doc(db, 'users', teacherId);
-    await updateDoc(teacherRef, {
-      classrooms: arrayUnion(classroomRef.id)
-    });
     
-    console.log("Added classroom to teacher profile");
-
-    return {
-      id: classroomRef.id,
-      ...classroomData
-    } as Classroom;
+    if (teacherDoc.exists()) {
+      const userData = teacherDoc.data();
+      const teacherClassrooms = userData.classrooms || [];
+      
+      await updateDoc(teacherRef, {
+        classrooms: [...teacherClassrooms, docRef.id]
+      });
+    }
+    
+    // Return the classroom object with the generated id
+    return { id: docRef.id, ...classroomData };
   } catch (error) {
     console.error("Error creating classroom:", error);
     throw error;
   }
 };
 
-// FIXED: Enhanced classroom joining with proper arrayUnion usage
-export const joinClassroom = async (classroomId: string, studentId: string, studentName: string): Promise<Classroom> => {
-  try {
-    console.log("Joining classroom:", classroomId, "as student:", studentId, studentName);
-    
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomSnap = await getDoc(classroomRef);
-    
-    if (!classroomSnap.exists()) {
-      throw new Error('Classroom not found');
-    }
-
-    const classroomData = classroomSnap.data() as Classroom;
-    
-    // Check if student is already a member
-    const isAlreadyMember = classroomData.members?.includes(studentId) || 
-                           classroomData.students?.some(s => s.id === studentId);
-    
-    if (isAlreadyMember) {
-      console.log("Student already a member, returning classroom data");
-      return {
-        id: classroomSnap.id,
-        ...classroomData
-      } as Classroom;
-    }
-
-    // FIXED: Use separate updates to avoid serverTimestamp() in arrayUnion
-    // First add the student ID to members array
-    await updateDoc(classroomRef, {
-      members: arrayUnion(studentId)
-    });
-
-    // Then add the detailed student info with timestamp
-    const studentMember: StudentMember = {
-      id: studentId,
-      name: studentName,
-      email: '', 
-      joinedAt: serverTimestamp() as Timestamp
-    };
-
-    await updateDoc(classroomRef, {
-      students: arrayUnion(studentMember)
-    });
-
-    // Add classroom to student's profile
-    const studentRef = doc(db, 'users', studentId);
-    await updateDoc(studentRef, {
-      classrooms: arrayUnion(classroomId)
-    });
-    
-    console.log("Successfully joined classroom");
-
-    return {
-      id: classroomId,
-      ...classroomData,
-      students: [...(classroomData.students || []), studentMember],
-      members: [...(classroomData.members || []), studentId]
-    } as Classroom;
-  } catch (error) {
-    console.error("Error joining classroom:", error);
-    throw error;
+export const getClassroom = async (classroomId: string) => {
+  const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+  if (classroomDoc.exists()) {
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
   }
+  return null;
 };
 
-export const joinClassroomByCode = async (code: string, studentId: string, studentName: string): Promise<Classroom> => {
+export const getClassroomByCode = async (classCode: string) => {
   try {
-    console.log("Joining classroom by code:", code);
+    const classroomsQuery = query(
+      collection(db, 'classrooms'), 
+      where('classCode', '==', classCode)
+    );
     
-    // Find classroom by code
-    const classroomsRef = collection(db, 'classrooms');
-    const q = query(classroomsRef, where('code', '==', code.toUpperCase()));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await getDocs(classroomsQuery);
     
-    if (querySnapshot.empty) {
-      throw new Error('Invalid classroom code');
-    }
-
-    const classroomDoc = querySnapshot.docs[0];
-    return await joinClassroom(classroomDoc.id, studentId, studentName);
-  } catch (error) {
-    console.error("Error joining classroom by code:", error);
-    throw error;
-  }
-};
-
-export const getClassroomByCode = async (code: string): Promise<Classroom | null> => {
-  try {
-    const classroomsRef = collection(db, 'classrooms');
-    const q = query(classroomsRef, where('code', '==', code.toUpperCase()));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
+    if (snapshot.empty) {
       return null;
     }
-
-    const classroomDoc = querySnapshot.docs[0];
-    return {
-      id: classroomDoc.id,
-      ...classroomDoc.data()
-    } as Classroom;
+    
+    const classroomDoc = snapshot.docs[0];
+    return { id: classroomDoc.id, ...classroomDoc.data() } as Classroom;
   } catch (error) {
     console.error("Error getting classroom by code:", error);
-    return null;
+    throw error;
   }
 };
 
-// Enhanced getUserClassrooms with role filtering
-export const getUserClassrooms = async (userId: string, role?: 'teacher' | 'student'): Promise<Classroom[]> => {
+export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> => {
   try {
-    console.log("Getting classrooms for user:", userId, "role:", role);
-    
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) return [];
-    
-    const classroomIds = userSnap.data().classrooms || [];
-    const classrooms: Classroom[] = [];
-    
-    for (const id of classroomIds) {
-      const classroomRef = doc(db, 'classrooms', id);
-      const classroomSnap = await getDoc(classroomRef);
-      if (classroomSnap.exists()) {
-        const classroom = {
-          id: classroomSnap.id,
-          ...classroomSnap.data()
-        } as Classroom;
-        
-        // Filter by role if specified
-        if (!role || 
-            (role === 'teacher' && classroom.teacherId === userId) ||
-            (role === 'student' && classroom.teacherId !== userId)) {
-          classrooms.push(classroom);
-        }
-      }
+    let classroomsQuery;
+    if (teacherId) {
+      classroomsQuery = query(collection(db, 'classrooms'), where('teacherId', '==', teacherId));
+    } else {
+      classroomsQuery = collection(db, 'classrooms');
     }
     
-    console.log("Found classrooms:", classrooms.length);
-    return classrooms;
+    const snapshot = await getDocs(classroomsQuery);
+    return snapshot.docs.map(doc => {
+      // Assert that doc.data() is an object to allow spreading
+      return { id: doc.id, ...(doc.data() as object) } as Classroom;
+    });
+  } catch (error) {
+    console.error("Error getting classrooms:", error);
+    return [];
+  }
+};
+
+export const getUserClassrooms = async (userId: string, role: string) => {
+  try {
+    // For teachers, get classrooms they created
+    if (role === 'teacher') {
+      return getClassrooms(userId);
+    }
+    
+    // For students, get classrooms they've joined
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return [];
+    }
+    
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    // If user hasn't joined any classrooms yet
+    if (userClassrooms.length === 0) {
+      return [];
+    }
+    
+    // Get details for each classroom the user is in
+    const classroomPromises = userClassrooms.map((classroomId: string) => getClassroom(classroomId));
+    const classrooms = await Promise.all(classroomPromises);
+    
+    // Filter out any null results (in case a classroom was deleted)
+    return classrooms.filter(Boolean) as Classroom[];
   } catch (error) {
     console.error("Error getting user classrooms:", error);
     return [];
   }
 };
 
-// Live session functions
-export const createLiveSession = async (
-  classroomId: string, 
-  teacherId: string, 
-  scenarioId: string, 
-  scenarioTitle: string, 
-  initialSceneId: string,
-  teacherName?: string
-): Promise<LiveSession> => {
-  try {
-    const sessionData = {
-      classroomId,
-      teacherId,
-      teacherName: teacherName || 'Teacher',
-      scenarioId,
-      scenarioTitle,
-      currentSceneId: initialSceneId,
-      currentSceneIndex: 0,
-      status: 'active' as const,
-      participants: [],
-      votes: {},
-      currentChoices: {},
-      createdAt: serverTimestamp() as Timestamp,
-      startedAt: serverTimestamp() as Timestamp
-    };
-
-    const sessionRef = await addDoc(collection(db, 'liveSessions'), sessionData);
-    
-    // Update classroom with active session and set live session flag
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    await updateDoc(classroomRef, {
-      activeSessionId: sessionRef.id,
-      liveSessionActive: true
-    });
-
-    return {
-      id: sessionRef.id,
-      ...sessionData
-    };
-  } catch (error) {
-    console.error("Error creating live session", error);
-    throw error;
+export const updateClassroom = async (classroomId: string, data: Partial<Classroom>) => {
+  const updateData = { ...data };
+  if ('id' in updateData) {
+    delete (updateData as any).id; // Remove id property if present
   }
+  return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
-export const joinLiveSession = async (sessionId: string, userId: string, userName: string): Promise<LiveSession> => {
-  try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    const sessionSnap = await getDoc(sessionRef);
-    
-    if (!sessionSnap.exists()) {
-      throw new Error('Session not found');
-    }
-
-    const sessionData = sessionSnap.data() as LiveSession;
-    
-    if (sessionData.status !== 'active') {
-      throw new Error('Session is not active');
-    }
-
-    // Check if user is already a participant
-    const existingParticipant = sessionData.participants.find(p => p.userId === userId);
-    
-    if (!existingParticipant) {
-      const newParticipant: SessionParticipant = {
-        userId,
-        userName,
-        studentId: userId,
-        studentName: userName,
-        joinedAt: serverTimestamp() as Timestamp
-      };
-
-      await updateDoc(sessionRef, {
-        participants: arrayUnion(newParticipant)
-      });
-    }
-
-    return {
-      id: sessionId,
-      ...sessionData
-    };
-  } catch (error) {
-    console.error("Error joining live session", error);
-    throw error;
-  }
+// Classroom activity functions
+export const startClassroomScenario = async (classroomId: string, scenarioId: string, initialScene: string) => {
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    activeScenario: scenarioId,
+    currentScene: initialScene,
+    startedAt: Timestamp.now(),
+    votes: {},
+    studentProgress: {}
+  });
 };
 
-export const submitStudentVote = async (sessionId: string, userId: string, choiceId: string) => {
-  try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    await updateDoc(sessionRef, {
-      [`votes.${userId}`]: choiceId,
-      [`currentChoices.${userId}`]: choiceId
-    });
-  } catch (error) {
-    console.error("Error submitting vote", error);
-    throw error;
-  }
+export const recordStudentVote = async (classroomId: string, studentId: string, choiceId: string) => {
+  const voteRef = doc(db, 'classrooms', classroomId, 'votes', studentId);
+  return setDoc(voteRef, { 
+    choiceId, 
+    timestamp: Timestamp.now() 
+  });
 };
 
-export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
-  try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    const updates: any = {
-      currentSceneId: nextSceneId,
-      votes: {},
-      currentChoices: {}
-    };
-    
-    if (nextSceneIndex !== undefined) {
-      updates.currentSceneIndex = nextSceneIndex;
-    }
-    
-    await updateDoc(sessionRef, updates);
-  } catch (error) {
-    console.error("Error advancing live session", error);
-    throw error;
-  }
+export const getScenarioVotes = async (classroomId: string) => {
+  const votesQuery = collection(db, 'classrooms', classroomId, 'votes');
+  const snapshot = await getDocs(votesQuery);
+  return snapshot.docs.map(doc => ({ studentId: doc.id, ...doc.data() }));
 };
 
-export const endLiveSession = async (sessionId: string, classroomId?: string, resultPayload?: any) => {
-  try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    const updates: any = {
-      status: 'ended',
-      endedAt: serverTimestamp() as Timestamp
-    };
-    
-    if (resultPayload) {
-      updates.resultPayload = resultPayload;
-    }
-    
-    await updateDoc(sessionRef, updates);
+export const advanceClassroomScene = async (classroomId: string, nextSceneId: string) => {
+  // Clear previous votes and set new scene
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  const votesSnapshot = await getDocs(votesRef);
+  
+  // Delete previous votes
+  const deletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+  await Promise.all(deletePromises);
+  
+  // Set new scene
+  return updateDoc(doc(db, 'classrooms', classroomId), {
+    currentScene: nextSceneId,
+    lastUpdated: Timestamp.now()
+  });
+};
 
-    // Remove active session from classroom and clear live session flag
-    if (classroomId) {
+// Fixed atomic student removal with proper transaction ordering
+export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
+  try {
+    console.log(`Removing student ${studentId} from classroom ${classroomId}`);
+    
+    await runTransaction(db, async (transaction) => {
+      // READ PHASE - All reads must happen first
       const classroomRef = doc(db, 'classrooms', classroomId);
-      await updateDoc(classroomRef, {
-        activeSessionId: null,
-        liveSessionActive: false
+      const userRef = doc(db, 'users', studentId);
+      
+      const classroomDoc = await transaction.get(classroomRef);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      let sessionRef = null;
+      let sessionDoc = null;
+      
+      // Check for active session
+      if (classroomData.activeSessionId) {
+        sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
+        sessionDoc = await transaction.get(sessionRef);
+      }
+      
+      // WRITE PHASE - All writes happen after reads
+      // Remove student from classroom
+      const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
+      const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
+      
+      transaction.update(classroomRef, {
+        students: updatedStudents,
+        members: updatedMembers
       });
+      
+      // Remove from active session if exists
+      if (sessionRef && sessionDoc && sessionDoc.exists()) {
+        const sessionData = sessionDoc.data() as LiveSession;
+        const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
+        
+        transaction.update(sessionRef, {
+          participants: updatedParticipants,
+          lastUpdated: Timestamp.now()
+        });
+      }
+      
+      // Update student's profile
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userClassrooms = userData.classrooms || [];
+        const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
+        
+        transaction.update(userRef, {
+          classrooms: updatedClassrooms
+        });
+      }
+    });
+    
+    // Clean up participant records outside of transaction
+    try {
+      const participantQuery = query(
+        collection(db, 'sessionParticipants'),
+        where('studentId', '==', studentId)
+      );
+      const participantSnapshot = await getDocs(participantQuery);
+      
+      const batch = writeBatch(db);
+      participantSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { isActive: false });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.log("No participant records to clean up:", error);
     }
+    
+    console.log("Student removal completed successfully");
+    return true;
   } catch (error) {
-    console.error("Error ending live session", error);
+    console.error("Error removing student from classroom:", error);
     throw error;
   }
 };
 
-export const getActiveSession = async (classroomId: string): Promise<LiveSession | null> => {
+// Fixed atomic join classroom with proper validation
+export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {
-    const sessionsRef = collection(db, 'liveSessions');
-    const q = query(
-      sessionsRef, 
-      where('classroomId', '==', classroomId),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc')
-    );
+    console.log(`Student ${studentId} attempting to join classroom ${classroomId}`);
     
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return null;
-    }
-
-    const sessionDoc = querySnapshot.docs[0];
-    return {
-      id: sessionDoc.id,
-      ...sessionDoc.data()
-    } as LiveSession;
-  } catch (error) {
-    console.error("Error getting active session", error);
-    return null;
-  }
-};
-
-// Real-time listeners with null checks
-export const onLiveSessionUpdated = (sessionId: string, callback: (session: LiveSession) => void) => {
-  if (!sessionId) {
-    console.error("onLiveSessionUpdated: sessionId is null or undefined");
-    return () => {}; // Return empty unsubscribe function
-  }
-  
-  const sessionRef = doc(db, 'liveSessions', sessionId);
-  return onSnapshot(sessionRef, (doc) => {
-    if (doc.exists()) {
-      callback({
-        id: doc.id,
-        ...doc.data()
-      } as LiveSession);
-    }
-  });
-};
-
-export const onClassroomUpdated = (classroomId: string | null | undefined, callback: (classroom: Classroom) => void) => {
-  if (!classroomId) {
-    console.error("onClassroomUpdated: classroomId is null or undefined");
-    return () => {}; // Return empty unsubscribe function
-  }
-  
-  const classroomRef = doc(db, 'classrooms', classroomId);
-  return onSnapshot(classroomRef, (doc) => {
-    if (doc.exists()) {
-      callback({
-        id: doc.id,
-        ...doc.data()
-      } as Classroom);
-    }
-  });
-};
-
-export const onNotificationsUpdated = (userId: string, callback: (notifications: SessionNotification[]) => void) => {
-  const notificationsRef = collection(db, 'notifications');
-  const q = query(
-    notificationsRef,
-    where('userId', '==', userId),
-    where('read', '==', false),
-    orderBy('createdAt', 'desc')
-  );
-  
-  return onSnapshot(q, (querySnapshot) => {
-    const notifications: SessionNotification[] = [];
-    querySnapshot.forEach((doc) => {
-      notifications.push({
-        id: doc.id,
-        ...doc.data()
-      } as SessionNotification);
+    const result = await runTransaction(db, async (transaction) => {
+      // READ PHASE
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const userRef = doc(db, 'users', studentId);
+      
+      const classroomDoc = await transaction.get(classroomRef);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      if (!userDoc.exists()) {
+        throw new Error("User  not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      const userData = userDoc.data();
+      
+      const currentStudents = classroomData.students || [];
+      const currentMembers = classroomData.members || [];
+      const userClassrooms = userData.classrooms || [];
+      
+      // Check if already a member
+      const existingStudentIndex = currentStudents.findIndex(s => s.id === studentId);
+      const isMemberAlready = currentMembers.includes(studentId);
+      const isInUserClassrooms = userClassrooms.includes(classroomId);
+      
+      // WRITE PHASE
+      let needsClassroomUpdate = false;
+      const updatedStudents = [...currentStudents];
+      const updatedMembers = [...currentMembers];
+      
+      if (existingStudentIndex === -1) {
+        // Add to students array
+        const newStudent: ClassroomStudent = {
+          id: studentId,
+          name: studentName,
+          joinedAt: Timestamp.now()
+        };
+        updatedStudents.push(newStudent);
+        needsClassroomUpdate = true;
+      }
+      
+      if (!isMemberAlready) {
+        // Add to members array
+        updatedMembers.push(studentId);
+        needsClassroomUpdate = true;
+      }
+      
+      if (needsClassroomUpdate) {
+        transaction.update(classroomRef, { 
+          students: updatedStudents,
+          members: updatedMembers
+        });
+      }
+      
+      // Update user's classrooms
+      if (!isInUserClassrooms) {
+        const updatedUserClassrooms = [...userClassrooms, classroomId];
+        transaction.update(userRef, { 
+          classrooms: updatedUserClassrooms 
+        });
+      }
+      
+      return classroomData;
     });
-    callback(notifications);
+    
+    // Return the updated classroom data
+    const updatedClassroom = await getClassroom(classroomId);
+    return updatedClassroom;
+    
+  } catch (error) {
+    console.error("Error joining classroom:", error);
+    throw error;
+  }
+};
+
+// Enhanced join by code with better error handling
+export const joinClassroomByCode = async (classCode: string, studentId: string, studentName: string) => {
+  try {
+    console.log(`Student ${studentId} attempting to join by code: ${classCode}`);
+    
+    // First find the classroom by code
+    const classroom = await getClassroomByCode(classCode);
+    if (!classroom || !classroom.id) {
+      throw new Error("Invalid classroom code");
+    }
+    
+    // Join the classroom using the found ID
+    return await joinClassroom(classroom.id, studentId, studentName);
+    
+  } catch (error) {
+    console.error("Error joining classroom by code:", error);
+    throw error;
+  }
+};
+
+// Helper to generate a random class code
+const generateClassCode = () => {
+  const prefix = 'LIFE';
+  const randomDigits = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+  return `${prefix}-${randomDigits}`;
+};
+
+// Real-time listeners
+export const onClassroomUpdated = (classroomId: string, callback: (classroom: Classroom) => void) => {
+  const unsubscribe = onSnapshot(doc(db, 'classrooms', classroomId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as Classroom);
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => void) => {
+  const votesRef = collection(db, 'classrooms', classroomId, 'votes');
+  
+  const unsubscribe = onSnapshot(votesRef, (snapshot) => {
+    const votes = snapshot.docs.map(doc => ({ 
+      studentId: doc.id, 
+      ...doc.data() 
+    }));
+    callback(votes);
+  });
+  
+  return unsubscribe;
+};
+
+export const onLiveSessionUpdated = (sessionId: string, callback: (session: LiveSession) => void) => {
+  return onSnapshot(doc(db, 'sessions', sessionId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as LiveSession);
+    }
   });
 };
 
 export const onSessionParticipantsUpdated = (sessionId: string, callback: (participants: SessionParticipant[]) => void) => {
-  const sessionRef = doc(db, 'liveSessions', sessionId);
-  return onSnapshot(sessionRef, (doc) => {
-    if (doc.exists()) {
-      const sessionData = doc.data() as LiveSession;
-      callback(sessionData.participants || []);
-    }
-  });
-};
-
-// Scenario and voting functions
-export const saveScenarioHistory = async (
-  userId: string,
-  scenarioId: string,
-  scenarioTitle: string,
-  choices: ScenarioChoice[],
-  metrics: { environmental: number; social: number; economic: number }
-) => {
-  try {
-    console.log("Saving scenario history for user:", userId);
-    
-    const historyRef = collection(db, 'scenarioHistory');
-    const historyDoc = await addDoc(historyRef, {
-      userId,
-      scenarioId,
-      scenarioTitle,
-      choices,
-      metrics,
-      finalMetrics: metrics,
-      completedAt: serverTimestamp() as Timestamp
-    });
-    
-    console.log("Scenario history saved with ID:", historyDoc.id);
-  } catch (error) {
-    console.error("Error saving scenario history", error);
-    throw error;
-  }
-};
-
-export const recordStudentVote = async (classroomId: string, studentId: string, choiceId: string) => {
-  try {
-    const voteRef = collection(db, 'classroomVotes');
-    await addDoc(voteRef, {
-      classroomId,
-      studentId,
-      choiceId,
-      timestamp: serverTimestamp() as Timestamp
-    });
-  } catch (error) {
-    console.error("Error recording vote", error);
-    throw error;
-  }
-};
-
-export const getScenarioVotes = async (classroomId: string) => {
-  try {
-    const votesRef = collection(db, 'classroomVotes');
-    const q = query(votesRef, where('classroomId', '==', classroomId));
-    const querySnapshot = await getDocs(q);
-    
-    const votes: any[] = [];
-    querySnapshot.forEach((doc) => {
-      votes.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
-    return votes;
-  } catch (error) {
-    console.error("Error getting votes", error);
-    return [];
-  }
-};
-
-export const onVotesUpdated = (classroomId: string, callback: (votes: any[]) => void) => {
-  const votesRef = collection(db, 'classroomVotes');
-  const q = query(votesRef, where('classroomId', '==', classroomId));
+  const q = query(
+    collection(db, 'sessionParticipants'),
+    where('sessionId', '==', sessionId),
+    where('isActive', '==', true)
+  );
   
-  return onSnapshot(q, (querySnapshot) => {
-    const votes: any[] = [];
-    querySnapshot.forEach((doc) => {
-      votes.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    callback(votes);
+  return onSnapshot(q, (snapshot) => {
+    const participants = snapshot.docs.map(doc => doc.data() as SessionParticipant);
+    callback(participants);
   });
 };
 
-export const submitLiveChoice = async (sessionId: string, userId: string, choiceId: string) => {
-  try {
-    const sessionRef = doc(db, 'liveSessions', sessionId);
-    await updateDoc(sessionRef, {
-      [`currentChoices.${userId}`]: choiceId
-    });
-  } catch (error) {
-    console.error("Error submitting live choice", error);
-    throw error;
-  }
+export const signInWithGoogle = () => {
+  const provider = new GoogleAuthProvider();
+ 
+  return signInWithPopup(auth, provider);
 };
 
-// Mock scenario functions for compatibility
-export const getScenario = async (scenarioId: string) => {
-  return null;
-};
-
-export const getScenarios = async () => {
-  return [];
-};
-
-// Utility functions
-export const convertTimestampToDate = (timestamp: Timestamp): Date => {
-  return timestamp.toDate();
-};
-
-// Type aliases for compatibility
-export type ClassroomStudent = StudentMember;
-
-export interface UserProfileData {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  role: 'student' | 'teacher' | 'guest';
-  createdAt: Date;
-  xp?: number;
-  level?: number;
-  badges?: string[];
-  completedScenarios?: string[];
-  history?: ScenarioHistory[];
-  classrooms?: string[];
-}
-
-export const removeStudentFromClassroom = async (classroomId: string, studentId: string): Promise<void> => {
-  try {
-    const classroomRef = doc(db, 'classrooms', classroomId);
-    const classroomDoc = await getDoc(classroomRef);
-    
-    if (!classroomDoc.exists()) {
-      throw new Error('Classroom not found');
-    }
-    
-    const classroom = classroomDoc.data() as Classroom;
-    const updatedMembers = classroom.members?.filter(id => id !== studentId) || [];
-    
-    await updateDoc(classroomRef, {
-      members: updatedMembers
-    });
-    
-    console.log('Student removed from classroom successfully');
-  } catch (error) {
-    console.error('Error removing student from classroom:', error);
-    throw error;
-  }
-};
+export { auth, db, Timestamp, analytics };

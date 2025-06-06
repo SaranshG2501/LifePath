@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { X, ChevronRight, Calendar, Trophy } from 'lucide-react';
 import { ScenarioHistory } from '@/lib/firebase';
 import MetricsDisplay from './MetricsDisplay';
-import { Metrics } from '@/types/game';
 
 interface ScenarioHistoryDetailProps {
   history: ScenarioHistory;
@@ -44,27 +43,6 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
     }
   };
 
-  // Convert firebase metrics to component metrics format
-  const convertToMetrics = (firebaseMetrics: any): Metrics => {
-    if (!firebaseMetrics) {
-      return { health: 50, money: 50, happiness: 50, knowledge: 50, relationships: 50 };
-    }
-    
-    // If already in correct format
-    if (firebaseMetrics.health !== undefined) {
-      return firebaseMetrics;
-    }
-    
-    // Convert from environmental/social/economic format
-    return {
-      health: Math.round((firebaseMetrics.environmental || 0) / 2),
-      money: firebaseMetrics.economic || 50,
-      happiness: Math.round((firebaseMetrics.social || 0) / 2),
-      knowledge: Math.round((firebaseMetrics.environmental || 0) / 2),
-      relationships: Math.round((firebaseMetrics.social || 0) / 2)
-    };
-  };
-
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-3xl bg-black/90 border border-white/10">
@@ -93,7 +71,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
           {history.finalMetrics && (
             <div>
               <h3 className="font-medium mb-2 text-white">Your Final Stats</h3>
-              <MetricsDisplay metrics={convertToMetrics(history.finalMetrics)} />
+              <MetricsDisplay metrics={history.finalMetrics} />
             </div>
           )}
           
