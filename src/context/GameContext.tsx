@@ -93,7 +93,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [revealVotes, setRevealVotes] = useState(false);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('student');
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, refreshUserProfile } = useAuth();
   const { toast } = useToast();
 
   // Derived values
@@ -317,12 +317,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userProfile) {
           const updatedProfile: Partial<UserProfile> = {
             xp: (userProfile.xp || 0) + 100,
-            level: Math.floor(((userProfile.xp || 0) + 100) / 500) + 1
+            level: Math.floor(((userProfile.xp || 0) + 100) / 500) + 1,
+            completedScenarios: [...(userProfile.completedScenarios || []), gameState.currentScenario.id]
           };
           await updateUserProfile(currentUser.uid, updatedProfile);
+          
+          // Refresh user profile to update UI immediately
+          if (refreshUserProfile) {
+            await refreshUserProfile();
+          }
         }
+
+        toast({
+          title: 'Scenario Complete!',
+          description: `You earned 100 XP! Check your profile for updated progress.`,
+        });
       } catch (error) {
         console.error('Error saving game results:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to save your progress. Please try again.',
+          variant: 'destructive'
+        });
       }
     }
   };

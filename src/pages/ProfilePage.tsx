@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,15 +19,16 @@ import {
   Award,
   TrendingUp,
   Calendar,
-  Star
+  Star,
+  LogOut
 } from 'lucide-react';
 import { getUserClassrooms, Classroom } from '@/lib/firebase';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import ClassroomAccessGuard from '@/components/classroom/ClassroomAccessGuard';
 
 const ProfilePage = () => {
-  const { currentUser, userProfile } = useAuth();
-  const { scenarios, userRole } = useGameContext();
+  const { currentUser, userProfile, logout, refreshUserProfile } = useAuth();
+  const { scenarios } = useGameContext();
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,8 @@ const ProfilePage = () => {
       }
 
       try {
+        // Refresh user profile to get latest data
+        await refreshUserProfile();
         const userClassrooms = await getUserClassrooms(currentUser.uid);
         setClassrooms(userClassrooms);
       } catch (error) {
@@ -49,7 +53,23 @@ const ProfilePage = () => {
     };
 
     loadUserData();
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, refreshUserProfile]);
+
+  // Refresh data when component mounts or user profile changes
+  useEffect(() => {
+    if (userProfile) {
+      console.log('User profile updated:', userProfile);
+    }
+  }, [userProfile]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   if (!currentUser || !userProfile) {
     return (
@@ -99,31 +119,41 @@ const ProfilePage = () => {
     <ClassroomAccessGuard>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-              {userProfile.photoURL ? (
-                <img 
-                  src={userProfile.photoURL} 
-                  alt={userProfile.displayName} 
-                  className="w-14 h-14 rounded-full object-cover"
-                />
-              ) : (
-                <User className="w-8 h-8 text-primary" />
-              )}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                {userProfile.displayName || 'Student'}
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className="bg-primary/20 text-primary border-0">
-                  Level {userProfile.level || 1}
-                </Badge>
-                <Badge className="bg-blue-500/20 text-blue-300 border-0 capitalize">
-                  {userProfile.role}
-                </Badge>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+                {userProfile.photoURL ? (
+                  <img 
+                    src={userProfile.photoURL} 
+                    alt={userProfile.displayName} 
+                    className="w-14 h-14 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="w-8 h-8 text-primary" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {userProfile.displayName || 'Student'}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className="bg-primary/20 text-primary border-0">
+                    Level {userProfile.level || 1}
+                  </Badge>
+                  <Badge className="bg-blue-500/20 text-blue-300 border-0 capitalize">
+                    {userProfile.role}
+                  </Badge>
+                </div>
               </div>
             </div>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </header>
 

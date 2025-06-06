@@ -26,14 +26,18 @@ export interface Choice {
   text: string;
   nextSceneId?: string;
   metricChanges: MetricChanges;
+  sceneId?: string;
+  choiceId?: string;
+  choiceText?: string;
+  timestamp?: any;
 }
 
 export interface MetricChanges {
-  health: number;
-  money: number;
-  happiness: number;
-  knowledge: number;
-  relationships: number;
+  health?: number;
+  money?: number;
+  happiness?: number;
+  knowledge?: number;
+  relationships?: number;
 }
 
 export interface Metrics {
