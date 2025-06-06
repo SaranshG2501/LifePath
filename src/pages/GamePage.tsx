@@ -410,8 +410,9 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
+  // FIXED: Only set up classroom listener if classroomId is valid
   useEffect(() => {
-    if (!currentUser || userRole !== 'student') return;
+    if (!currentUser || userRole !== 'student' || !classroomId) return;
 
     console.log("Setting up classroom membership listener for student:", currentUser.uid);
     

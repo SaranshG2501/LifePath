@@ -1,3 +1,4 @@
+
 export interface Scenario {
   id: string;
   title: string;
@@ -14,8 +15,10 @@ export interface Scene {
   id: string;
   title: string;
   content: string;
+  description?: string;
   choices: Choice[];
   image?: string;
+  isEnding?: boolean;
 }
 
 export interface Choice {
@@ -41,11 +44,20 @@ export interface Metrics {
   relationships: number;
 }
 
+export interface GameState {
+  currentScenario: Scenario | null;
+  currentScene: Scene | null;
+  metrics: Metrics;
+  history: Choice[];
+  isComplete: boolean;
+}
+
 export type UserRole = 'student' | 'teacher' | 'guest';
 
 export interface Classroom {
   id?: string;
   name: string;
+  code: string;
   classCode: string;
   teacherId: string;
   teacherName: string;

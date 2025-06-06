@@ -58,6 +58,7 @@ export interface Classroom {
   id: string;
   name: string;
   code: string;
+  classCode: string;
   teacherId: string;
   teacherName: string;
   createdAt: Timestamp;
@@ -256,6 +257,7 @@ export const createClassroom = async (teacherId: string, name: string, descripti
     const classroomData = {
       name: name.trim(),
       code,
+      classCode: code, // Add both for compatibility
       teacherId,
       teacherName: teacherName || 'Teacher',
       createdAt: serverTimestamp() as Timestamp,
@@ -599,8 +601,13 @@ export const getActiveSession = async (classroomId: string): Promise<LiveSession
   }
 };
 
-// Real-time listeners
+// Real-time listeners with null checks
 export const onLiveSessionUpdated = (sessionId: string, callback: (session: LiveSession) => void) => {
+  if (!sessionId) {
+    console.error("onLiveSessionUpdated: sessionId is null or undefined");
+    return () => {}; // Return empty unsubscribe function
+  }
+  
   const sessionRef = doc(db, 'liveSessions', sessionId);
   return onSnapshot(sessionRef, (doc) => {
     if (doc.exists()) {
@@ -612,7 +619,12 @@ export const onLiveSessionUpdated = (sessionId: string, callback: (session: Live
   });
 };
 
-export const onClassroomUpdated = (classroomId: string, callback: (classroom: Classroom) => void) => {
+export const onClassroomUpdated = (classroomId: string | null | undefined, callback: (classroom: Classroom) => void) => {
+  if (!classroomId) {
+    console.error("onClassroomUpdated: classroomId is null or undefined");
+    return () => {}; // Return empty unsubscribe function
+  }
+  
   const classroomRef = doc(db, 'classrooms', classroomId);
   return onSnapshot(classroomRef, (doc) => {
     if (doc.exists()) {
@@ -790,7 +802,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
     }
     
     const classroom = classroomDoc.data() as Classroom;
-    const updatedMembers = classroom.members.filter(id => id !== studentId);
+    const updatedMembers = classroom.members?.filter(id => id !== studentId) || [];
     
     await updateDoc(classroomRef, {
       members: updatedMembers
