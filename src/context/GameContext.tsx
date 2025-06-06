@@ -35,6 +35,7 @@ type GameContextType = {
   mirrorMomentsEnabled: boolean;
   hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
+  isModeLocked: boolean;
 };
 
 const initialMetrics: Metrics = {
@@ -67,6 +68,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
   const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
+  const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -159,10 +161,10 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    // Start with scenario's default metrics rather than user's saved metrics
-    const startingMetrics = { ...scenario.initialMetrics };
+    // Lock mode when scenario starts
+    setIsModeLocked(true);
 
-    // Reset scenario choices for new scenario
+    const startingMetrics = { ...scenario.initialMetrics };
     setScenarioChoices([]);
 
     setGameState({
@@ -180,7 +182,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       toast({
         title: "Classroom Mode Active",
         description: userRole === "teacher" 
-          ? "You're leading this scenario. Students can join with your classroom code." 
+          ? "You're leading this scenario. Students will follow your progress." 
           : "You're participating in a classroom activity.",
       });
     }
@@ -342,6 +344,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setRevealVotes(false);
     setClassroomVotes({});
     setScenarioChoices([]);
+    setIsModeLocked(false); // Unlock mode when game resets
   };
 
   const submitVote = (choiceId: string) => {
@@ -390,6 +393,18 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const setGameModeWithLock = (mode: GameMode) => {
+    if (isModeLocked) {
+      toast({
+        title: "Mode Locked",
+        description: "Cannot change mode while a scenario is active.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setGameMode(mode);
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -400,7 +415,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         resetGame,
         isGameActive,
         gameMode,
-        setGameMode,
+        setGameMode: setGameModeWithLock,
         userRole,
         setUserRole,
         classroomId,
@@ -415,7 +430,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         toggleMirrorMoments,
         mirrorMomentsEnabled,
         hasJoinedClassroom,
-        setCurrentScene
+        setCurrentScene,
+        isModeLocked
       }}
     >
       {children}

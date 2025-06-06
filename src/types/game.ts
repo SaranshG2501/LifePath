@@ -1,4 +1,3 @@
-
 export type Metrics = {
   health: number;
   money: number;
@@ -91,3 +90,30 @@ export interface ScenarioCardProps {
   scenario: Scenario;
   onClick?: () => void;
 }
+
+type GameContextType = {
+  gameState: GameState;
+  scenarios: Scenario[];
+  startScenario: (id: string) => void;
+  makeChoice: (choiceId: string) => void;
+  resetGame: () => void;
+  isGameActive: boolean;
+  gameMode: GameMode;
+  setGameMode: (mode: GameMode) => void;
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
+  classroomId: string | null;
+  setClassroomId: (id: string | null) => void;
+  showMirrorMoment: boolean;
+  setShowMirrorMoment: (show: boolean) => void;
+  currentMirrorQuestion: string | null;
+  classroomVotes: Record<string, number>;
+  submitVote: (choiceId: string) => void;
+  revealVotes: boolean;
+  setRevealVotes: (reveal: boolean) => void;
+  toggleMirrorMoments: () => void;
+  mirrorMomentsEnabled: boolean;
+  hasJoinedClassroom: boolean;
+  setCurrentScene: (sceneId: string) => void;
+  isModeLocked: boolean;
+};
