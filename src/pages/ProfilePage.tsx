@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { School, Users, User, Calendar, BookOpen, Play } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getUserClassrooms, getTeacherClassrooms, Classroom, convertTimestampToDate } from '@/lib/firebase';
+import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp } from '@/lib/firebase';
 import { ScenarioHistory } from '@/lib/firebase';
 import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
 
@@ -35,7 +35,8 @@ const ProfilePage = () => {
       if (userProfile.role === 'student') {
         userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
       } else if (userProfile.role === 'teacher') {
-        userClassrooms = await getTeacherClassrooms(currentUser.uid);
+        // For teachers, get classrooms they created
+        userClassrooms = await getClassrooms(currentUser.uid);
       }
       
       setClassrooms(userClassrooms);
@@ -54,29 +55,39 @@ const ProfilePage = () => {
         // For now, create some mock history data to show the UI
         const mockHistory: ScenarioHistory[] = [
           {
-            scenarioTitle: 'Financial Literacy Challenge',
-            completedAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+            scenarioId: 'financial-literacy',
+            scenarioTitle: 'Financial Literacy Challenge', 
+            startedAt: Timestamp.now(),
+            completedAt: Timestamp.now(),
             choices: [
               {
+                sceneId: 'scene1',
+                choiceId: 'choice1',
                 choiceText: 'Invest in stocks',
-                timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+                timestamp: Timestamp.now(),
                 metricChanges: { money: 50, knowledge: 10 }
               },
               {
+                sceneId: 'scene2',
+                choiceId: 'choice2',
                 choiceText: 'Save in bank',
-                timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+                timestamp: Timestamp.now(),
                 metricChanges: { money: 20, happiness: 5 }
               }
             ],
             finalMetrics: { health: 85, money: 120, happiness: 75, knowledge: 90, relationships: 80 }
           },
           {
+            scenarioId: 'career-decision',
             scenarioTitle: 'Career Decision Maker',
-            completedAt: { seconds: (Date.now() - 86400000) / 1000, nanoseconds: 0 },
+            startedAt: new Date(Date.now() - 86400000),
+            completedAt: new Date(Date.now() - 86400000 + 3600000),
             choices: [
               {
+                sceneId: 'scene1',
+                choiceId: 'choice1',
                 choiceText: 'Choose higher education',
-                timestamp: { seconds: (Date.now() - 86400000) / 1000, nanoseconds: 0 },
+                timestamp: new Date(Date.now() - 86400000 + 1800000),
                 metricChanges: { knowledge: 30, money: -20 }
               }
             ],
