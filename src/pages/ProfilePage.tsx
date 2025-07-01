@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { School, Users, User, Calendar, BookOpen, Play } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getUserClassrooms, Classroom, convertTimestampToDate } from '@/lib/firebase';
+import { getUserClassrooms, getTeacherClassrooms, Classroom, convertTimestampToDate } from '@/lib/firebase';
 import { ScenarioHistory } from '@/lib/firebase';
 import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
 
@@ -20,17 +20,24 @@ const ProfilePage = () => {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (currentUser && userProfile?.role === 'student') {
+    if (currentUser && userProfile) {
       fetchClassrooms();
     }
   }, [currentUser, userProfile]);
 
   const fetchClassrooms = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !userProfile) return;
     
     try {
       setLoadingClassrooms(true);
-      const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
+      let userClassrooms: Classroom[] = [];
+      
+      if (userProfile.role === 'student') {
+        userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
+      } else if (userProfile.role === 'teacher') {
+        userClassrooms = await getTeacherClassrooms(currentUser.uid);
+      }
+      
       setClassrooms(userClassrooms);
     } catch (error) {
       console.error('Error fetching classrooms:', error);
@@ -44,8 +51,38 @@ const ProfilePage = () => {
       if (!currentUser) return;
       try {
         setLoadingHistory(true);
-        // Mock scenario history for now since getScenarioHistory doesn't exist
-        const mockHistory: ScenarioHistory[] = [];
+        // For now, create some mock history data to show the UI
+        const mockHistory: ScenarioHistory[] = [
+          {
+            scenarioTitle: 'Financial Literacy Challenge',
+            completedAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+            choices: [
+              {
+                choiceText: 'Invest in stocks',
+                timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+                metricChanges: { money: 50, knowledge: 10 }
+              },
+              {
+                choiceText: 'Save in bank',
+                timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+                metricChanges: { money: 20, happiness: 5 }
+              }
+            ],
+            finalMetrics: { health: 85, money: 120, happiness: 75, knowledge: 90, relationships: 80 }
+          },
+          {
+            scenarioTitle: 'Career Decision Maker',
+            completedAt: { seconds: (Date.now() - 86400000) / 1000, nanoseconds: 0 },
+            choices: [
+              {
+                choiceText: 'Choose higher education',
+                timestamp: { seconds: (Date.now() - 86400000) / 1000, nanoseconds: 0 },
+                metricChanges: { knowledge: 30, money: -20 }
+              }
+            ],
+            finalMetrics: { health: 80, money: 80, happiness: 85, knowledge: 110, relationships: 75 }
+          }
+        ];
         setScenarioHistory(mockHistory);
       } catch (error) {
         console.error("Error fetching scenario history:", error);
@@ -108,130 +145,119 @@ const ProfilePage = () => {
         )}
 
         {/* My Classrooms Section */}
-        {userProfile?.role === 'student' && (
-          <Card className="bg-black/30 border-primary/20 backdrop-blur-md mb-6">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <School className="h-5 w-5 text-primary" />
-                My Classrooms ({classrooms.length})
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                Classrooms you've joined and are participating in
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingClassrooms ? (
-                <div className="text-center py-8">
-                  <div className="text-white/70">Loading your classrooms...</div>
-                </div>
-              ) : classrooms.length > 0 ? (
-                <div className="space-y-4">
-                  {classrooms.map((classroom) => (
-                    <div key={classroom.id} className="bg-black/20 rounded-lg p-6 border border-white/10">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg mb-2">{classroom.name}</h3>
-                          {classroom.description && (
-                            <p className="text-white/70 text-sm mb-3">{classroom.description}</p>
-                          )}
+        <Card className="bg-black/30 border-primary/20 backdrop-blur-md mb-6">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <School className="h-5 w-5 text-primary" />
+              My Classrooms ({classrooms.length})
+            </CardTitle>
+            <CardDescription className="text-white/70">
+              {userProfile?.role === 'student' 
+                ? "Classrooms you've joined and are participating in"
+                : "Classrooms you've created and are managing"
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingClassrooms ? (
+              <div className="text-center py-8">
+                <div className="text-white/70">Loading your classrooms...</div>
+              </div>
+            ) : classrooms.length > 0 ? (
+              <div className="space-y-4">
+                {classrooms.map((classroom) => (
+                  <div key={classroom.id} className="bg-black/20 rounded-lg p-6 border border-white/10">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg mb-2">{classroom.name}</h3>
+                        {classroom.description && (
+                          <p className="text-white/70 text-sm mb-3">{classroom.description}</p>
+                        )}
+                      </div>
+                      <Badge className="bg-green-500/20 text-green-300 border-0">
+                        Active
+                      </Badge>
+                    </div>
+                    
+                    {/* Classroom Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="bg-black/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <User className="h-4 w-4 text-blue-400" />
+                          <span className="text-sm text-white/70">Teacher</span>
                         </div>
-                        <Badge className="bg-green-500/20 text-green-300 border-0">
-                          Active
-                        </Badge>
+                        <p className="text-white font-medium">
+                          {classroom.teacherName || 'Unknown Teacher'}
+                        </p>
                       </div>
                       
-                      {/* Classroom Details */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="bg-black/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <User className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm text-white/70">Teacher</span>
-                          </div>
-                          <p className="text-white font-medium">
-                            {classroom.teacherName || 'Unknown Teacher'}
-                          </p>
+                      <div className="bg-black/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="h-4 w-4 text-green-400" />
+                          <span className="text-sm text-white/70">Students</span>
                         </div>
-                        
-                        <div className="bg-black/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Users className="h-4 w-4 text-green-400" />
-                            <span className="text-sm text-white/70">Students</span>
-                          </div>
-                          <p className="text-white font-medium">
-                            {classroom.students?.length || 0} enrolled
-                          </p>
-                        </div>
-                        
-                        <div className="bg-black/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Calendar className="h-4 w-4 text-purple-400" />
-                            <span className="text-sm text-white/70">Joined</span>
-                          </div>
-                          <p className="text-white font-medium">
-                            {classroom.createdAt ? 
-                              convertTimestampToDate(classroom.createdAt).toLocaleDateString() : 
-                              'Recently'
-                            }
-                          </p>
-                        </div>
+                        <p className="text-white font-medium">
+                          {classroom.students?.length || 0} enrolled
+                        </p>
                       </div>
                       
-                      {/* Additional Info */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-4 text-white/60">
-                          <span className="flex items-center gap-1">
-                            <BookOpen className="h-4 w-4" />
-                            Class Code: {classroom.classCode || 'N/A'}
-                          </span>
-                          {classroom.activeScenario && (
-                            <span className="flex items-center gap-1">
-                              <Play className="h-4 w-4" />
-                              Active Scenario
-                            </span>
-                          )}
+                      <div className="bg-black/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Calendar className="h-4 w-4 text-purple-400" />
+                          <span className="text-sm text-white/70">Created</span>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
-                            Student
-                          </Badge>
-                        </div>
+                        <p className="text-white font-medium">
+                          {classroom.createdAt ? 
+                            convertTimestampToDate(classroom.createdAt).toLocaleDateString() : 
+                            'Recently'
+                          }
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <School className="h-12 w-12 text-white/30 mx-auto mb-2" />
-                  <div className="text-white/70 mb-2">No classrooms joined yet</div>
-                  <div className="text-white/50 text-sm">Ask your teacher for a class code to join your first classroom</div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Teacher Classrooms Section */}
-        {userProfile?.role === 'teacher' && (
-          <Card className="bg-black/30 border-primary/20 backdrop-blur-md mb-6">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <School className="h-5 w-5 text-primary" />
-                My Classrooms
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                Classrooms you've created and are managing
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+                    
+                    {/* Additional Info */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4 text-white/60">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="h-4 w-4" />
+                          Class Code: {classroom.classCode || 'N/A'}
+                        </span>
+                        {classroom.activeScenario && (
+                          <span className="flex items-center gap-1">
+                            <Play className="h-4 w-4" />
+                            Active Scenario
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
+                          {userProfile?.role === 'student' ? 'Student' : 'Teacher'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div className="text-center py-8">
                 <School className="h-12 w-12 text-white/30 mx-auto mb-2" />
-                <div className="text-white/70 mb-2">No classrooms created yet</div>
-                <div className="text-white/50 text-sm">Create a classroom to start teaching!</div>
+                <div className="text-white/70 mb-2">
+                  {userProfile?.role === 'student' 
+                    ? "No classrooms joined yet"
+                    : "No classrooms created yet"
+                  }
+                </div>
+                <div className="text-white/50 text-sm">
+                  {userProfile?.role === 'student' 
+                    ? "Ask your teacher for a class code to join your first classroom"
+                    : "Create a classroom to start teaching!"
+                  }
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* Scenario History Section */}
         <Card className="bg-black/30 border-primary/20 backdrop-blur-md">
