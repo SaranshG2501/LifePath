@@ -402,6 +402,17 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return;
     }
+    
+    // Prevent guests from accessing classroom mode
+    if (mode === "classroom" && userRole === "guest") {
+      toast({
+        title: "Login Required",
+        description: "Please sign up or login to use classroom mode.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setGameMode(mode);
   };
 

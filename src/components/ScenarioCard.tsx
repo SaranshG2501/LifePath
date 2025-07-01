@@ -58,26 +58,30 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
         
-        <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
-          <Badge variant="outline" className={`${
-            isTeacherDashboard 
-              ? 'bg-indigo-600/80 text-white border-indigo-400/50' 
-              : 'bg-indigo-500/40 text-white border-none'
-          } backdrop-blur-sm`}>
-            <Sparkles className="h-3 w-3 mr-1" />
-            {scenario.category}
-          </Badge>
-          <Badge variant="outline" className={`${
-            isTeacherDashboard 
-              ? 'bg-emerald-600/80 text-white border-emerald-400/50' 
-              : 'bg-black/60 text-white border-none'
-          } backdrop-blur-sm flex items-center gap-1`}>
-            <Clock className="h-3 w-3" />
-            ~{estimatedDuration}min
-          </Badge>
+        {/* Fixed positioning and spacing for badges */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="flex flex-wrap gap-2 justify-start">
+            <Badge variant="outline" className={`${
+              isTeacherDashboard 
+                ? 'bg-indigo-600/80 text-white border-indigo-400/50' 
+                : 'bg-indigo-500/40 text-white border-none'
+            } backdrop-blur-sm flex items-center gap-1`}>
+              <Sparkles className="h-3 w-3" />
+              {scenario.category}
+            </Badge>
+            <Badge variant="outline" className={`${
+              isTeacherDashboard 
+                ? 'bg-emerald-600/80 text-white border-emerald-400/50' 
+                : 'bg-black/60 text-white border-none'
+            } backdrop-blur-sm flex items-center gap-1`}>
+              <Clock className="h-3 w-3" />
+              ~{estimatedDuration}min
+            </Badge>
+          </div>
         </div>
         
-        <div className="absolute top-3 right-3">
+        {/* Fixed positioning for age group badge */}
+        <div className="absolute top-4 right-4">
           <Badge variant="outline" className={`${
             isTeacherDashboard 
               ? 'bg-orange-600/80 text-white border-orange-400/50' 
@@ -89,16 +93,16 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
         </div>
 
         {isTeacherDashboard && (
-          <div className="absolute top-3 left-3">
-            <Badge className="bg-purple-600/80 text-white border-purple-400/50 backdrop-blur-sm">
-              <Users className="h-3 w-3 mr-1" />
+          <div className="absolute top-4 left-4">
+            <Badge className="bg-purple-600/80 text-white border-purple-400/50 backdrop-blur-sm flex items-center gap-1">
+              <Users className="h-3 w-3" />
               Classroom Ready
             </Badge>
           </div>
         )}
       </div>
       
-      <CardHeader className="pb-3 space-y-2">
+      <CardHeader className="pb-3 space-y-3 flex-shrink-0">
         <CardTitle className={`text-xl leading-tight ${
           isTeacherDashboard ? 'text-slate-100' : 'text-white'
         }`}>
@@ -111,7 +115,8 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="pb-4 pt-0 flex-1">
+      <CardContent className="pb-4 pt-0 flex-1 space-y-4">
+        {/* Metrics badges with better spacing */}
         <div className="flex gap-2 flex-wrap">
           {Object.entries(scenario.initialMetrics).map(([key, value]) => {
             if (value === 0) return null;
@@ -158,8 +163,9 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
           })}
         </div>
 
+        {/* Teacher dashboard specific info */}
         {isTeacherDashboard && (
-          <div className="mt-4 pt-3 border-t border-slate-600/30">
+          <div className="pt-3 border-t border-slate-600/30">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400 flex items-center gap-1">
                 <Star className="h-3 w-3" />
@@ -173,7 +179,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
         )}
       </CardContent>
       
-      <CardFooter className="mt-auto pt-3">
+      <CardFooter className="pt-3 flex-shrink-0">
         <Button 
           className={`w-full transition-all duration-300 ${
             isTeacherDashboard 
