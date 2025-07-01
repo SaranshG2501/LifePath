@@ -157,6 +157,22 @@ const ProfilePage = () => {
     setSelectedHistory(null);
   };
 
+  const formatDate = (dateValue: Date | Timestamp): string => {
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleDateString();
+    }
+    // Handle Timestamp type
+    return convertTimestampToDate(dateValue).toLocaleDateString();
+  };
+
+  const formatDateTime = (dateValue: Date | Timestamp): string => {
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleDateString();
+    }
+    // Handle Timestamp type
+    return convertTimestampToDate(dateValue).toLocaleDateString();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
@@ -263,10 +279,7 @@ const ProfilePage = () => {
                         <div className="flex items-center gap-2 text-purple-300">
                           <Calendar className="h-4 w-4" />
                           <span>
-                            {classroom.createdAt ? 
-                              convertTimestampToDate(classroom.createdAt).toLocaleDateString() : 
-                              'Recently'
-                            }
+                            {classroom.createdAt ? formatDate(classroom.createdAt) : 'Recently'}
                           </span>
                         </div>
                       </div>
@@ -322,10 +335,7 @@ const ProfilePage = () => {
                           <div className="flex items-center gap-2 text-sm text-slate-400">
                             <Clock className="h-3 w-3" />
                             <span>
-                              Completed {history.completedAt ? 
-                                new Date(history.completedAt).toLocaleDateString() : 
-                                'Recently'
-                              }
+                              Completed {history.completedAt ? formatDateTime(history.completedAt) : 'Recently'}
                             </span>
                           </div>
                         </div>
