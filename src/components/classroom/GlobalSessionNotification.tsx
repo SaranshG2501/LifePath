@@ -40,8 +40,7 @@ const GlobalSessionNotification: React.FC = () => {
               type: 'live_session_started',
               sessionId: activeSession.id!,
               teacherName: activeSession.teacherName,
-              scenarioTitle: activeSession.scenarioTitle,
-              timestamp: new Date()
+              scenarioTitle: activeSession.scenarioTitle
             });
           }
         } catch (error) {
