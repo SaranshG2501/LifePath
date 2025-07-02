@@ -883,6 +883,116 @@ export const updateClassroom = async (classroomId: string, data: Partial<Classro
   return updateDoc(doc(db, 'classrooms', classroomId), updateData);
 };
 
+// NEW: Delete classroom function with full cleanup
+export const deleteClassroom = async (classroomId: string, teacherId: string) => {
+  try {
+    console.log(`Deleting classroom ${classroomId} by teacher ${teacherId}`);
+    
+    await runTransaction(db, async (transaction) => {
+      // READ PHASE
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const classroomDoc = await transaction.get(classroomRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      
+      // Verify the teacher owns this classroom
+      if (classroomData.teacherId !== teacherId) {
+        throw new Error("Unauthorized: Only the classroom teacher can delete this classroom");
+      }
+      
+      // Get all students in the classroom
+      const students = classroomData.students || [];
+      const members = classroomData.members || [];
+      const allStudentIds = [...new Set([...members, ...students.map(s => s.id)])];
+      
+      // WRITE PHASE
+      // Delete the classroom
+      transaction.delete(classroomRef);
+      
+      // Remove classroom from teacher's profile
+      const teacherRef = doc(db, 'users', teacherId);
+      const teacherDoc = await transaction.get(teacherRef);
+      if (teacherDoc.exists()) {
+        const teacherData = teacherDoc.data();
+        const teacherClassrooms = teacherData.classrooms || [];
+        const updatedTeacherClassrooms = teacherClassrooms.filter((id: string) => id !== classroomId);
+        
+        transaction.update(teacherRef, {
+          classrooms: updatedTeacherClassrooms
+        });
+      }
+      
+      // Remove classroom from all students' profiles
+      for (const studentId of allStudentIds) {
+        const studentRef = doc(db, 'users', studentId);
+        const studentDoc = await transaction.get(studentRef);
+        if (studentDoc.exists()) {
+          const studentData = studentDoc.data();
+          const studentClassrooms = studentData.classrooms || [];
+          const updatedStudentClassrooms = studentClassrooms.filter((id: string) => id !== classroomId);
+          
+          transaction.update(studentRef, {
+            classrooms: updatedStudentClassrooms
+          });
+        }
+      }
+    });
+    
+    // Clean up related data outside of transaction
+    const cleanupPromises = [];
+    
+    // Clean up active sessions
+    const sessionsQuery = query(
+      collection(db, 'sessions'),
+      where('classroomId', '==', classroomId)
+    );
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+    cleanupPromises.push(
+      ...sessionsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    );
+    
+    // Clean up session participants
+    const participantsQuery = query(
+      collection(db, 'sessionParticipants'),
+      where('sessionId', 'in', sessionsSnapshot.docs.map(doc => doc.id))
+    );
+    if (sessionsSnapshot.docs.length > 0) {
+      const participantsSnapshot = await getDocs(participantsQuery);
+      cleanupPromises.push(
+        ...participantsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+      );
+    }
+    
+    // Clean up notifications
+    const notificationsQuery = query(
+      collection(db, 'notifications'),
+      where('classroomId', '==', classroomId)
+    );
+    const notificationsSnapshot = await getDocs(notificationsQuery);
+    cleanupPromises.push(
+      ...notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    );
+    
+    // Clean up votes subcollection
+    const votesQuery = collection(db, 'classrooms', classroomId, 'votes');
+    const votesSnapshot = await getDocs(votesQuery);
+    cleanupPromises.push(
+      ...votesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    );
+    
+    await Promise.all(cleanupPromises);
+    console.log("Classroom deletion completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Error deleting classroom:", error);
+    throw error;
+  }
+};
+
 // Classroom activity functions
 export const startClassroomScenario = async (classroomId: string, scenarioId: string, initialScene: string) => {
   return updateDoc(doc(db, 'classrooms', classroomId), {
