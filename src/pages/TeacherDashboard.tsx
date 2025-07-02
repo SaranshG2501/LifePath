@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,7 @@ import ScenarioCard from '@/components/ScenarioCard';
 import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
 import ActiveSessionCard from '@/components/classroom/ActiveSessionCard';
 import { scenarios } from '@/data/scenarios';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,7 +33,6 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState("classrooms");
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
@@ -43,6 +43,7 @@ const TeacherDashboard = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [startingSession, setStartingSession] = useState<string | null>(null);
   
   // Fetch teacher's classrooms
   useEffect(() => {
@@ -58,12 +59,10 @@ const TeacherDashboard = () => {
         console.log("Fetched classrooms:", fetchedClassrooms);
         setClassrooms(fetchedClassrooms);
         
-        // If classrooms exist, select the first one by default
         if (fetchedClassrooms.length > 0 && !selectedClassroom) {
           setSelectedClassroom(fetchedClassrooms[0]);
         }
         
-        // Ensure the role is set to teacher
         setUserRole('teacher');
       } catch (error) {
         console.error('Error fetching classrooms:', error);
@@ -75,7 +74,7 @@ const TeacherDashboard = () => {
     fetchClassrooms();
   }, [currentUser, navigate, setUserRole, selectedClassroom]);
 
-  // Listen for active session updates when classroom is selected
+  // Listen for active session updates
   useEffect(() => {
     if (!selectedClassroom?.id) {
       setActiveSession(null);
@@ -143,10 +142,7 @@ const TeacherDashboard = () => {
           description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
         });
         
-        // Add the new classroom to the list
         setClassrooms(prev => [...prev, newClassroom]);
-        
-        // Select the new classroom
         setSelectedClassroom(newClassroom);
         
         setIsCreateModalOpen(false);
@@ -177,7 +173,6 @@ const TeacherDashboard = () => {
       console.log("Refreshed classrooms:", fetchedClassrooms);
       setClassrooms(fetchedClassrooms);
       
-      // Update selected classroom with refreshed data
       if (selectedClassroom) {
         const updatedSelectedClassroom = fetchedClassrooms.find(c => c.id === selectedClassroom.id);
         setSelectedClassroom(updatedSelectedClassroom || fetchedClassrooms[0]);
@@ -195,7 +190,6 @@ const TeacherDashboard = () => {
     try {
       setIsEndingSession(true);
       
-      // Create result payload
       const resultPayload = {
         choices: activeSession.currentChoices || {},
         summary: `Session completed for "${activeSession.scenarioTitle}"`
@@ -239,7 +233,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Check if there's already an active session
     if (activeSession) {
       toast({
         title: "Session Already Active",
@@ -249,11 +242,14 @@ const TeacherDashboard = () => {
       return;
     }
 
+    setStartingSession(scenarioId);
     try {
       const scenario = scenarios.find(s => s.id === scenarioId);
       if (!scenario) {
         throw new Error("Scenario not found");
       }
+
+      console.log("Starting live session smoothly for:", scenario.title);
 
       // Create live session
       const liveSession = await createLiveSession(
@@ -264,14 +260,16 @@ const TeacherDashboard = () => {
         scenario.scenes[0].id
       );
 
+      console.log("Live session created:", liveSession);
+
       setActiveSession(liveSession);
       setClassroomId(selectedClassroom.id!);
       setGameMode("classroom");
       startScenario(scenarioId);
       
       toast({
-        title: "Live Session Started",
-        description: `Students will receive a notification to join "${scenario.title}"`,
+        title: "🚀 Live Session Started!",
+        description: `Students will receive immediate notifications to join "${scenario.title}"`,
       });
       
       navigate('/game');
@@ -282,6 +280,8 @@ const TeacherDashboard = () => {
         description: "Failed to start live scenario. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setStartingSession(null);
     }
   };
 
@@ -296,24 +296,14 @@ const TeacherDashboard = () => {
         return;
       }
       
-      // Show option to start as live session or individual
-      const confirmLive = window.confirm(
-        "Do you want to start this as a live session for your students? Click OK for live session, Cancel for individual play."
-      );
-      
-      if (confirmLive) {
-        handleStartLiveScenario(scenarioId);
-      } else {
-        startScenario(scenarioId);
-        navigate('/game');
-      }
+      // For teachers with classrooms, default to live session
+      handleStartLiveScenario(scenarioId);
     } else {
       startScenario(scenarioId);
       navigate('/game');
     }
   };
   
-  // Filter classrooms based on search term
   const filteredClassrooms = classrooms.filter(classroom => 
     classroom.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -489,14 +479,12 @@ const TeacherDashboard = () => {
                 <div className="flex gap-2">
                   {selectedClassroom && !activeSession && (
                     <Button
-                      onClick={() => {
-                        // Quick start live session with first scenario
-                        handleStartLiveScenario(scenarios[0].id);
-                      }}
+                      onClick={() => handleStartLiveScenario(scenarios[0].id)}
                       className="bg-green-500 hover:bg-green-600"
+                      disabled={!!startingSession}
                     >
                       <Radio className="mr-2 h-4 w-4" />
-                      Start Live Session
+                      {startingSession ? "Starting..." : "Quick Start Live Session"}
                     </Button>
                   )}
                   {!selectedClassroom && (
@@ -570,29 +558,44 @@ const TeacherDashboard = () => {
           )}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {scenarios.slice(0, 6).map((scenario) => (
-            <div key={scenario.id} className="relative">
-              <ScenarioCard 
-                scenario={scenario}
-                onStart={handleScenarioClick}
-                onClick={() => handleScenarioClick(scenario.id)}
-              />
-              {selectedClassroom && !activeSession && (
-                <div className="absolute top-2 right-2">
-                  <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                    Live Ready
-                  </Badge>
-                </div>
-              )}
-              {activeSession && (
-                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                  <Badge className="bg-orange-500/20 text-orange-300 border-0">
-                    Session Active
-                  </Badge>
-                </div>
-              )}
-            </div>
-          ))}
+          {scenarios.slice(0, 6).map((scenario) => {
+            const isStarting = startingSession === scenario.id;
+            
+            return (
+              <div key={scenario.id} className="relative">
+                <ScenarioCard 
+                  scenario={scenario}
+                  onStart={handleScenarioClick}
+                  onClick={() => handleScenarioClick(scenario.id)}
+                  disabled={!!activeSession || isStarting}
+                />
+                {selectedClassroom && !activeSession && !isStarting && (
+                  <div className="absolute top-2 right-2">
+                    <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                      Live Ready
+                    </Badge>
+                  </div>
+                )}
+                {isStarting && (
+                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 text-green-400 animate-spin" />
+                      <Badge className="bg-green-500/20 text-green-300 border-0">
+                        Starting Live Session...
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+                {activeSession && !isStarting && (
+                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                    <Badge className="bg-orange-500/20 text-orange-300 border-0">
+                      Session Active
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
