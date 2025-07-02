@@ -317,15 +317,23 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         allChoices,
         newMetrics
       ).then(() => {
+        console.log("Scenario history saved successfully");
         toast({
           title: "Scenario Completed",
           description: "Your choices have been saved to your profile.",
         });
         
-        // Refresh user profile to get updated data
-        refreshUserProfile();
+        // Force refresh user profile to update history
+        setTimeout(() => {
+          refreshUserProfile();
+        }, 1000);
       }).catch(error => {
         console.error("Error saving scenario history:", error);
+        toast({
+          title: "Save Error",
+          description: "Failed to save your progress. Please check your connection.",
+          variant: "destructive",
+        });
       });
     }
 
