@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -23,6 +22,7 @@ const TeacherDashboard = () => {
   const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [creatingSession, setCreatingSession] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -59,6 +59,7 @@ const TeacherDashboard = () => {
     
     setDeleting(classroomId);
     try {
+      console.log("Attempting to delete classroom:", classroomId);
       await deleteClassroom(classroomId, currentUser.uid);
       
       // Remove from local state
@@ -77,7 +78,7 @@ const TeacherDashboard = () => {
       console.error('Error deleting classroom:', error);
       toast({
         title: "Error",
-        description: "Failed to delete classroom. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete classroom. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -87,6 +88,48 @@ const TeacherDashboard = () => {
 
   const handleCreateClassroom = () => {
     navigate('/classroom');
+  };
+
+  const handleStartLiveSession = async (classroom: Classroom, scenario: any) => {
+    if (!currentUser || !classroom.id) return;
+    
+    setCreatingSession(classroom.id);
+    try {
+      console.log("Starting live session for classroom:", classroom.id);
+      
+      const sessionId = await createLiveSession(
+        classroom.id,
+        scenario.id,
+        currentUser.uid,
+        currentUser.displayName || 'Teacher',
+        scenario.title
+      );
+      
+      console.log("Live session created:", sessionId);
+      
+      // Refresh classrooms to show updated state
+      await loadClassrooms();
+      
+      toast({
+        title: "Live Session Started!",
+        description: `"${scenario.title}" is now live for ${classroom.name}`,
+      });
+      
+      // Navigate to game with classroom mode
+      setGameMode("classroom");
+      startScenario(scenario.id);
+      navigate('/game');
+      
+    } catch (error) {
+      console.error('Error starting live session:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start live session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingSession(null);
+    }
   };
 
   return (
@@ -288,14 +331,54 @@ const TeacherDashboard = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {scenarios.map((scenario) => (
-            <ScenarioCard
-              key={scenario.id}
-              scenario={scenario}
-              onStart={handleStartScenario}
-              onClick={() => handleStartScenario(scenario.id)}
-            />
+            <Card key={scenario.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
+              <CardHeader>
+                <CardTitle className="text-white">{scenario.title}</CardTitle>
+                <CardDescription className="text-white/70">
+                  {scenario.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleStartScenario(scenario.id)}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Solo Play
+                  </Button>
+                  {selectedClassroom && (
+                    <Button 
+                      onClick={() => handleStartLiveSession(selectedClassroom, scenario)}
+                      disabled={creatingSession === selectedClassroom.id}
+                      className="flex-1 bg-green-500 hover:bg-green-600"
+                    >
+                      {creatingSession === selectedClassroom.id ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <Users className="h-4 w-4 mr-2" />
+                          Live Session
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
+        
+        {!selectedClassroom && (
+          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/20">
+            <p className="text-blue-300 text-sm">
+              💡 Select a classroom above to enable live session options for scenarios
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
