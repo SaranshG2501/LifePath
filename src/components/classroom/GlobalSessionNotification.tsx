@@ -12,7 +12,8 @@ import {
   SessionNotification,
   joinLiveSession,
   onClassroomUpdated,
-  getActiveSession
+  getActiveSession,
+  Timestamp
 } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,7 +44,7 @@ const GlobalSessionNotification: React.FC = () => {
               scenarioTitle: activeSession.scenarioTitle,
               classroomId: classroomId,
               studentId: currentUser.uid,
-              createdAt: new Date(),
+              createdAt: Timestamp.now(),
               read: false
             });
           }

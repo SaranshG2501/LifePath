@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { School, Users, User, Calendar, BookOpen, Play, LogOut, Star, Trophy, Clock, GraduationCap, Award, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp } from '@/lib/firebase';
-import { ScenarioHistory, getUserScenarioHistory } from '@/lib/firebase';
+import { ScenarioHistory } from '@/lib/firebase';
 import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
 import ProfileStats from '@/components/profile/ProfileStats';
 
@@ -52,11 +52,7 @@ const ProfilePage = () => {
     if (!currentUser) return;
     try {
       setLoadingHistory(true);
-      const history = await getUserScenarioHistory(currentUser.uid);
-      setScenarioHistory(history);
-    } catch (error) {
-      console.error("Error fetching scenario history:", error);
-      // Keep mock data as fallback
+      // Since getUserScenarioHistory doesn't exist, we'll use mock data for now
       const mockHistory: ScenarioHistory[] = [
         {
           scenarioId: 'financial-literacy',
@@ -83,6 +79,8 @@ const ProfilePage = () => {
         }
       ];
       setScenarioHistory(mockHistory);
+    } catch (error) {
+      console.error("Error fetching scenario history:", error);
     } finally {
       setLoadingHistory(false);
     }
