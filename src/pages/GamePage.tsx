@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -10,7 +9,9 @@ import MetricsDisplay from '@/components/MetricsDisplay';
 import ResultsSummary from '@/components/ResultsSummary';
 import MirrorMoment from '@/components/MirrorMoment';
 import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
+import LiveSessionModal from '@/components/classroom/LiveSessionModal';
 import LiveSessionTracker from '@/components/classroom/LiveSessionTracker';
+import NotificationModal from '@/components/classroom/NotificationModal';
 import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock, Radio } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -18,14 +19,20 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { 
   LiveSession, 
+  SessionParticipant, 
   onLiveSessionUpdated, 
   joinLiveSession, 
   submitLiveChoice,
   advanceLiveSession,
   endLiveSession,
   getActiveSession,
-  onClassroomUpdated
+  onNotificationsUpdated,
+  SessionNotification,
+  onClassroomUpdated,
+  Classroom,
+  db
 } from '@/lib/firebase';
+import { getDoc, doc } from 'firebase/firestore';
 
 const GamePage = () => {
   const { 
@@ -49,8 +56,13 @@ const GamePage = () => {
   const { toast } = useToast();
   
   const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [isInLiveSession, setIsInLiveSession] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [pendingSession, setPendingSession] = useState<SessionNotification | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [popupHandledSessionId, setPopupHandledSessionId] = useState<string | null>(null);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [sessionResult, setSessionResult] = useState<any>(null);
 
@@ -60,10 +72,67 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Enhanced live session listener
+  // Enhanced immediate notification listener for students
+  useEffect(() => {
+    if (!currentUser || userRole !== 'student' || !classroomId) return;
+
+    console.log("Setting up immediate notification listener for student:", currentUser.uid);
+    
+    // Listen for classroom updates that include active sessions
+    const unsubscribeClassroom = onClassroomUpdated(classroomId, async (classroom) => {
+      console.log("Classroom updated with activeSessionId:", classroom.activeSessionId);
+      
+      // If there's a new active session and we're not already in one
+      if (classroom.activeSessionId && 
+          !isInLiveSession && 
+          classroom.activeSessionId !== popupHandledSessionId) {
+        
+        try {
+          const activeSession = await getActiveSession(classroomId);
+          if (activeSession && activeSession.status === 'active') {
+            console.log("Immediate session notification:", activeSession);
+            
+            // Create notification-like object for immediate display
+            const immediateNotification: SessionNotification = {
+              id: activeSession.id!,
+              type: 'live_session_started',
+              sessionId: activeSession.id!,
+              teacherName: activeSession.teacherName,
+              scenarioTitle: activeSession.scenarioTitle,
+              classroomName: classroom.name,
+              timestamp: new Date()
+            };
+            
+            setPendingSession(immediateNotification);
+            setShowNotification(true);
+          }
+        } catch (error) {
+          console.error("Error processing immediate session notification:", error);
+        }
+      }
+    });
+
+    // Also keep the traditional notification listener as backup
+    const unsubscribeNotifications = onNotificationsUpdated(currentUser.uid, (notifications) => {
+      const liveSessionNotification = notifications.find(n => n.type === 'live_session_started' && n.sessionId !== popupHandledSessionId);
+      
+      if (liveSessionNotification && !isInLiveSession && !showNotification) {
+        console.log("Traditional notification received:", liveSessionNotification);
+        setPendingSession(liveSessionNotification);
+        setShowNotification(true);
+      }
+    });
+
+    return () => {
+      unsubscribeClassroom();
+      unsubscribeNotifications();
+    };
+  }, [currentUser, userRole, classroomId, isInLiveSession, popupHandledSessionId, showNotification]);
+
+  // Enhanced live session listener with real-time syncing
   useEffect(() => {
     if (liveSession?.id && isInLiveSession) {
-      console.log("Setting up live session listener for:", liveSession.id);
+      console.log("Setting up enhanced live session listener for:", liveSession.id);
       
       const unsubscribe = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
         console.log("Live session updated:", updatedSession);
@@ -74,6 +143,7 @@ const GamePage = () => {
           console.log("Session ended immediately");
           setIsInLiveSession(false);
           setHasVoted(false);
+          setPopupHandledSessionId(null);
           
           if (updatedSession.resultPayload) {
             setSessionResult(updatedSession.resultPayload);
@@ -94,7 +164,7 @@ const GamePage = () => {
             gameState.currentScene?.id !== updatedSession.currentSceneId) {
           console.log("Syncing student to teacher's scene:", updatedSession.currentSceneId);
           setCurrentScene(updatedSession.currentSceneId);
-          setHasVoted(false);
+          setHasVoted(false); // Reset vote status for new scene
           
           toast({
             title: "Scene Updated",
@@ -114,12 +184,71 @@ const GamePage = () => {
     }
   }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, currentUser, toast, userRole]);
 
-  // Enhanced live choice submission
+  // Improved join from notification handler
+  const handleJoinFromNotification = useCallback(async () => {
+    if (!pendingSession || !currentUser || !userProfile) return;
+
+    setIsJoining(true);
+    try {
+      console.log("Smoothly joining live session from notification:", pendingSession.sessionId);
+      
+      setPopupHandledSessionId(pendingSession.sessionId);
+      setGameMode("classroom");
+      
+      const sessionData = await joinLiveSession(pendingSession.sessionId, currentUser.uid, userProfile.displayName || 'Student');
+      
+      if (sessionData && sessionData.status === 'active') {
+        setLiveSession(sessionData);
+        setIsInLiveSession(true);
+        
+        // Auto-start the scenario smoothly
+        console.log("Auto-loading scenario:", sessionData.scenarioId);
+        startScenario(sessionData.scenarioId);
+        
+        // Sync to current scene if teacher has progressed
+        if (sessionData.currentSceneId) {
+          setTimeout(() => {
+            setCurrentScene(sessionData.currentSceneId);
+          }, 500); // Small delay to ensure scenario is loaded first
+        }
+        
+        toast({
+          title: "🎯 Joined Live Session!",
+          description: `Successfully connected to "${sessionData.scenarioTitle}"`,
+        });
+      } else {
+        throw new Error("Session is not active");
+      }
+      
+      setShowNotification(false);
+      setPendingSession(null);
+    } catch (error) {
+      console.error("Error joining live session:", error);
+      setPopupHandledSessionId(null);
+      toast({
+        title: "Connection Failed",
+        description: "Unable to join the live session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  }, [pendingSession, currentUser, userProfile, setGameMode, startScenario, setCurrentScene, toast]);
+
+  const handleDismissNotification = () => {
+    if (pendingSession) {
+      setPopupHandledSessionId(pendingSession.sessionId);
+    }
+    setShowNotification(false);
+    setPendingSession(null);
+  };
+
+  // Enhanced live choice submission with immediate feedback
   const handleLiveChoice = async (choiceId: string) => {
     if (liveSession?.id && currentUser && !hasVoted) {
       try {
-        console.log("Submitting live choice:", choiceId);
-        setHasVoted(true);
+        console.log("Submitting live choice with immediate feedback:", choiceId);
+        setHasVoted(true); // Immediate UI feedback
         
         await submitLiveChoice(liveSession.id, currentUser.uid, choiceId, gameState.currentScene?.id);
         
@@ -129,7 +258,7 @@ const GamePage = () => {
         });
       } catch (error) {
         console.error("Error submitting live choice:", error);
-        setHasVoted(false);
+        setHasVoted(false); // Revert on error
         toast({
           title: "Submission Error",
           description: "Failed to record your choice. Please try again.",
@@ -139,11 +268,11 @@ const GamePage = () => {
     }
   };
 
-  // Enhanced scene advancement
+  // Enhanced scene advancement with immediate sync
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id) {
       try {
-        console.log("Advancing scene:", nextSceneId);
+        console.log("Advancing scene with immediate sync:", nextSceneId);
         
         let nextSceneIndex;
         if (gameState.currentScenario) {
@@ -153,7 +282,10 @@ const GamePage = () => {
           }
         }
         
+        // Advance session first for immediate sync to students
         await advanceLiveSession(liveSession.id, nextSceneId, nextSceneIndex);
+        
+        // Then advance teacher's local state
         makeChoice('advance');
         
         toast({
@@ -184,6 +316,7 @@ const GamePage = () => {
         setIsInLiveSession(false);
         setLiveSession(null);
         setHasVoted(false);
+        setPopupHandledSessionId(null);
         
         toast({
           title: "Session Ended",
@@ -200,6 +333,51 @@ const GamePage = () => {
     }
   };
 
+  const handleJoinLiveSession = async () => {
+    if (!liveSession || !currentUser || !userProfile) return;
+
+    setIsJoining(true);
+    try {
+      setPopupHandledSessionId(liveSession.id!);
+      
+      const sessionData = await joinLiveSession(liveSession.id!, currentUser.uid, userProfile.displayName || 'Student');
+      
+      if (sessionData.status === 'active') {
+        setIsInLiveSession(true);
+        setShowJoinModal(false);
+        
+        startScenario(liveSession.scenarioId);
+        
+        if (liveSession.currentSceneId) {
+          setTimeout(() => setCurrentScene(liveSession.currentSceneId), 500);
+        }
+        
+        toast({
+          title: "🎯 Joined Live Session!",
+          description: `Connected to "${liveSession.scenarioTitle}"`,
+        });
+      }
+    } catch (error) {
+      console.error("Error joining live session:", error);
+      setPopupHandledSessionId(null);
+      toast({
+        title: "Connection Failed",
+        description: "Unable to join the live session.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleDeclineLiveSession = () => {
+    if (liveSession) {
+      setPopupHandledSessionId(liveSession.id!);
+    }
+    setShowJoinModal(false);
+    setLiveSession(null);
+  };
+
   const handleChoiceMade = (choiceId: string) => {
     if (isInLiveSession && liveSession) {
       handleLiveChoice(choiceId);
@@ -212,6 +390,7 @@ const GamePage = () => {
     resetGame();
     setShowResultScreen(false);
     setSessionResult(null);
+    setPopupHandledSessionId(null);
     navigate('/');
   };
 
@@ -220,6 +399,7 @@ const GamePage = () => {
       resetGame();
       setShowResultScreen(false);
       setSessionResult(null);
+      setPopupHandledSessionId(null);
       setTimeout(() => {
         navigate('/');
         navigate('/game');
@@ -406,6 +586,29 @@ const GamePage = () => {
           onChoiceMade={handleChoiceMade} 
         />
       )}
+
+      {/* Live Session Join Modal */}
+      <LiveSessionModal
+        isOpen={showJoinModal}
+        onClose={handleDeclineLiveSession}
+        onJoin={handleJoinLiveSession}
+        onDecline={handleDeclineLiveSession}
+        teacherName={liveSession?.teacherName || 'Teacher'}
+        scenarioTitle={liveSession?.scenarioTitle || ''}
+        participantCount={liveSession?.participants.length || 0}
+      />
+
+      {/* Enhanced Session Notification Modal */}
+      <NotificationModal
+        isOpen={showNotification}
+        onClose={handleDismissNotification}
+        onJoin={handleJoinFromNotification}
+        onDismiss={handleDismissNotification}
+        teacherName={pendingSession?.teacherName || 'Teacher'}
+        scenarioTitle={pendingSession?.scenarioTitle || ''}
+        classroomName={pendingSession?.classroomName}
+        isJoining={isJoining}
+      />
     </div>
   );
 };
