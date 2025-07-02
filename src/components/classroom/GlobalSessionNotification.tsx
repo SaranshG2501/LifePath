@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Radio, Users, Clock, Loader2, Wifi, X } from 'lucide-react';
+import { Radio, Users, Clock, Loader2, Wifi, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
 import { 
@@ -40,7 +40,11 @@ const GlobalSessionNotification: React.FC = () => {
               type: 'live_session_started',
               sessionId: activeSession.id!,
               teacherName: activeSession.teacherName,
-              scenarioTitle: activeSession.scenarioTitle
+              scenarioTitle: activeSession.scenarioTitle,
+              classroomId: classroomId,
+              studentId: currentUser.uid,
+              createdAt: new Date(),
+              read: false
             });
           }
         } catch (error) {
@@ -67,7 +71,7 @@ const GlobalSessionNotification: React.FC = () => {
     };
   }, [currentUser, userProfile, classroomId, dismissedSessions]);
 
-  const handleJoinSession = async () => {
+  const handleAcceptSession = async () => {
     if (!notification || !currentUser || !userProfile) return;
 
     setIsJoining(true);
@@ -97,81 +101,76 @@ const GlobalSessionNotification: React.FC = () => {
     }
   };
 
-  const handleDismiss = () => {
+  const handleDeclineSession = () => {
     if (notification) {
       setDismissedSessions(prev => new Set(prev).add(notification.sessionId));
       setNotification(null);
+      toast({
+        title: "Session Declined",
+        description: "You can still join from your classroom if you change your mind.",
+      });
     }
-  };
-
-  const handleViewClassroom = () => {
-    setNotification(null);
-    navigate('/student');
   };
 
   if (!notification) return null;
 
   return (
     <Dialog open={true} onOpenChange={() => {}}>
-      <DialogContent className="bg-black/95 border border-green-500/20 text-white max-w-md" hideCloseButton>
+      <DialogContent className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 border border-green-500/30 text-white max-w-md backdrop-blur-lg" hideCloseButton>
         <DialogHeader>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="absolute h-4 w-4 rounded-full bg-green-400 animate-ping"></div>
-                <div className="relative h-4 w-4 rounded-full bg-green-400"></div>
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative">
+              <div className="absolute h-6 w-6 rounded-full bg-green-400 animate-ping"></div>
+              <div className="relative h-6 w-6 rounded-full bg-green-400 flex items-center justify-center">
+                <Radio className="h-3 w-3 text-slate-900" />
               </div>
-              <DialogTitle className="text-xl text-white flex items-center gap-2">
-                <Radio className="h-5 w-5 text-green-400" />
-                Live Session Started!
-              </DialogTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDismiss}
-              className="text-white/70 hover:text-white hover:bg-white/10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
           
-          <DialogDescription className="text-center text-white/80 space-y-3">
-            <div className="bg-black/40 rounded-lg p-4 space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <Users className="h-4 w-4 text-blue-400" />
-                <span className="font-medium">{notification.teacherName}</span>
+          <DialogTitle className="text-2xl text-center text-white flex items-center justify-center gap-3 mb-2">
+            <Wifi className="h-6 w-6 text-green-400" />
+            Live Session Started!
+          </DialogTitle>
+          
+          <DialogDescription className="text-center text-white/90 space-y-4">
+            <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 rounded-xl p-5 space-y-3 border border-slate-600/30">
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 bg-blue-500/20 rounded-full">
+                  <Users className="h-5 w-5 text-blue-400" />
+                </div>
+                <span className="font-semibold text-lg">{notification.teacherName}</span>
               </div>
               
-              <div className="text-sm text-white/70">
+              <div className="text-white/80 text-base">
                 has started a live session
               </div>
               
-              <Badge className="bg-green-500/20 text-green-300 border-0 flex items-center gap-1">
-                <Wifi className="h-3 w-3" />
+              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 px-4 py-2 text-sm font-medium">
+                <Wifi className="h-4 w-4 mr-2" />
                 {notification.scenarioTitle}
               </Badge>
             </div>
             
-            <div className="flex items-center justify-center gap-2 text-sm text-white/70">
+            <div className="flex items-center justify-center gap-2 text-white/70 bg-slate-800/40 rounded-lg p-3">
               <Clock className="h-4 w-4" />
-              Join now to participate with your class
+              Join now to participate with your class!
             </div>
           </DialogDescription>
         </DialogHeader>
         
-        <DialogFooter className="flex gap-2 justify-center">
+        <DialogFooter className="flex gap-3 pt-4">
           <Button 
             variant="outline" 
-            onClick={handleViewClassroom}
-            className="border-white/20 text-white hover:bg-white/10"
+            onClick={handleDeclineSession}
+            className="border-red-500/40 bg-red-900/30 text-red-300 hover:bg-red-800/40 hover:border-red-400/60 transition-all duration-200 flex-1"
             disabled={isJoining}
           >
-            View in Classroom
+            <XCircle className="h-4 w-4 mr-2" />
+            Decline
           </Button>
           <Button 
-            onClick={handleJoinSession}
-            className="bg-green-500 hover:bg-green-600 text-white"
+            onClick={handleAcceptSession}
+            className="bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/20 transition-all duration-200 flex-1"
             disabled={isJoining}
           >
             {isJoining ? (
@@ -181,8 +180,8 @@ const GlobalSessionNotification: React.FC = () => {
               </>
             ) : (
               <>
-                <Wifi className="h-4 w-4 mr-2" />
-                Join Now
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Accept & Join
               </>
             )}
           </Button>

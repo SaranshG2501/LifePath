@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { School, Users, User, Calendar, BookOpen, Play, LogOut, Star, Trophy, Clock, GraduationCap, Award, TrendingUp } from 'lucide-react';
+import { School, Users, User, Calendar, BookOpen, Play, LogOut, Star, Trophy, Clock, GraduationCap, Award, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp } from '@/lib/firebase';
-import { ScenarioHistory } from '@/lib/firebase';
+import { ScenarioHistory, getUserScenarioHistory } from '@/lib/firebase';
 import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
+import ProfileStats from '@/components/profile/ProfileStats';
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
@@ -52,6 +52,11 @@ const ProfilePage = () => {
     if (!currentUser) return;
     try {
       setLoadingHistory(true);
+      const history = await getUserScenarioHistory(currentUser.uid);
+      setScenarioHistory(history);
+    } catch (error) {
+      console.error("Error fetching scenario history:", error);
+      // Keep mock data as fallback
       const mockHistory: ScenarioHistory[] = [
         {
           scenarioId: 'financial-literacy',
@@ -72,67 +77,12 @@ const ProfilePage = () => {
               choiceText: 'Open a high-yield savings account',
               timestamp: new Date(Date.now() - 172800000 + 1800000),
               metricChanges: { money: 20, happiness: 10 }
-            },
-            {
-              sceneId: 'scene3',
-              choiceId: 'choice1',
-              choiceText: 'Create a monthly budget plan',
-              timestamp: new Date(Date.now() - 172800000 + 2700000),
-              metricChanges: { knowledge: 25, relationships: 5 }
             }
           ],
           finalMetrics: { health: 85, money: 120, happiness: 80, knowledge: 95, relationships: 75 }
-        },
-        {
-          scenarioId: 'career-decision',
-          scenarioTitle: 'Career Path Explorer',
-          startedAt: new Date(Date.now() - 86400000),
-          completedAt: new Date(Date.now() - 86400000 + 2700000),
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice2',
-              choiceText: 'Pursue higher education in computer science',
-              timestamp: new Date(Date.now() - 86400000 + 900000),
-              metricChanges: { knowledge: 30, money: -15 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice1',
-              choiceText: 'Network with industry professionals',
-              timestamp: new Date(Date.now() - 86400000 + 1800000),
-              metricChanges: { relationships: 20, happiness: 15 }
-            }
-          ],
-          finalMetrics: { health: 78, money: 85, happiness: 90, knowledge: 110, relationships: 85 }
-        },
-        {
-          scenarioId: 'health-wellness',
-          scenarioTitle: 'Wellness Journey',
-          startedAt: new Date(Date.now() - 259200000),
-          completedAt: new Date(Date.now() - 259200000 + 5400000),
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Join a local gym and start regular workouts',
-              timestamp: new Date(Date.now() - 259200000 + 1800000),
-              metricChanges: { health: 25, happiness: 10 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice2',
-              choiceText: 'Adopt a balanced diet with meal planning',
-              timestamp: new Date(Date.now() - 259200000 + 3600000),
-              metricChanges: { health: 20, knowledge: 10 }
-            }
-          ],
-          finalMetrics: { health: 105, money: 95, happiness: 85, knowledge: 80, relationships: 70 }
         }
       ];
       setScenarioHistory(mockHistory);
-    } catch (error) {
-      console.error("Error fetching scenario history:", error);
     } finally {
       setLoadingHistory(false);
     }
@@ -161,20 +111,6 @@ const ProfilePage = () => {
       return dateValue.toLocaleDateString();
     }
     return convertTimestampToDate(dateValue).toLocaleDateString();
-  };
-
-  const getTotalScore = () => {
-    return scenarioHistory.reduce((total, history) => {
-      if (history.finalMetrics) {
-        return total + Object.values(history.finalMetrics).reduce((a, b) => a + b, 0);
-      }
-      return total;
-    }, 0);
-  };
-
-  const getAverageScore = () => {
-    if (scenarioHistory.length === 0) return 0;
-    return Math.round(getTotalScore() / scenarioHistory.length);
   };
 
   return (
@@ -211,7 +147,7 @@ const ProfilePage = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-2">
-                    <Star className="h-4 w-4 text-white" />
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
                 </div>
                 
@@ -241,44 +177,12 @@ const ProfilePage = () => {
           </Card>
         )}
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/30 backdrop-blur-sm">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 bg-blue-500/20 rounded-full">
-                  <School className="h-8 w-8 text-blue-400" />
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-white mb-1">{classrooms.length}</div>
-              <div className="text-blue-300 text-sm">Classrooms</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/30 backdrop-blur-sm">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 bg-purple-500/20 rounded-full">
-                  <BookOpen className="h-8 w-8 text-purple-400" />
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-white mb-1">{scenarioHistory.length}</div>
-              <div className="text-purple-300 text-sm">Scenarios Completed</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/30 backdrop-blur-sm">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 bg-green-500/20 rounded-full">
-                  <Award className="h-8 w-8 text-green-400" />
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-white mb-1">{getAverageScore()}</div>
-              <div className="text-green-300 text-sm">Average Score</div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Enhanced Stats Overview with ProfileStats component */}
+        <ProfileStats 
+          scenarioHistory={scenarioHistory}
+          userLevel={userProfile?.level || 1}
+          userXp={userProfile?.xp || 0}
+        />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Enhanced Classrooms Section */}
