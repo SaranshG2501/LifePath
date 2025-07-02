@@ -1,655 +1,385 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, School, Users, PlusCircle, Search, Loader2, Play, Radio } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
-import { 
-  getUserClassrooms, 
-  createClassroom, 
-  Classroom, 
-  createLiveSession,
-  endLiveSession,
-  getActiveSession,
-  LiveSession,
-  onClassroomUpdated
-} from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import ScenarioCard from '@/components/ScenarioCard';
 import TeacherClassroomManager from '@/components/classroom/TeacherClassroomManager';
-import ActiveSessionCard from '@/components/classroom/ActiveSessionCard';
-import { scenarios } from '@/data/scenarios';
-import { useToast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen } from 'lucide-react';
+import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate } from '@/lib/firebase';
 
 const TeacherDashboard = () => {
-  const { userProfile, currentUser } = useAuth();
-  const { setUserRole, startScenario, setClassroomId, setGameMode } = useGameContext();
-  const navigate = useNavigate();
+  const { scenarios, startScenario, setGameMode } = useGameContext();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState("classrooms");
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
-  const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [className, setClassName] = useState('');
-  const [classDescription, setClassDescription] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [isEndingSession, setIsEndingSession] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Fetch teacher's classrooms
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [creatingSession, setCreatingSession] = useState<string | null>(null);
+
   useEffect(() => {
-    const fetchClassrooms = async () => {
-      if (!currentUser) {
-        navigate('/auth');
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        const fetchedClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
-        console.log("Fetched classrooms:", fetchedClassrooms);
-        setClassrooms(fetchedClassrooms);
-        
-        // If classrooms exist, select the first one by default
-        if (fetchedClassrooms.length > 0 && !selectedClassroom) {
-          setSelectedClassroom(fetchedClassrooms[0]);
-        }
-        
-        // Ensure the role is set to teacher
-        setUserRole('teacher');
-      } catch (error) {
-        console.error('Error fetching classrooms:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchClassrooms();
-  }, [currentUser, navigate, setUserRole, selectedClassroom]);
-
-  // Listen for active session updates when classroom is selected
-  useEffect(() => {
-    if (!selectedClassroom?.id) {
-      setActiveSession(null);
-      return;
+    if (currentUser) {
+      loadClassrooms();
     }
+  }, [currentUser]);
 
-    console.log("Setting up classroom listener for:", selectedClassroom.id);
-    
-    const unsubscribe = onClassroomUpdated(selectedClassroom.id, async (classroom) => {
-      console.log("Classroom updated:", classroom.activeSessionId);
-      
-      if (classroom.activeSessionId) {
-        try {
-          const session = await getActiveSession(classroom.id!);
-          setActiveSession(session);
-        } catch (error) {
-          console.error("Error fetching active session:", error);
-          setActiveSession(null);
-        }
-      } else {
-        setActiveSession(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [selectedClassroom?.id]);
-  
-  const handleCreateClassroom = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Login Required",
-        description: "Please login to create a classroom",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!className.trim()) {
-      toast({
-        title: "Class Name Required",
-        description: "Please enter a name for your classroom",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsCreating(true);
-      console.log("Creating classroom with name:", className);
-      
-      const newClassroom = await createClassroom(
-        currentUser.uid,
-        className,
-        classDescription
-      );
-      
-      console.log("Classroom created:", newClassroom);
-      
-      if (newClassroom && newClassroom.id) {
-        setClassroomId(newClassroom.id);
-        setGameMode("classroom");
-        
-        toast({
-          title: "Classroom Created",
-          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
-        });
-        
-        // Add the new classroom to the list
-        setClassrooms(prev => [...prev, newClassroom]);
-        
-        // Select the new classroom
-        setSelectedClassroom(newClassroom);
-        
-        setIsCreateModalOpen(false);
-        setClassName('');
-        setClassDescription('');
-        await handleRefresh();
-      } else {
-        throw new Error("Failed to create classroom");
-      }
-    } catch (error) {
-      console.error('Error creating classroom:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create classroom. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
-  
-  const handleRefresh = async () => {
+  const loadClassrooms = async () => {
     if (!currentUser) return;
     
     try {
       setLoading(true);
-      const fetchedClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
-      console.log("Refreshed classrooms:", fetchedClassrooms);
-      setClassrooms(fetchedClassrooms);
-      
-      // Update selected classroom with refreshed data
-      if (selectedClassroom) {
-        const updatedSelectedClassroom = fetchedClassrooms.find(c => c.id === selectedClassroom.id);
-        setSelectedClassroom(updatedSelectedClassroom || fetchedClassrooms[0]);
-      }
+      const userClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
+      setClassrooms(userClassrooms);
     } catch (error) {
-      console.error('Error refreshing classrooms:', error);
+      console.error('Error loading classrooms:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load classrooms. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEndSession = async () => {
-    if (!activeSession?.id || !selectedClassroom?.id) return;
+  const handleStartScenario = (id: string) => {
+    startScenario(id);
+    navigate('/game');
+  };
 
+  const handleDeleteClassroom = async (classroomId: string, classroomName: string) => {
+    if (!currentUser) return;
+    
+    setDeleting(classroomId);
     try {
-      setIsEndingSession(true);
+      console.log("Attempting to delete classroom:", classroomId);
+      await deleteClassroom(classroomId, currentUser.uid);
       
-      // Create result payload
-      const resultPayload = {
-        choices: activeSession.currentChoices || {},
-        summary: `Session completed for "${activeSession.scenarioTitle}"`
-      };
+      // Remove from local state
+      setClassrooms(prev => prev.filter(c => c.id !== classroomId));
       
-      await endLiveSession(activeSession.id, selectedClassroom.id, resultPayload);
-      setActiveSession(null);
+      // Close selected classroom if it was the deleted one
+      if (selectedClassroom?.id === classroomId) {
+        setSelectedClassroom(null);
+      }
       
       toast({
-        title: "Session Ended",
-        description: "The live session has been ended successfully.",
+        title: "Classroom Deleted",
+        description: `"${classroomName}" has been permanently deleted. All students have been removed and related data cleared.`,
       });
     } catch (error) {
-      console.error("Error ending session:", error);
+      console.error('Error deleting classroom:', error);
       toast({
         title: "Error",
-        description: "Failed to end the session. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete classroom. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsEndingSession(false);
+      setDeleting(null);
     }
   };
 
-  const handleViewSession = () => {
-    if (selectedClassroom?.id && activeSession) {
-      setClassroomId(selectedClassroom.id);
-      setGameMode("classroom");
-      startScenario(activeSession.scenarioId);
-      navigate('/game');
-    }
+  const handleCreateClassroom = () => {
+    navigate('/classroom');
   };
 
-  const handleStartLiveScenario = async (scenarioId: string) => {
-    if (!selectedClassroom || !currentUser) {
-      toast({
-        title: "Classroom Required",
-        description: "Please select a classroom before starting a live scenario.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if there's already an active session
-    if (activeSession) {
-      toast({
-        title: "Session Already Active",
-        description: "Please end the current session before starting a new one.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleStartLiveSession = async (classroom: Classroom, scenario: any) => {
+    if (!currentUser || !classroom.id) return;
+    
+    setCreatingSession(classroom.id);
     try {
-      const scenario = scenarios.find(s => s.id === scenarioId);
-      if (!scenario) {
-        throw new Error("Scenario not found");
-      }
-
-      // Create live session
-      const liveSession = await createLiveSession(
-        selectedClassroom.id!,
+      console.log("Starting live session for classroom:", classroom.id);
+      
+      const sessionId = await createLiveSession(
+        classroom.id,
+        scenario.id,
         currentUser.uid,
-        scenarioId,
-        scenario.title,
-        scenario.scenes[0].id
+        currentUser.displayName || 'Teacher',
+        scenario.title
       );
-
-      setActiveSession(liveSession);
-      setClassroomId(selectedClassroom.id!);
-      setGameMode("classroom");
-      startScenario(scenarioId);
+      
+      console.log("Live session created:", sessionId);
+      
+      // Refresh classrooms to show updated state
+      await loadClassrooms();
       
       toast({
-        title: "Live Session Started",
-        description: `Students will receive a notification to join "${scenario.title}"`,
+        title: "Live Session Started!",
+        description: `"${scenario.title}" is now live for ${classroom.name}`,
       });
       
+      // Navigate to game with classroom mode
+      setGameMode("classroom");
+      startScenario(scenario.id);
       navigate('/game');
+      
     } catch (error) {
-      console.error("Error starting live scenario:", error);
+      console.error('Error starting live session:', error);
       toast({
         title: "Error",
-        description: "Failed to start live scenario. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to start live session. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setCreatingSession(null);
     }
   };
 
-  const handleScenarioClick = (scenarioId: string) => {
-    if (selectedClassroom) {
-      if (activeSession) {
-        toast({
-          title: "Session Already Active",
-          description: "Please end the current session before starting a new one.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Show option to start as live session or individual
-      const confirmLive = window.confirm(
-        "Do you want to start this as a live session for your students? Click OK for live session, Cancel for individual play."
-      );
-      
-      if (confirmLive) {
-        handleStartLiveScenario(scenarioId);
-      } else {
-        startScenario(scenarioId);
-        navigate('/game');
-      }
-    } else {
-      startScenario(scenarioId);
-      navigate('/game');
-    }
-  };
-  
-  // Filter classrooms based on search term
-  const filteredClassrooms = classrooms.filter(classroom => 
-    classroom.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (!currentUser) {
-    navigate('/auth');
-    return null;
-  }
-  
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <School className="h-8 w-8 text-primary" />
-              Teacher Dashboard
-            </h1>
-            <p className="text-white/70 mt-2">
-              Manage your classrooms and create live learning experiences
-            </p>
-          </div>
-          <Button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-primary hover:bg-primary/90 hidden md:flex"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Classroom
-          </Button>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
+          <p className="text-white/70">Manage your classrooms and scenarios</p>
         </div>
-      </header>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1 space-y-6">
-          <Card className="bg-black/30 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-white">Teacher Profile</CardTitle>
-              <CardDescription className="text-white/70">
-                {userProfile?.displayName || 'Teacher'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-black/20 rounded-lg p-4 flex flex-col items-center">
-                    <Users className="h-6 w-6 text-primary mb-1" />
-                    <div className="text-2xl font-bold text-white">
-                      {classrooms.reduce((total, classroom) => total + (classroom.students?.length || 0), 0)}
+        <Button 
+          onClick={handleCreateClassroom} 
+          className="bg-blue-500 hover:bg-blue-600 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Create Classroom
+        </Button>
+      </div>
+
+      {/* Classrooms Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <School className="h-6 w-6 text-primary" />
+            Your Classrooms ({classrooms.length})
+          </h2>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="bg-black/20 border-white/10 animate-pulse">
+                <CardHeader>
+                  <div className="h-6 bg-white/10 rounded mb-2"></div>
+                  <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-4 bg-white/10 rounded mb-4"></div>
+                  <div className="h-10 bg-white/10 rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : classrooms.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {classrooms.map((classroom) => (
+              <Card key={classroom.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-white text-lg">{classroom.name}</CardTitle>
+                      <CardDescription className="text-white/70 mt-1">
+                        {classroom.description || "No description"}
+                      </CardDescription>
                     </div>
-                    <div className="text-xs text-white/70">Students</div>
-                  </div>
-                  
-                  <div className="bg-black/20 rounded-lg p-4 flex flex-col items-center">
-                    <School className="h-6 w-6 text-primary mb-1" />
-                    <div className="text-2xl font-bold text-white">
-                      {classrooms.length}
+                    <div className="flex items-center gap-2 ml-2">
+                      {classroom.activeSessionId && (
+                        <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                          Live
+                        </Badge>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1 h-8 w-8"
+                            disabled={deleting === classroom.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-black/90 border border-red-500/20">
+                          <AlertDialogHeader>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-red-500/20 rounded-full">
+                                <AlertTriangle className="h-5 w-5 text-red-400" />
+                              </div>
+                              <AlertDialogTitle className="text-white">Delete Classroom</AlertDialogTitle>
+                            </div>
+                            <AlertDialogDescription className="text-white/70">
+                              Are you sure you want to permanently delete <strong>"{classroom.name}"</strong>?
+                              <br /><br />
+                              This action will:
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Remove all {classroom.students?.length || 0} students from the classroom</li>
+                                <li>Delete all session data and history</li>
+                                <li>Remove the classroom from students' profiles</li>
+                                <li>Cannot be undone</li>
+                              </ul>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteClassroom(classroom.id!, classroom.name)}
+                              className="bg-red-500 hover:bg-red-600 text-white"
+                              disabled={deleting === classroom.id}
+                            >
+                              {deleting === classroom.id ? "Deleting..." : "Delete Permanently"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                    <div className="text-xs text-white/70">Classrooms</div>
                   </div>
-                </div>
-                
-                <Button 
-                  variant="default" 
-                  className="w-full bg-primary hover:bg-primary/90"
-                  onClick={() => navigate('/game')}
-                >
-                  Start New Scenario
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Users className="h-4 w-4" />
+                        <span>{classroom.students?.length || 0} Students</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Calendar className="h-4 w-4" />
+                        <span>{convertTimestampToDate(classroom.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-white/60 bg-black/30 rounded px-2 py-1 font-mono">
+                      Code: {classroom.classCode}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectedClassroom(classroom)}
+                        className="flex-1 border-white/20 bg-black/20 text-white hover:bg-white/10"
+                      >
+                        <School className="h-4 w-4 mr-1" />
+                        Manage
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="bg-black/20 border-white/10">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <School className="h-16 w-16 text-white/30 mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No Classrooms Yet</h3>
+              <p className="text-white/70 text-center mb-6 max-w-md">
+                Create your first classroom to start teaching interactive scenarios to your students.
+              </p>
+              <Button onClick={handleCreateClassroom} className="bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Classroom
+              </Button>
             </CardContent>
           </Card>
+        )}
+      </div>
 
-          {/* Active Session Status */}
-          {activeSession && (
-            <ActiveSessionCard
-              session={activeSession}
-              onEndSession={handleEndSession}
-              onViewSession={handleViewSession}
-              isEnding={isEndingSession}
-            />
-          )}
-          
-          <Card className="bg-black/30 border-primary/20">
+      {/* Selected Classroom Management */}
+      {selectedClassroom && (
+        <div className="mb-8">
+          <Card className="bg-black/20 border-white/10">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white">My Classrooms</CardTitle>
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <School className="h-5 w-5 text-primary" />
+                    {selectedClassroom.name}
+                  </CardTitle>
+                  <CardDescription className="text-white/70">
+                    Classroom Management
+                  </CardDescription>
+                </div>
                 <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="border-white/20 bg-black/20 text-white hover:bg-white/10"
-                  onClick={() => setIsCreateModalOpen(true)}
+                  variant="ghost" 
+                  onClick={() => setSelectedClassroom(null)}
+                  className="text-white/70 hover:text-white"
                 >
-                  <PlusCircle className="h-4 w-4" />
+                  Close
                 </Button>
               </div>
-              <div className="relative mt-2">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/50" />
-                <Input
-                  placeholder="Search classrooms..."
-                  className="pl-8 bg-black/20 border-white/20 text-white w-full"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                </div>
-              ) : filteredClassrooms.length > 0 ? (
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-3">
-                    {filteredClassrooms.map((classroom) => (
-                      <Button 
-                        key={classroom.id} 
-                        variant="outline" 
-                        className={`w-full justify-between border-white/20 bg-black/20 hover:bg-white/10 ${
-                          selectedClassroom?.id === classroom.id ? 'border-primary text-primary' : 'text-white'
-                        }`}
-                        onClick={() => setSelectedClassroom(classroom)}
-                      >
-                        <div className="flex flex-col items-start text-left">
-                          <span>{classroom.name}</span>
-                          <span className="text-xs opacity-70">
-                            Created: {classroom.createdAt ? new Date((classroom.createdAt as any).seconds * 1000).toLocaleDateString() : 'Recently'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {classroom.activeSessionId && (
-                            <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                              Live
-                            </Badge>
-                          )}
-                          <Badge className="bg-black/40 text-primary border-0">
-                            {classroom.students?.length || 0} students
-                          </Badge>
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-center py-4">
-                  {searchTerm ? (
-                    <p className="text-white/70">No classrooms match your search</p>
-                  ) : (
-                    <>
-                      <p className="text-white/70 mb-3">No classrooms created yet</p>
-                      <Button 
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Classroom
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="md:col-span-2">
-          <Card className="bg-black/30 border-primary/20">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-white">
-                  {selectedClassroom ? selectedClassroom.name : "Classroom Management"}
-                </CardTitle>
-                <div className="flex gap-2">
-                  {selectedClassroom && !activeSession && (
-                    <Button
-                      onClick={() => {
-                        // Quick start live session with first scenario
-                        handleStartLiveScenario(scenarios[0].id);
-                      }}
-                      className="bg-green-500 hover:bg-green-600"
-                    >
-                      <Radio className="mr-2 h-4 w-4" />
-                      Start Live Session
-                    </Button>
-                  )}
-                  {!selectedClassroom && (
-                    <Button 
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Create Classroom
-                    </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="border-white/20 bg-black/20 text-white hover:bg-white/10"
-                    onClick={handleRefresh}
-                    disabled={loading}
-                  >
-                    {loading ? 
-                      <Loader2 className="h-4 w-4 animate-spin" /> 
-                      : "Refresh"
-                    }
-                  </Button>
-                </div>
-              </div>
-              <CardDescription className="text-white/70">
-                {selectedClassroom 
-                  ? `Manage ${selectedClassroom.students?.length || 0} students and start live scenarios` 
-                  : "Create and manage your classrooms"}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              {selectedClassroom ? (
-                <TeacherClassroomManager 
-                  classroom={selectedClassroom}
-                  onRefresh={handleRefresh}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <School className="h-16 w-16 text-white/20 mb-4" />
-                  <h3 className="text-xl font-medium text-white mb-2">No Classroom Selected</h3>
-                  <p className="text-white/70 text-center max-w-md mb-4">
-                    Create a new classroom to start engaging with your students through interactive scenarios.
-                  </p>
-                  <Button 
-                    className="bg-primary hover:bg-primary/90"
-                    onClick={() => setIsCreateModalOpen(true)}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create New Classroom
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-          Available Scenarios
-          {selectedClassroom && !activeSession && (
-            <Badge className="bg-blue-500/20 text-blue-300 border-0">
-              Click to start live session
-            </Badge>
-          )}
-          {activeSession && (
-            <Badge className="bg-orange-500/20 text-orange-300 border-0">
-              End current session to start new scenario
-            </Badge>
-          )}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {scenarios.slice(0, 6).map((scenario) => (
-            <div key={scenario.id} className="relative">
-              <ScenarioCard 
-                scenario={scenario}
-                onStart={handleScenarioClick}
-                onClick={() => handleScenarioClick(scenario.id)}
+              <TeacherClassroomManager 
+                classroom={selectedClassroom} 
+                onRefresh={loadClassrooms}
               />
-              {selectedClassroom && !activeSession && (
-                <div className="absolute top-2 right-2">
-                  <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                    Live Ready
-                  </Badge>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Scenarios Section */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+          <BookOpen className="h-6 w-6 text-primary" />
+          Available Scenarios
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {scenarios.map((scenario) => (
+            <Card key={scenario.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
+              <CardHeader>
+                <CardTitle className="text-white">{scenario.title}</CardTitle>
+                <CardDescription className="text-white/70">
+                  {scenario.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleStartScenario(scenario.id)}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Solo Play
+                  </Button>
+                  {selectedClassroom && (
+                    <Button 
+                      onClick={() => handleStartLiveSession(selectedClassroom, scenario)}
+                      disabled={creatingSession === selectedClassroom.id}
+                      className="flex-1 bg-green-500 hover:bg-green-600"
+                    >
+                      {creatingSession === selectedClassroom.id ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <Users className="h-4 w-4 mr-2" />
+                          Live Session
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
-              )}
-              {activeSession && (
-                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                  <Badge className="bg-orange-500/20 text-orange-300 border-0">
-                    Session Active
-                  </Badge>
-                </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
-      </div>
-
-      {/* Create Classroom Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="bg-black/95 border border-primary/20 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white text-xl">Create a Classroom</DialogTitle>
-            <DialogDescription className="text-white/70">
-              Fill out the form below to create your virtual classroom.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <label className="text-sm text-white/70">Classroom Name</label>
-              <Input
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-                placeholder="e.g., Introduction to Psychology"
-                className="bg-black/40 border-white/20 text-white"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm text-white/70">Description (Optional)</label>
-              <Input
-                value={classDescription}
-                onChange={(e) => setClassDescription(e.target.value)}
-                placeholder="Brief description of your class"
-                className="bg-black/40 border-white/20 text-white"
-              />
-            </div>
+        
+        {!selectedClassroom && (
+          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/20">
+            <p className="text-blue-300 text-sm">
+              💡 Select a classroom above to enable live session options for scenarios
+            </p>
           </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsCreateModalOpen(false)}
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateClassroom}
-              disabled={isCreating}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isCreating ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>Create Classroom</>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
     </div>
   );
 };

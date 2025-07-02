@@ -164,108 +164,79 @@ export interface SessionNotification {
 
 // Enhanced session creation with atomic operations and better error handling
 export const createLiveSession = async (
-  classroomId: string,
-  teacherId: string,
-  scenarioId: string,
-  scenarioTitle: string,
-  initialSceneId: string = "start"
-) => {
+  classroomId: string, 
+  scenarioId: string, 
+  teacherId: string, 
+  teacherName: string,
+  scenarioTitle: string
+): Promise<string> => {
+  console.log("Creating live session:", { classroomId, scenarioId, teacherId });
+  
   try {
-    console.log("Creating live session for classroom:", classroomId);
+    // Create the session document
+    const sessionData = {
+      classroomId,
+      scenarioId,
+      teacherId,
+      teacherName,
+      scenarioTitle,
+      status: 'active' as const,
+      currentSceneId: '',
+      currentSceneIndex: 0,
+      participants: [],
+      currentChoices: {},
+      votes: {},
+      createdAt: Timestamp.now(),
+      lastUpdated: Timestamp.now()
+    };
     
-    const result = await runTransaction(db, async (transaction) => {
-      const classroomRef = doc(db, 'classrooms', classroomId);
-      const classroomDoc = await transaction.get(classroomRef);
-      
-      if (!classroomDoc.exists()) {
-        throw new Error("Classroom not found");
-      }
-      
-      const classroomData = classroomDoc.data() as Classroom;
-      
-      // Check if there's already an active session
-      if (classroomData.activeSessionId) {
-        const existingSessionRef = doc(db, 'sessions', classroomData.activeSessionId);
-        const existingSessionDoc = await transaction.get(existingSessionRef);
-        
-        if (existingSessionDoc.exists()) {
-          const existingSession = existingSessionDoc.data() as LiveSession;
-          if (existingSession.status === 'active') {
-            throw new Error("Cannot start new session: another session is already active. End the current session first.");
-          }
-        }
-      }
-      
-      // Get teacher info
-      const teacherRef = doc(db, 'users', teacherId);
-      const teacherDoc = await transaction.get(teacherRef);
-      const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
-
-      // Create new session with scene tracking
-      const sessionRef = doc(collection(db, 'sessions'));
-      const sessionData: LiveSession = {
-        classroomId,
-        teacherId,
-        teacherName,
-        scenarioId,
-        scenarioTitle,
-        currentSceneId: initialSceneId,
-        currentSceneIndex: 0,
-        status: 'active',
-        startedAt: Timestamp.now(),
-        participants: [],
-        currentChoices: {},
-        lastUpdated: Timestamp.now()
-      };
-      
-      transaction.set(sessionRef, sessionData);
-      
-      // Update classroom with new active session (atomic)
-      transaction.update(classroomRef, {
-        activeSessionId: sessionRef.id,
-        activeScenario: scenarioId,
-        currentScene: initialSceneId,
-        lastActivity: Timestamp.now()
-      });
-      
-      return { sessionId: sessionRef.id, sessionData };
+    const sessionRef = await addDoc(collection(db, 'sessions'), sessionData);
+    console.log("Session created with ID:", sessionRef.id);
+    
+    // Update classroom with active session
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    await updateDoc(classroomRef, {
+      activeSessionId: sessionRef.id,
+      activeScenario: scenarioTitle,
+      lastActivity: Timestamp.now()
     });
+    console.log("Classroom updated with active session");
     
-    // Create notifications for students (outside transaction for performance)
-    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
-    if (classroomDoc.exists()) {
-      const classroomData = classroomDoc.data() as Classroom;
-      const students = classroomData.students || [];
-      const members = classroomData.members || [];
+    // Get classroom data to send notifications
+    const classroomSnap = await getDoc(classroomRef);
+    if (classroomSnap.exists()) {
+      const classroomData = classroomSnap.data() as Classroom;
       
-      // Use members array if available, fallback to students array
-      const studentIds = members.length > 0 ? members : students.map(s => s.id);
-      
-      if (studentIds.length > 0) {
-        const teacherDoc = await getDoc(doc(db, 'users', teacherId));
-        const teacherName = teacherDoc.exists() ? teacherDoc.data().displayName || 'Teacher' : 'Teacher';
+      // Send notifications to students
+      if (classroomData.students && classroomData.students.length > 0) {
+        console.log("Sending notifications to students:", classroomData.students.length);
         
-        const notificationPromises = studentIds.map(studentId => {
-          const notificationData: SessionNotification = {
-            type: 'live_session_started',
-            sessionId: result.sessionId,
-            classroomId,
-            teacherName,
-            scenarioTitle,
-            studentId: typeof studentId === 'string' ? studentId : studentId,
-            createdAt: Timestamp.now(),
-            read: false
-          };
-          
-          return setDoc(doc(db, 'notifications', `${result.sessionId}_${studentId}`), notificationData);
+        const notificationPromises = classroomData.students.map(async (student) => {
+          try {
+            const notificationData: SessionNotification = {
+              type: 'live_session_started',
+              sessionId: sessionRef.id,
+              teacherName,
+              scenarioTitle,
+              classroomId,
+              studentId: student.id,
+              createdAt: Timestamp.now(),
+              read: false
+            };
+            
+            await addDoc(collection(db, 'notifications'), notificationData);
+            console.log(`Notification sent to student ${student.id}`);
+          } catch (error) {
+            console.error(`Error sending notification to student ${student.id}:`, error);
+          }
         });
         
         await Promise.all(notificationPromises);
-        console.log("Notifications created for", studentIds.length, "students");
       }
     }
-
-    return { id: result.sessionId, ...result.sessionData };
+    
+    return sessionRef.id;
+    
   } catch (error) {
     console.error("Error creating live session:", error);
     throw error;
@@ -881,6 +852,98 @@ export const updateClassroom = async (classroomId: string, data: Partial<Classro
     delete (updateData as any).id; // Remove id property if present
   }
   return updateDoc(doc(db, 'classrooms', classroomId), updateData);
+};
+
+// NEW: Delete classroom function with full cleanup
+export const deleteClassroom = async (classroomId: string, teacherId: string): Promise<void> => {
+  console.log("Starting classroom deletion:", classroomId);
+  
+  try {
+    // Verify the user is the teacher
+    const classroomRef = doc(db, 'classrooms', classroomId);
+    const classroomSnap = await getDoc(classroomRef);
+    
+    if (!classroomSnap.exists()) {
+      throw new Error('Classroom not found');
+    }
+    
+    const classroomData = classroomSnap.data() as Classroom;
+    if (classroomData.teacherId !== teacherId) {
+      throw new Error('Unauthorized: Only the teacher can delete this classroom');
+    }
+    
+    console.log("Classroom data:", classroomData);
+    
+    // Start batch delete
+    const batch = writeBatch(db);
+    
+    // Delete the classroom document
+    batch.delete(classroomRef);
+    
+    // Delete class code mapping
+    if (classroomData.classCode) {
+      const classCodeRef = doc(db, 'classCodes', classroomData.classCode);
+      batch.delete(classCodeRef);
+    }
+    
+    // Delete any active sessions
+    if (classroomData.activeSessionId) {
+      const sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
+      batch.delete(sessionRef);
+    }
+    
+    // Execute the batch
+    await batch.commit();
+    console.log("Batch delete completed");
+    
+    // Clean up student profiles (this needs to be done separately due to batch limitations)
+    if (classroomData.students && classroomData.students.length > 0) {
+      console.log("Cleaning up student profiles:", classroomData.students.length);
+      
+      const studentUpdatePromises = classroomData.students.map(async (student) => {
+        try {
+          const studentRef = doc(db, 'users', student.id);
+          const studentSnap = await getDoc(studentRef);
+          
+          if (studentSnap.exists()) {
+            const studentData = studentSnap.data();
+            const currentClassrooms = studentData.classrooms || [];
+            const updatedClassrooms = currentClassrooms.filter((id: string) => id !== classroomId);
+            
+            await updateDoc(studentRef, {
+              classrooms: updatedClassrooms
+            });
+            console.log(`Updated student ${student.id} classrooms`);
+          }
+        } catch (error) {
+          console.error(`Error updating student ${student.id}:`, error);
+        }
+      });
+      
+      await Promise.all(studentUpdatePromises);
+    }
+    
+    // Clean up notifications
+    try {
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('classroomId', '==', classroomId)
+      );
+      const notificationsSnap = await getDocs(notificationsQuery);
+      
+      const notificationDeletePromises = notificationsSnap.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(notificationDeletePromises);
+      console.log("Cleaned up notifications");
+    } catch (error) {
+      console.error("Error cleaning up notifications:", error);
+    }
+    
+    console.log("Classroom deletion completed successfully");
+    
+  } catch (error) {
+    console.error("Error in deleteClassroom:", error);
+    throw error;
+  }
 };
 
 // Classroom activity functions
