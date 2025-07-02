@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +11,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen } from 'lucide-react';
-import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate } from '@/lib/firebase';
+import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 const TeacherDashboard = () => {
   const { scenarios, startScenario, setGameMode } = useGameContext();
@@ -23,6 +26,12 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [creatingSession, setCreatingSession] = useState<string | null>(null);
+
+  // Classroom creation state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [classNameInput, setClassNameInput] = useState('');
+  const [classDescriptionInput, setClassDescriptionInput] = useState('');
+  const [isCreatingClassroom, setIsCreatingClassroom] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -86,8 +95,59 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handleCreateClassroom = () => {
-    navigate('/classroom');
+  const handleCreateClassroom = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to create a classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!classNameInput.trim()) {
+      toast({
+        title: "Class Name Required",
+        description: "Please enter a name for your classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingClassroom(true);
+    try {
+      const newClassroom = await createClassroom(
+        currentUser.uid,
+        classNameInput,
+        classDescriptionInput
+      );
+      
+      toast({
+        title: "Classroom Created",
+        description: `Your classroom '${classNameInput}' has been created successfully with code: ${newClassroom.classCode}`,
+      });
+      
+      // Add the new classroom to the list
+      setClassrooms(prev => [...prev, newClassroom]);
+      
+      // Select the new classroom
+      setSelectedClassroom(newClassroom);
+      
+      // Reset form
+      setClassNameInput('');
+      setClassDescriptionInput('');
+      setIsCreateModalOpen(false);
+      
+    } catch (error) {
+      console.error('Error creating classroom:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create classroom. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingClassroom(false);
+    }
   };
 
   const handleStartLiveSession = async (classroom: Classroom, scenario: any) => {
@@ -97,15 +157,13 @@ const TeacherDashboard = () => {
     try {
       console.log("Starting live session for classroom:", classroom.id);
       
-      const sessionId = await createLiveSession(
+      await createLiveSession(
         classroom.id,
         scenario.id,
         currentUser.uid,
         currentUser.displayName || 'Teacher',
         scenario.title
       );
-      
-      console.log("Live session created:", sessionId);
       
       // Refresh classrooms to show updated state
       await loadClassrooms();
@@ -140,7 +198,7 @@ const TeacherDashboard = () => {
           <p className="text-white/70">Manage your classrooms and scenarios</p>
         </div>
         <Button 
-          onClick={handleCreateClassroom} 
+          onClick={() => setIsCreateModalOpen(true)}
           className="bg-blue-500 hover:bg-blue-600 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -279,7 +337,7 @@ const TeacherDashboard = () => {
               <p className="text-white/70 text-center mb-6 max-w-md">
                 Create your first classroom to start teaching interactive scenarios to your students.
               </p>
-              <Button onClick={handleCreateClassroom} className="bg-primary hover:bg-primary/90">
+              <Button onClick={() => setIsCreateModalOpen(true)} className="bg-primary hover:bg-primary/90">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Classroom
               </Button>
@@ -380,6 +438,60 @@ const TeacherDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Create Classroom Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Classroom</DialogTitle>
+            <DialogDescription>
+              Enter details for your new classroom
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-sm font-medium text-white">
+                Classroom Name
+              </label>
+              <Input
+                id="name"
+                value={classNameInput}
+                onChange={(e) => setClassNameInput(e.target.value)}
+                placeholder="My Awesome Classroom"
+                className="bg-black/20 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="description" className="block text-sm font-medium text-white">
+                Description (Optional)
+              </label>
+              <Input
+                id="description"
+                value={classDescriptionInput}
+                onChange={(e) => setClassDescriptionInput(e.target.value)}
+                placeholder="What will students learn in this classroom?"
+                className="bg-black/20 border-white/10 text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={handleCreateClassroom}
+              disabled={!classNameInput.trim() || isCreatingClassroom}
+              className="bg-blue-500 hover:bg-blue-600"
+            >
+              {isCreatingClassroom ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Classroom"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
