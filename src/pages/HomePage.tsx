@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import GlobalSessionNotification from '@/components/classroom/GlobalSessionNotification';
-
 const HomePage = () => {
   const {
     scenarios,
@@ -28,12 +27,10 @@ const HomePage = () => {
   const {
     toast
   } = useToast();
-  
   const handleStartScenario = (id: string) => {
     startScenario(id);
     navigate('/game');
   };
-  
   const handleJoinClassroom = () => {
     if (!currentUser) {
       navigate('/auth');
@@ -53,9 +50,7 @@ const HomePage = () => {
       });
     }
   };
-  
-  return (
-    <>
+  return <>
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
@@ -70,7 +65,7 @@ const HomePage = () => {
               <span className="bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">LifePath</span>
             </h1>
             
-            <p className="text-xl md:text-2xl mb-2 font-medium text-white/90">Decision Simulator</p>
+            <p className="text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>
             <p className="text-lg text-white/70 mb-8 max-w-xl mx-auto">
               Navigate realistic scenarios and shape your future through thoughtful choices
             </p>
@@ -178,11 +173,9 @@ const HomePage = () => {
           </div>
           
           {/* Always show the StudentClassroomView for students when logged in */}
-          {currentUser && userRole === 'student' && (
-            <div className="mb-8">
+          {currentUser && userRole === 'student' && <div className="mb-8">
               <StudentClassroomView />
-            </div>
-          )}
+            </div>}
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
@@ -242,8 +235,6 @@ const HomePage = () => {
           </div>
         </section>
       </div>
-    </>
-  );
+    </>;
 };
-
 export default HomePage;
