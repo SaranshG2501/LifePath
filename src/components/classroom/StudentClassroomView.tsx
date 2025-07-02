@@ -11,18 +11,20 @@ import {
   BookOpen, 
   Play, 
   Clock, 
+  Trophy, 
   GraduationCap,
   Plus,
   Search,
   Wifi,
   Radio,
-  Loader2
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getUserClassrooms, 
+  getClassroomByCode, 
   joinClassroomByCode, 
   Classroom,
   getActiveSession,
@@ -34,7 +36,7 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentClassroomView = () => {
   const { currentUser, userProfile } = useAuth();
-  const { setClassroomId, setGameMode, startScenario, setCurrentScene } = useGameContext();
+  const { setClassroomId, setGameMode, startScenario } = useGameContext();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -44,7 +46,6 @@ const StudentClassroomView = () => {
   const [joining, setJoining] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSessions, setActiveSessions] = useState<Record<string, LiveSession>>({});
-  const [joiningSession, setJoiningSession] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser && userProfile?.role === 'student') {
@@ -60,31 +61,10 @@ const StudentClassroomView = () => {
 
     classrooms.forEach(classroom => {
       if (classroom.id) {
-        const unsubscribe = onClassroomUpdated(classroom.id, async (updatedClassroom) => {
+        const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
           setClassrooms(prev => 
             prev.map(c => c.id === updatedClassroom.id ? updatedClassroom : c)
           );
-          
-          // Check for active session
-          if (updatedClassroom.activeSessionId) {
-            try {
-              const activeSession = await getActiveSession(updatedClassroom.id!);
-              if (activeSession) {
-                setActiveSessions(prev => ({
-                  ...prev,
-                  [updatedClassroom.id!]: activeSession
-                }));
-              }
-            } catch (error) {
-              console.error("Error fetching active session:", error);
-            }
-          } else {
-            setActiveSessions(prev => {
-              const newSessions = { ...prev };
-              delete newSessions[updatedClassroom.id!];
-              return newSessions;
-            });
-          }
         });
         unsubscribes.push(unsubscribe);
       }
@@ -94,6 +74,35 @@ const StudentClassroomView = () => {
       unsubscribes.forEach(unsubscribe => unsubscribe());
     };
   }, [classrooms.length]);
+
+  // Check for active sessions in all classrooms
+  useEffect(() => {
+    const checkActiveSessions = async () => {
+      const sessions: Record<string, LiveSession> = {};
+      
+      for (const classroom of classrooms) {
+        if (classroom.id) {
+          try {
+            const activeSession = await getActiveSession(classroom.id);
+            if (activeSession) {
+              sessions[classroom.id] = activeSession;
+            }
+          } catch (error) {
+            console.error(`Error checking active session for classroom ${classroom.id}:`, error);
+          }
+        }
+      }
+      
+      setActiveSessions(sessions);
+    };
+
+    if (classrooms.length > 0) {
+      checkActiveSessions();
+      // Check every 5 seconds for active sessions
+      const interval = setInterval(checkActiveSessions, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [classrooms]);
 
   const fetchClassrooms = async () => {
     if (!currentUser) return;
@@ -137,6 +146,7 @@ const StudentClassroomView = () => {
     try {
       setJoining(true);
       
+      // Use the enhanced joinClassroomByCode function
       const joinedClassroom = await joinClassroomByCode(
         joinCode.trim().toUpperCase(),
         currentUser.uid,
@@ -150,7 +160,7 @@ const StudentClassroomView = () => {
         });
         
         setJoinCode('');
-        await fetchClassrooms();
+        await fetchClassrooms(); // Refresh the list
       }
     } catch (error) {
       console.error('Error joining classroom:', error);
@@ -167,46 +177,27 @@ const StudentClassroomView = () => {
   const handleJoinLiveSession = async (classroom: Classroom, session: LiveSession) => {
     if (!currentUser || !userProfile) return;
 
-    setJoiningSession(session.id!);
     try {
-      console.log("Joining live session smoothly:", session.id);
+      console.log("Joining live session:", session.id);
+      await joinLiveSession(session.id!, currentUser.uid, userProfile.displayName || 'Student');
       
-      // Set classroom context first
       setClassroomId(classroom.id!);
       setGameMode("classroom");
+      startScenario(session.scenarioId);
       
-      // Join the session
-      const sessionData = await joinLiveSession(session.id!, currentUser.uid, userProfile.displayName || 'Student');
+      toast({
+        title: "Joined Live Session",
+        description: `You're now part of the live session for "${session.scenarioTitle}"`,
+      });
       
-      if (sessionData && sessionData.status === 'active') {
-        // Start the scenario
-        startScenario(sessionData.scenarioId);
-        
-        // Sync to current scene if teacher has progressed
-        if (sessionData.currentSceneId) {
-          setTimeout(() => {
-            setCurrentScene(sessionData.currentSceneId);
-          }, 500);
-        }
-        
-        toast({
-          title: "🎯 Joined Live Session!",
-          description: `Successfully connected to "${session.scenarioTitle}"`,
-        });
-        
-        navigate('/game');
-      } else {
-        throw new Error("Session is not active");
-      }
+      navigate('/game');
     } catch (error) {
       console.error("Error joining live session:", error);
       toast({
-        title: "Connection Failed",
+        title: "Error",
         description: "Failed to join the live session. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setJoiningSession(null);
     }
   };
 
@@ -215,6 +206,7 @@ const StudentClassroomView = () => {
     (classroom.teacherName && classroom.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Don't show anything if user is not a student or not logged in
   if (!currentUser || !userProfile || userProfile.role !== 'student') {
     return null;
   }
@@ -294,7 +286,6 @@ const StudentClassroomView = () => {
               <div className="space-y-4">
                 {filteredClassrooms.map((classroom) => {
                   const activeSession = activeSessions[classroom.id!];
-                  const isJoining = joiningSession === activeSession?.id;
                   
                   return (
                     <div key={classroom.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
@@ -346,20 +337,10 @@ const StudentClassroomView = () => {
                           <Button 
                             size="sm"
                             onClick={() => handleJoinLiveSession(classroom, activeSession)}
-                            disabled={isJoining}
                             className="bg-green-500 hover:bg-green-600 text-white"
                           >
-                            {isJoining ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                Joining...
-                              </>
-                            ) : (
-                              <>
-                                <Radio className="h-4 w-4 mr-1" />
-                                Join Live Session
-                              </>
-                            )}
+                            <Radio className="h-4 w-4 mr-1" />
+                            Join Live Session
                           </Button>
                         ) : (
                           <Button 
