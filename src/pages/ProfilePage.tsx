@@ -1,617 +1,352 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useGameContext } from '@/context/GameContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { ScenarioHistory, getClassroomByCode, getUserClassrooms } from '@/lib/firebase';
-import ScenarioHistoryDetail from '@/components/ScenarioHistoryDetail';
+import { useGameContext } from '@/context/GameContext';
+import ScenarioHistoryCard from '@/components/profile/ScenarioHistoryCard';
 import { 
-  User, School, Trophy, History, BarChart, 
-  Users, LogOut, BookOpen, Gamepad2, Award, 
-  BadgeCheck, BarChart2, Sparkles, Calendar
+  ArrowLeft, 
+  User, 
+  Trophy, 
+  Target, 
+  Calendar,
+  Star,
+  Zap,
+  Heart,
+  DollarSign,
+  Users,
+  BookOpen,
+  TrendingUp,
+  Award,
+  Sparkles,
+  Crown,
+  Flame,
+  Shield,
+  Gamepad2,
+  History
 } from 'lucide-react';
 
-const ProfilePage: React.FC = () => {
-  const { userRole } = useGameContext();
-  const { userProfile, logout, isLoading } = useAuth();
+const ProfilePage = () => {
   const navigate = useNavigate();
-  const [xpProgress, setXpProgress] = useState(0);
-  const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
-  const [isHistoryDetailOpen, setIsHistoryDetailOpen] = useState(false);
+  const { userProfile } = useAuth();
+  const { userStats, achievements, scenarioHistory } = useGameContext();
 
-  // State for joining a classroom
-  const [joinClassCode, setJoinClassCode] = useState('');
-  const [isJoinClassModalOpen, setIsJoinClassModalOpen] = useState(false);
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
-
-  // Initialize decision metrics
-  const [decisionMetrics, setDecisionMetrics] = useState({
-    analytical: 67,
-    emotional: 42,
-    riskTaking: 58,
-  });
-
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!isLoading && !userProfile) {
-      navigate('/auth');
-    }
-  }, [userProfile, isLoading, navigate]);
-
-  useEffect(() => {
-    if (userProfile) {
-      // Calculate XP progress to next level
-      const xpToNextLevel = 1000;
-      const progress = ((userProfile.xp || 0) % xpToNextLevel) / xpToNextLevel * 100;
-      setXpProgress(progress);
-    }
-  }, [userProfile]);
-
-  useEffect(() => {
-    if (userProfile && userProfile.history) {
-      // Update decision metrics based on user history
-      const allChoices = userProfile.history.flatMap((h) => h.choices || []);
-      if (allChoices.length > 0) {
-        const analyticalChoices = allChoices.filter(
-          (choice) => choice.metricChanges?.knowledge && choice.metricChanges.knowledge > 0
-        ).length;
-
-        const emotionalChoices = allChoices.filter(
-          (choice) => choice.metricChanges?.happiness && choice.metricChanges.happiness > 0
-        ).length;
-
-        const riskyChoices = allChoices.filter(
-          (choice) =>
-            (choice.metricChanges?.money && choice.metricChanges.money < 0) ||
-            (choice.metricChanges?.health && choice.metricChanges.health < 0)
-        ).length;
-
-        const totalChoices = allChoices.length;
-
-        if (totalChoices > 0) {
-          setDecisionMetrics({
-            analytical: Math.round((analyticalChoices / totalChoices) * 100),
-            emotional: Math.round((emotionalChoices / totalChoices) * 100),
-            riskTaking: Math.round((riskyChoices / totalChoices) * 100),
-          });
-        }
-      }
-    }
-  }, [userProfile?.history]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+  const mockUserData = {
+    username: userProfile?.displayName || 'Young Explorer',
+    level: 12,
+    xp: 2450,
+    nextLevelXp: 3000,
+    totalScenarios: scenarioHistory?.length || 0,
+    streak: 7,
+    rank: 'Rising Star',
+    joinDate: 'November 2024'
   };
 
-  const openHistoryDetail = (history: ScenarioHistory) => {
-    setSelectedHistory(history);
-    setIsHistoryDetailOpen(true);
-  };
-
-  const handleJoinClassroom = async () => {
-    setJoinError(null);
-    setIsJoining(true);
-    if (!joinClassCode.trim()) {
-      setJoinError('Please enter a class code.');
-      setIsJoining(false);
-      return;
+  const statCards = [
+    {
+      icon: Trophy,
+      label: 'Level',
+      value: mockUserData.level,
+      color: 'text-neon-yellow',
+      bgColor: 'from-neon-yellow/20 to-neon-orange/20',
+      borderColor: 'border-neon-yellow/40'
+    },
+    {
+      icon: Target,
+      label: 'Scenarios Completed',
+      value: mockUserData.totalScenarios,
+      color: 'text-neon-blue',
+      bgColor: 'from-neon-blue/20 to-neon-cyan/20',
+      borderColor: 'border-neon-blue/40'
+    },
+    {
+      icon: Flame,
+      label: 'Day Streak',
+      value: mockUserData.streak,
+      color: 'text-neon-red',
+      bgColor: 'from-neon-red/20 to-neon-pink/20',
+      borderColor: 'border-neon-red/40'
+    },
+    {
+      icon: Crown,
+      label: 'Rank',
+      value: mockUserData.rank,
+      color: 'text-neon-purple',
+      bgColor: 'from-neon-purple/20 to-neon-magenta/20',
+      borderColor: 'border-neon-purple/40'
     }
-    try {
-      const classroom = await getClassroomByCode(joinClassCode.trim());
-      if (!classroom) {
-        setJoinError('Classroom not found. Please check the code and try again.');
-        setIsJoining(false);
-        return;
-      }
-      if (!userProfile) {
-        setJoinError('User profile not loaded.');
-        setIsJoining(false);
-        return;
-      }
-      if (userProfile.classrooms && userProfile.classrooms.includes(classroom.id)) {
-        setJoinError('You are already a member of this classroom.');
-        setIsJoining(false);
-        return;
-      }
-      await getUserClassrooms(userProfile.id, classroom.id);
-      setIsJoinClassModalOpen(false);
-      setJoinClassCode('');
-    } catch (error) {
-      console.error('Error joining classroom:', error);
-      setJoinError('An error occurred while joining the classroom.');
-    } finally {
-      setIsJoining(false);
+  ];
+
+  const mockAchievements = [
+    {
+      id: 1,
+      title: 'First Steps',
+      description: 'Complete your first scenario',
+      icon: Star,
+      unlocked: true,
+      rarity: 'common'
+    },
+    {
+      id: 2,
+      title: 'Money Master',
+      description: 'Make 5 smart financial decisions',
+      icon: DollarSign,
+      unlocked: true,
+      rarity: 'rare'
+    },
+    {
+      id: 3,
+      title: 'Social Butterfly',
+      description: 'Excel in relationship scenarios',
+      icon: Heart,
+      unlocked: true,
+      rarity: 'epic'
+    },
+    {
+      id: 4,
+      title: 'Scholar',
+      description: 'Boost knowledge in 10 scenarios',
+      icon: BookOpen,
+      unlocked: false,
+      rarity: 'legendary'
     }
-  };
+  ];
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[80vh]">
-        <div className="text-white text-xl">Loading profile...</div>
-      </div>
-    );
-  }
-  
-  if (!userProfile) {
-    return null; // Redirecting handled in useEffect
-  }
-
-  const defaultProfile = {
-    username: userProfile.username || 'User',
-    email: userProfile.email || '',
-    role: userProfile.role || userRole || 'student',
-    xp: userProfile.xp || 0,
-    level: userProfile.level || 1,
-    completedScenarios: userProfile.completedScenarios || [],
-    badges: userProfile.badges || [],
-    classrooms: userProfile.classrooms || [],
-    history: userProfile.history || [],
-    id: userProfile.id || '',
-  };
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Unknown';
-    try {
-      if (timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toLocaleDateString();
-      }
-      if (timestamp instanceof Date) {
-        return timestamp.toLocaleDateString();
-      }
-      return 'Unknown';
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Unknown';
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'common': return 'text-gray-400 border-gray-400/30';
+      case 'rare': return 'text-neon-blue border-neon-blue/30';
+      case 'epic': return 'text-neon-purple border-neon-purple/30';
+      case 'legendary': return 'text-neon-yellow border-neon-yellow/30';
+      default: return 'text-gray-400 border-gray-400/30';
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1 bg-black/30 border-primary/20 backdrop-blur-md">
-          <CardHeader className="pb-2">
-            <div className="flex justify-center mb-4">
-              <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
-                <span className="text-4xl font-bold text-white">
-                  {defaultProfile.username.charAt(0).toUpperCase()}
+    <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate('/')} 
+        className="mb-6 flex items-center gap-2 rounded-xl text-white border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-300"
+      >
+        <ArrowLeft size={16} />
+        Back to Home
+      </Button>
+
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Profile Header */}
+        <Card className="teen-card p-8 text-center animate-scale-in">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full blur-2xl opacity-75 animate-pulse"></div>
+              <div className="relative w-24 h-24 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 rounded-full flex items-center justify-center border-4 border-neon-purple/50">
+                <User className="h-12 w-12 text-neon-blue" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h1 className="text-3xl md:text-4xl font-black gradient-heading">
+                {mockUserData.username}
+              </h1>
+              <div className="flex items-center justify-center gap-2">
+                <Shield className="h-5 w-5 text-neon-purple" />
+                <span className="text-neon-purple font-bold">{mockUserData.rank}</span>
+                <Sparkles className="h-4 w-4 text-neon-pink animate-pulse" />
+              </div>
+              <p className="text-white/70">
+                Joined {mockUserData.joinDate} • Level {mockUserData.level}
+              </p>
+            </div>
+
+            <div className="w-full max-w-md space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-white/70">Level Progress</span>
+                <span className="text-sm font-bold text-neon-blue">
+                  {mockUserData.xp} / {mockUserData.nextLevelXp} XP
                 </span>
-                <div className="absolute bottom-0 right-0 bg-black/50 rounded-full p-1">
-                  {defaultProfile.role === 'teacher' ? (
-                    <School className="h-5 w-5 text-primary animate-pulse-slow" />
-                  ) : (
-                    <User className="h-5 w-5 text-primary animate-pulse-slow" />
-                  )}
-                </div>
               </div>
+              <Progress 
+                value={(mockUserData.xp / mockUserData.nextLevelXp) * 100} 
+                className="h-3 bg-slate-700/50"
+              />
             </div>
-            <CardTitle className="text-center text-xl font-bold gradient-heading text-white">
-              {defaultProfile.username}
-            </CardTitle>
-            <CardDescription className="text-center flex items-center justify-center gap-1 text-white/70">
-              {defaultProfile.role === 'teacher' ? (
-                <>
-                  <School className="h-4 w-4" />
-                  Teacher
-                </>
-              ) : (
-                <>
-                  <User className="h-4 w-4" />
-                  Student
-                </>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-white/70">Level {defaultProfile.level}</span>
-                  <span className="text-sm font-medium text-white/70">{defaultProfile.xp} XP</span>
-                </div>
-                <Progress value={xpProgress} className="h-2 bg-white/10" />
-                <div className="flex justify-end mt-1">
-                  <span className="text-xs text-white/50">{Math.round(xpProgress)}% to Level {defaultProfile.level + 1}</span>
-                </div>
-              </div>
-
-              <div className="bg-black/20 rounded-lg p-4">
-                <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  Badges Earned
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {defaultProfile.badges && defaultProfile.badges.length > 0 ? (
-                    defaultProfile.badges.map((badge: any, index: number) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="bg-black/40 border-primary/30 text-white py-1"
-                      >
-                        {badge.name || badge}
-                      </Badge>
-                    ))
-                  ) : (
-                    <div className="text-white/50 text-sm">No badges earned yet</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-black/20 rounded-lg p-4">
-                <h3 className="font-medium mb-2 flex items-center gap-1 text-white">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  Completed Scenarios
-                </h3>
-                <div className="text-sm text-white/80">
-                  {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0} scenarios completed
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full border-white/20 bg-black/20 text-white hover:bg-white/10"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Log Out
-              </Button>
-            </div>
-          </CardContent>
+          </div>
         </Card>
 
-      <div className="lg:col-span-2 space-y-6">
-          <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 bg-black/20 border-white/10 p-1">
-              <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary/20">
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="classrooms" className="data-[state=active]:bg-primary/20">
-                {userRole === 'teacher' ? 'My Classes' : 'My Classrooms'}
-              </TabsTrigger>
-              <TabsTrigger value="history" className="data-[state=active]:bg-primary/20">
-                History
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="dashboard" className="mt-4">
-              <Card className="bg-black/20 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
-                    <Sparkles className="h-5 w-5 text-primary animate-pulse-slow" />
-                    Your Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
-                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                        <Award className="h-4 w-4 text-primary" />
-                        Achievements
-                      </h3>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/80">Scenarios Completed</span>
-                        <span className="font-mono text-white">
-                          {(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length) || 0}/10
-                        </span>
-                      </div>
-                      <Progress 
-                        value={(defaultProfile.completedScenarios && defaultProfile.completedScenarios.length * 10) || 0} 
-                        className="h-2 mb-4 bg-white/10" 
-                      />
-                      
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/80">Badges Earned</span>
-                        <span className="font-mono text-white">
-                          {(defaultProfile.badges && defaultProfile.badges.length) || 0}/8
-                        </span>
-                      </div>
-                      <Progress 
-                        value={(defaultProfile.badges && defaultProfile.badges.length * 12.5) || 0} 
-                        className="h-2 bg-white/10" 
-                      />
-                    </div>
-                    
-                    <div className="bg-black/20 rounded-lg p-4 flex flex-col">
-                      <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                        <BarChart className="h-4 w-4 text-primary" />
-                        Decision Metrics
-                      </h3>
-                      <div className="space-y-3 flex-grow">
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Analytical Decisions</span>
-                            <span className="font-mono">{decisionMetrics.analytical}%</span>
-                          </div>
-                          <Progress value={decisionMetrics.analytical} className="h-2 bg-white/10" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Emotional Decisions</span>
-                            <span className="font-mono">{decisionMetrics.emotional}%</span>
-                          </div>
-                          <Progress value={decisionMetrics.emotional} className="h-2 bg-white/10" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1 text-white/80">
-                            <span>Risk Taking</span>
-                            <span className="font-mono">{decisionMetrics.riskTaking}%</span>
-                          </div>
-                          <Progress value={decisionMetrics.riskTaking} className="h-2 bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {statCards.map((stat, index) => (
+            <Card 
+              key={stat.label}
+              className={`teen-card p-6 text-center hover-lift animate-scale-in border-2 ${stat.borderColor} bg-gradient-to-br ${stat.bgColor}`}
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="space-y-3">
+                <div className={`mx-auto w-12 h-12 rounded-xl bg-gradient-to-r ${stat.bgColor} flex items-center justify-center border-2 ${stat.borderColor}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                </div>
+                <div>
+                  <div className={`text-2xl font-black ${stat.color}`}>
+                    {stat.value}
                   </div>
-                  
-                  <div className="mt-6">
-                    <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                      <Gamepad2 className="h-4 w-4 text-primary" />
-                      Recent Activity
-                    </h3>
-                    <div className="bg-black/20 rounded-lg overflow-hidden">
-                      <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
-                        <div className="font-medium text-white/80">Scenario</div>
-                        <div className="font-medium text-white/80">Date</div>
-                        <div className="font-medium text-white/80 text-right">Actions</div>
-                      </div>
-                      {defaultProfile.history && defaultProfile.history.length > 0 ? (
-                        defaultProfile.history.slice(0, 3).map((item: any, index: number) => (
-                          <div 
-                            key={index} 
-                            className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
-                          >
-                            <div className="text-white">{item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown Scenario'}</div>
-                            <div className="text-white/70">{formatDate(item.completedAt)}</div>
-                            <div className="text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-primary hover:bg-primary/10 hover:text-primary"
-                                onClick={() => openHistoryDetail(item)}
-                              >
-                                View Details
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-3 text-white/50 text-center">No activity recorded yet</div>
-                      )}
-                    </div>
+                  <div className="text-sm text-white/70 font-medium">
+                    {stat.label}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="classrooms" className="mt-4">
-              <Card className="bg-black/20 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
-                    <Users className="h-5 w-5 text-primary animate-pulse-slow" />
-                    {userRole === 'teacher' ? 'My Classes' : 'My Classrooms'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {defaultProfile.classrooms && defaultProfile.classrooms.length > 0 ? (
-                      defaultProfile.classrooms.map((classroom: any, index: number) => (
-                        <div 
-                          key={index} 
-                          className="bg-black/30 rounded-lg p-4 border border-white/10 hover:border-primary/30 transition-colors cursor-pointer"
-                        >
-                          <h3 className="font-medium mb-2 text-white">{classroom.name || `Classroom ${index + 1}`}</h3>
-                          {userRole === 'teacher' ? (
-                            <div className="text-sm text-white/70 flex items-center gap-1">
-                              <Users className="h - 4 w-4" />
-                              {classroom.students || 0} students
-                            </div>
-                          ) : (
-                            <div className="text-sm text-white/70 flex items-center gap-1">
-                              <School className="h-4 w-4" />
-                              Teacher: {classroom.teacher || 'Unknown'}
-                            </div>
-                          )}
-                          
-                          <div className="mt-3 flex justify-end">
-                            <Button variant="outline" size="sm" className="border-white/20 bg-black/20 text-white hover:bg-white/10">
-                              {userRole === 'teacher' ? 'Manage Class' : 'View Activities'}
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 bg-black/20 rounded-lg p-4 text-white/60 text-center">
-                        No classrooms found
-                      </div>
-                    )}
-                    
-                    <div 
-                      onClick={() => setIsJoinClassModalOpen(userRole !== 'teacher')} 
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') setIsJoinClassModalOpen(userRole !== 'teacher'); }}
-                      className="bg-black/10 rounded-lg border border-dashed border-white/20 p-4 flex flex-col items-center justify-center text-center hover:bg-black/20 transition-colors cursor-pointer select-none"
-                    >
-                      <div className="rounded-full bg-white/5 p-3 mb-2">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="font-medium text-white">
-                        {userRole === 'teacher' ? 'Create New Class using Teacher Dashboard' : 'Join a Classroom'}
-                      </h3>
-                      <p className="text-sm text-white/60 mt-1">
-                        {userRole === 'teacher' 
-                          ? 'Set up a new classroom for your students' 
-                          : 'Enter a class code to join'}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {isJoinClassModalOpen && (
-                    <div 
-                      className="fixed inset-0 flex items-center justify-center bg-black/70 z-50" 
-                      onClick={() => setIsJoinClassModalOpen(false)}
-                    >
-                      <div 
-                        className="bg-gray-900 border border-white/20 rounded-lg p-6 w-80"
-                        onClick={e => e.stopPropagation()}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="joinClassroomTitle"
-                      >
-                        <h2 id="joinClassroomTitle" className="text-xl font-bold mb-4 text-white">
-                          Join a Classroom
-                        </h2>
-                        <input
-                          type="text"
-                          placeholder="Enter class code"
-                          value={joinClassCode}
-                          onChange={e => setJoinClassCode(e.target.value)}
-                          className="w-full rounded-md border border-white/30 bg-black/50 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary mb-3"
-                          autoFocus
-                        />
-                        {joinError && <p className="text-red-500 mb-3">{joinError}</p>}
-                        <div className="flex justify-end space-x-2">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setIsJoinClassModalOpen(false)}
-                            disabled={isJoining}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            onClick={handleJoinClassroom} 
-                            disabled={isJoining || !joinClassCode.trim()}
-                          >
-                            {isJoining ? 'Joining...' : 'Join'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="history" className="mt-4">
-              <Card className="bg-black/20 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold gradient-heading flex items-center gap-2 text-white">
-                    <History className="h-5 w-5 text-primary animate-pulse-slow" />
-                    Your History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-black/20 rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-3 gap-2 p-3 border-b border-white/10">
-                      <div className="font-medium text-white/80">Scenario</div>
-                      <div className="font-medium text-white/80">Date</div>
-                      <div className="font-medium text-white/80 text-right">Actions</div>
-                    </div>
-                    {defaultProfile.history && defaultProfile.history.length > 0 ? (
-                      defaultProfile.history.map((item: any, index: number) => (
-                        <div 
-                          key={index} 
-                          className="grid grid-cols-3 gap-2 p-3 border-b border-white/5 last:border-0 hover:bg-white/5"
-                        >
-                          <div className="text-white capitalize">
-                            {item.scenarioTitle || item.scenarioId?.replace(/-/g, ' ') || 'Unknown'}
-                          </div>
-                          <div className="text-white/70 flex items-center gap-1">
-                            <Calendar className="h-4 w-4 opacity-70" />
-                            {formatDate(item.completedAt)}
-                          </div>
-                          <div className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-primary hover:bg-primary/10 hover:text-primary"
-                              onClick={() => openHistoryDetail(item)}
-                            >
-                              View Details
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-3 text-white/50 text-center">No history available</div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-6">
-                    <h3 className="font-medium mb-3 flex items-center gap-1 text-white">
-                      <BarChart2 className="h-4 w-4 text-primary" />
-                      Decision Analytics
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Analytical Decisions</h4>
-                          <Badge 
-                            className={
-                              (decisionMetrics.analytical > 50 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300') + ' border-0'
-                            }
-                          >
-                            {decisionMetrics.analytical > 50 ? '+' : '-'}
-                          </Badge>
-                        </div>
-                        <div className="text-3xl font-bold text-white">{decisionMetrics.analytical}%</div>
-                        <div className="text-xs text-white/60 mt-1">Logic-based problem solving</div>
-                      </div>
-                      
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Emotional Choices</h4>
-                          <Badge 
-                            className={
-                              (decisionMetrics.emotional > 50 ? 'bg-blue-500/20 text-blue-300' : 'bg-orange-500/20 text-orange-300') + ' border-0'
-                            }
-                          >
-                            {decisionMetrics.emotional > 50 ? '+' : '-'}
-                          </Badge>
-                        </div>
-                        <div className="text-3xl font-bold text-white">{decisionMetrics.emotional}%</div>
-                        <div className="text-xs text-white/60 mt-1">Empathy-driven decisions</div>
-                      </div>
-                      
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-white">Risk Taking</h4>
-                          <Badge 
-                            className={
-                              (decisionMetrics.riskTaking < 40 ? 'bg-blue-500/20 text-blue-300' : decisionMetrics.riskTaking > 70 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300') + ' border-0'
-                            }
-                          >
-                            {decisionMetrics.riskTaking < 40 ? 'Low' : decisionMetrics.riskTaking > 70 ? 'High' : 'Balanced'}
-                          </Badge>
-                        </div>
-                        <div className="text-3xl font-bold text-white">{decisionMetrics.riskTaking}%</div>
-                        <div className="text-xs text-white/60 mt-1">Willingness to take chances</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
-      </div>
 
-      {selectedHistory && (
-        <ScenarioHistoryDetail
-          history={selectedHistory}
-          open={isHistoryDetailOpen}
-          onClose={() => setIsHistoryDetailOpen(false)}
-        />
-      )}
+        {/* Scenario History */}
+        {scenarioHistory && scenarioHistory.length > 0 && (
+          <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-xl border-2 border-neon-blue/40">
+                <History className="h-6 w-6 text-neon-blue" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white">Your Epic Journey</h2>
+                <p className="text-white/70">Relive your amazing scenarios and choices</p>
+              </div>
+              <Badge className="bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 text-neon-blue border-2 border-neon-blue/40 px-4 py-2 shadow-lg font-black text-base rounded-xl ml-auto">
+                <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                {scenarioHistory.length} Completed
+              </Badge>
+            </div>
+
+            <div className="space-y-6">
+              {scenarioHistory.map((scenario, index) => (
+                <ScenarioHistoryCard 
+                  key={`${scenario.scenarioId}-${index}`}
+                  scenario={scenario}
+                  index={index}
+                />
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Achievements */}
+        <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/40">
+              <Award className="h-6 w-6 text-neon-yellow" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white">Achievements</h2>
+              <p className="text-white/70">Your epic accomplishments</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {mockAchievements.map((achievement, index) => (
+              <Card 
+                key={achievement.id}
+                className={`p-6 border-2 transition-all duration-300 hover:scale-105 animate-scale-in ${
+                  achievement.unlocked 
+                    ? `bg-gradient-to-br from-slate-800/90 to-slate-700/90 ${getRarityColor(achievement.rarity)} shadow-lg hover:shadow-xl` 
+                    : 'bg-slate-800/50 border-slate-600/30 opacity-60'
+                }`}
+                style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl border-2 ${
+                    achievement.unlocked 
+                      ? `${getRarityColor(achievement.rarity)} bg-gradient-to-r from-current/10 to-current/5` 
+                      : 'border-slate-600/30 bg-slate-700/30'
+                  }`}>
+                    <achievement.icon className={`h-6 w-6 ${
+                      achievement.unlocked 
+                        ? getRarityColor(achievement.rarity).split(' ')[0]
+                        : 'text-slate-500'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className={`font-bold ${
+                        achievement.unlocked ? 'text-white' : 'text-slate-400'
+                      }`}>
+                        {achievement.title}
+                      </h3>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs px-2 py-1 ${getRarityColor(achievement.rarity)}`}
+                      >
+                        {achievement.rarity}
+                      </Badge>
+                    </div>
+                    <p className={`text-sm ${
+                      achievement.unlocked ? 'text-white/70' : 'text-slate-500'
+                    }`}>
+                      {achievement.description}
+                    </p>
+                  </div>
+                  {achievement.unlocked && (
+                    <Sparkles className="h-5 w-5 text-neon-yellow animate-pulse" />
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Card>
+
+        {/* Quick Stats */}
+        <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.5s' }}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-xl border-2 border-neon-green/40">
+              <TrendingUp className="h-6 w-6 text-neon-green" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white">Quick Stats</h2>
+              <p className="text-white/70">Your journey at a glance</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-black text-neon-blue mb-2">89%</div>
+              <div className="text-sm text-white/70">Smart Choices</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black text-neon-purple mb-2">42</div>
+              <div className="text-sm text-white/70">Friends Made</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black text-neon-green mb-2">$2.3K</div>
+              <div className="text-sm text-white/70">Money Saved</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Call to Action */}
+        <Card className="bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border-2 border-neon-purple/30 p-8 text-center animate-scale-in" style={{ animationDelay: '0.6s' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-full border-2 border-neon-purple/40">
+              <Gamepad2 className="h-8 w-8 text-neon-purple animate-bounce" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black gradient-heading mb-2">
+                Ready for Your Next Adventure?
+              </h2>
+              <p className="text-white/70 mb-6">
+                Jump back into LifePath and continue leveling up your decision-making skills!
+              </p>
+              <Button 
+                onClick={() => navigate('/game')}
+                className="btn-primary text-lg px-8 py-4 hover:scale-110 transition-all duration-300"
+              >
+                <Zap className="h-5 w-5 mr-2" />
+                Start New Scenario
+                <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -27,9 +27,7 @@ const AboutPage = () => {
             </div>
             <h2 className="text-xl md:text-2xl font-bold text-white">What is LifePath?</h2>
           </div>
-          <p className="mb-4 text-base md:text-lg text-white/90">
-            LifePath is an interactive decision simulator designed to help young people ages 10-18 develop crucial decision-making skills through realistic scenarios. By experiencing the consequences of different choices in a safe environment, users learn valuable life skills that traditional education often doesn't cover.
-          </p>
+          <p className="mb-4 text-base md:text-lg text-white/90">LifePath is an interactive decision simulator designed to help young people ages 12-18 develop crucial decision-making skills through realistic scenarios. By experiencing the consequences of different choices in a safe environment, users learn valuable life skills that traditional education often doesn't cover.</p>
           <p className="text-base md:text-lg text-white/90">
             Each scenario presents real-world situations where your choices affect multiple aspects of life: from finances and relationships to health and knowledge. The goal isn't to "win," but to understand how different decisions lead to different outcomes.
           </p>
