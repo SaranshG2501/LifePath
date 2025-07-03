@@ -114,10 +114,10 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Enhanced Header */}
+        {/* Enhanced Header with Neon Accents */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent mb-3 animate-glow">
               My Profile
             </h1>
             <p className="text-slate-300 text-lg">Track your learning journey and celebrate your achievements</p>
@@ -125,48 +125,49 @@ const ProfilePage = () => {
           <Button 
             onClick={handleLogout}
             variant="outline" 
-            className="border-red-500/40 bg-red-900/30 text-red-300 hover:bg-red-800/40 hover:border-red-400/60 transition-all duration-200 px-6 py-3"
+            className="border-red-400/60 bg-gradient-to-r from-red-900/40 to-red-800/40 text-red-300 hover:bg-gradient-to-r hover:from-red-800/60 hover:to-red-700/60 hover:border-red-300/80 transition-all duration-300 px-6 py-3 shadow-lg hover:shadow-red-500/20"
           >
             <LogOut className="h-5 w-5 mr-2" />
             Logout
           </Button>
         </div>
 
-        {/* Enhanced User Profile Card */}
+        {/* Enhanced User Profile Card with Neon Theme */}
         {userProfile && (
-          <Card className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-lg mb-8 shadow-2xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
+          <Card className="bg-gradient-to-r from-slate-800/80 to-slate-700/80 border-neon-purple/30 backdrop-blur-lg mb-8 shadow-2xl overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/5 via-neon-purple/5 to-neon-pink/5"></div>
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23A566FF\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-10"></div>
             <CardHeader className="relative pb-6">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative">
-                  <Avatar className="h-24 w-24 border-4 border-gradient-to-r from-blue-500/50 to-purple-500/50 shadow-2xl">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white text-2xl font-bold">
+                  <Avatar className="h-24 w-24 border-4 border-gradient-to-r from-neon-blue/60 to-neon-purple/60 shadow-2xl shadow-neon-purple/20">
+                    <AvatarFallback className="bg-gradient-to-br from-neon-purple/50 to-neon-blue/50 text-white text-2xl font-bold">
                       {userProfile.username?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-2">
+                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-neon-yellow to-neon-pink rounded-full p-2 animate-pulse-slow">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
                 </div>
                 
                 <div className="flex-1 text-center sm:text-left">
-                  <div className="text-white font-bold text-3xl mb-2">{userProfile.username}</div>
-                  <div className="text-slate-300 text-lg mb-4">{userProfile.email}</div>
+                  <div className="text-white font-bold text-3xl mb-2 drop-shadow-lg">{userProfile.username}</div>
+                  <div className="text-slate-200 text-lg mb-4">{userProfile.email}</div>
                   
                   <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
-                    <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-200 border-blue-400/30 px-4 py-2 text-sm font-medium">
+                    <Badge className="bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 text-neon-blue border-neon-blue/40 px-4 py-2 text-sm font-medium shadow-lg">
                       <GraduationCap className="h-4 w-4 mr-2" />
                       {userProfile.role}
                     </Badge>
                     
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full px-4 py-2 border border-yellow-400/30">
-                      <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-yellow-200 font-semibold">Level {userProfile.level || 1}</span>
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-neon-yellow/20 to-neon-pink/20 rounded-full px-4 py-2 border border-neon-yellow/40 shadow-lg">
+                      <Trophy className="h-4 w-4 text-neon-yellow" />
+                      <span className="text-neon-yellow font-semibold">Level {userProfile.level || 1}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 bg-slate-700/50 rounded-full px-4 py-2 border border-slate-600/50">
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                      <span className="text-slate-300 font-medium">{userProfile.xp || 0} XP</span>
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-full px-4 py-2 border border-neon-green/40 shadow-lg">
+                      <TrendingUp className="h-4 w-4 text-neon-green" />
+                      <span className="text-neon-green font-medium">{userProfile.xp || 0} XP</span>
                     </div>
                   </div>
                 </div>
@@ -183,19 +184,19 @@ const ProfilePage = () => {
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Enhanced Classrooms Section */}
-          <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl">
+          {/* Enhanced Classrooms Section with Neon Accents */}
+          <Card className="bg-gradient-to-br from-slate-800/70 to-slate-700/70 border-neon-green/40 backdrop-blur-sm shadow-2xl shadow-neon-green/10">
             <CardHeader className="pb-4">
               <CardTitle className="text-white flex items-center gap-3 text-xl">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <School className="h-6 w-6 text-green-400" />
+                <div className="p-2 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-lg border border-neon-green/30">
+                  <School className="h-6 w-6 text-neon-green" />
                 </div>
                 My Classrooms
-                <Badge className="ml-2 bg-green-500/20 text-green-300 border-green-500/30">
+                <Badge className="ml-2 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 text-neon-green border-neon-green/40">
                   {classrooms.length}
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-slate-400 text-base">
+              <CardDescription className="text-slate-300 text-base">
                 {userProfile?.role === 'student' 
                   ? "Classrooms you've joined and are actively participating in"
                   : "Classrooms you've created and are managing"
@@ -205,35 +206,35 @@ const ProfilePage = () => {
             <CardContent>
               {loadingClassrooms ? (
                 <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                  <div className="text-slate-400">Loading your classrooms...</div>
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-neon-blue mx-auto mb-4"></div>
+                  <div className="text-slate-300">Loading your classrooms...</div>
                 </div>
               ) : classrooms.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {classrooms.map((classroom) => (
-                    <div key={classroom.id} className="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-xl p-5 border border-slate-600/40 hover:border-slate-500/60 transition-all duration-200 group">
+                    <div key={classroom.id} className="bg-gradient-to-r from-slate-700/60 to-slate-600/60 rounded-xl p-5 border border-neon-green/20 hover:border-neon-green/40 transition-all duration-300 group hover:shadow-lg hover:shadow-neon-green/10">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-300 transition-colors">
+                          <h3 className="text-white font-semibold text-lg mb-1 group-hover:text-neon-green transition-colors">
                             {classroom.name}
                           </h3>
                           {classroom.description && (
                             <p className="text-slate-300 text-sm line-clamp-2 mb-2">{classroom.description}</p>
                           )}
                         </div>
-                        <Badge className="bg-green-500/20 text-green-300 border-green-500/30 ml-3">
+                        <Badge className="bg-gradient-to-r from-neon-green/20 to-neon-blue/20 text-neon-green border-neon-green/40 ml-3">
                           Active
                         </Badge>
                       </div>
                       
-                      <Separator className="bg-slate-600/50 my-3" />
+                      <Separator className="bg-slate-600/40 my-3" />
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-blue-300">
+                        <div className="flex items-center gap-2 text-neon-blue">
                           <Users className="h-4 w-4" />
                           <span className="font-medium">{classroom.students?.length || 0} students</span>
                         </div>
-                        <div className="flex items-center gap-2 text-purple-300">
+                        <div className="flex items-center gap-2 text-neon-purple">
                           <Calendar className="h-4 w-4" />
                           <span>
                             {classroom.createdAt ? formatDate(classroom.createdAt) : 'Recently'}
@@ -245,16 +246,16 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="p-4 bg-slate-700/30 rounded-full w-fit mx-auto mb-4">
-                    <School className="h-12 w-12 text-slate-500" />
+                  <div className="p-4 bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-full w-fit mx-auto mb-4 border border-slate-600/30">
+                    <School className="h-12 w-12 text-slate-400" />
                   </div>
-                  <div className="text-slate-400 mb-2 text-lg font-medium">
+                  <div className="text-slate-300 mb-2 text-lg font-medium">
                     {userProfile?.role === 'student' 
                       ? "No classrooms joined yet"
                       : "No classrooms created yet"
                     }
                   </div>
-                  <div className="text-slate-500">
+                  <div className="text-slate-400">
                     {userProfile?.role === 'student' 
                       ? "Ask your teacher for a class code to get started"
                       : "Create your first classroom to begin teaching"
@@ -265,38 +266,38 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
 
-          {/* Enhanced Scenario History Section */}
-          <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl">
+          {/* Enhanced Scenario History Section with Neon Theme */}
+          <Card className="bg-gradient-to-br from-slate-800/70 to-slate-700/70 border-neon-purple/40 backdrop-blur-sm shadow-2xl shadow-neon-purple/10">
             <CardHeader className="pb-4">
               <CardTitle className="text-white flex items-center gap-3 text-xl">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <Trophy className="h-6 w-6 text-purple-400" />
+                <div className="p-2 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/30">
+                  <Trophy className="h-6 w-6 text-neon-purple" />
                 </div>
                 Learning History
-                <Badge className="ml-2 bg-purple-500/20 text-purple-300 border-purple-500/30">
+                <Badge className="ml-2 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 text-neon-purple border-neon-purple/40">
                   {scenarioHistory.length}
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-slate-400 text-base">
+              <CardDescription className="text-slate-300 text-base">
                 Your completed scenarios and achievements in your learning journey
               </CardDescription>
             </CardHeader>
             <CardContent>
               {loadingHistory ? (
                 <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4"></div>
-                  <div className="text-slate-400">Loading your learning history...</div>
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-neon-purple mx-auto mb-4"></div>
+                  <div className="text-slate-300">Loading your learning history...</div>
                 </div>
               ) : scenarioHistory.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {scenarioHistory.map((history, index) => (
-                    <div key={index} className="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-xl p-5 border border-slate-600/40 hover:border-slate-500/60 transition-all duration-200 group">
+                    <div key={index} className="bg-gradient-to-r from-slate-700/60 to-slate-600/60 rounded-xl p-5 border border-neon-purple/20 hover:border-neon-purple/40 transition-all duration-300 group hover:shadow-lg hover:shadow-neon-purple/10">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-purple-300 transition-colors">
+                          <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-neon-purple transition-colors">
                             {history.scenarioTitle}
                           </h3>
-                          <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
+                          <div className="flex items-center gap-2 text-sm text-slate-300 mb-3">
                             <Clock className="h-3 w-3" />
                             <span>
                               Completed {history.completedAt ? formatDate(history.completedAt) : 'Recently'}
@@ -307,28 +308,28 @@ const ProfilePage = () => {
                           variant="outline" 
                           size="sm" 
                           onClick={() => openHistoryDialog(history)} 
-                          className="border-purple-500/40 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 hover:border-purple-400/60 transition-all"
+                          className="border-neon-purple/40 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 text-neon-purple hover:bg-gradient-to-r hover:from-neon-purple/30 hover:to-neon-pink/30 hover:border-neon-purple/60 transition-all shadow-lg hover:shadow-neon-purple/20"
                         >
                           View Details
                         </Button>
                       </div>
                       
-                      <Separator className="bg-slate-600/50 my-3" />
+                      <Separator className="bg-slate-600/40 my-3" />
                       
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-4">
-                          <span className="text-green-400 font-medium">
+                          <span className="text-neon-green font-medium">
                             {history.choices?.length || 0} decisions made
                           </span>
                           {history.finalMetrics && (
-                            <span className="text-yellow-400 font-medium">
+                            <span className="text-neon-yellow font-medium">
                               Total Score: {Object.values(history.finalMetrics).reduce((a, b) => a + b, 0)}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-yellow-400" />
-                          <span className="text-yellow-300 font-medium">
+                          <Star className="h-4 w-4 text-neon-yellow" />
+                          <span className="text-neon-yellow font-medium">
                             {history.finalMetrics ? Math.round(Object.values(history.finalMetrics).reduce((a, b) => a + b, 0) / 5) : 0}
                           </span>
                         </div>
@@ -338,11 +339,11 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="p-4 bg-slate-700/30 rounded-full w-fit mx-auto mb-4">
-                    <BookOpen className="h-12 w-12 text-slate-500" />
+                  <div className="p-4 bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-full w-fit mx-auto mb-4 border border-slate-600/30">
+                    <BookOpen className="h-12 w-12 text-slate-400" />
                   </div>
-                  <div className="text-slate-400 mb-2 text-lg font-medium">No scenarios completed yet</div>
-                  <div className="text-slate-500">Start playing scenarios to build your learning history</div>
+                  <div className="text-slate-300 mb-2 text-lg font-medium">No scenarios completed yet</div>
+                  <div className="text-slate-400">Start playing scenarios to build your learning history</div>
                 </div>
               )}
             </CardContent>

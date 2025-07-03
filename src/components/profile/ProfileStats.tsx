@@ -74,78 +74,81 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
   };
 
   const metricColors = {
-    health: 'text-red-400 bg-red-500/20 border-red-500/30',
-    money: 'text-green-400 bg-green-500/20 border-green-500/30',
-    happiness: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30',
-    knowledge: 'text-blue-400 bg-blue-500/20 border-blue-500/30',
-    relationships: 'text-purple-400 bg-purple-500/20 border-purple-500/30'
+    health: 'text-neon-red bg-red-500/20 border-neon-red/40',
+    money: 'text-neon-green bg-green-500/20 border-neon-green/40',
+    happiness: 'text-neon-yellow bg-yellow-500/20 border-neon-yellow/40',
+    knowledge: 'text-neon-blue bg-blue-500/20 border-neon-blue/40',
+    relationships: 'text-neon-purple bg-purple-500/20 border-neon-purple/40'
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {/* Level & XP Card */}
-      <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30 backdrop-blur-sm col-span-1 md:col-span-2">
+      {/* Level & XP Card with Neon Theme */}
+      <Card className="bg-gradient-to-br from-neon-yellow/10 via-neon-pink/10 to-neon-purple/10 border-neon-yellow/40 backdrop-blur-sm col-span-1 md:col-span-2 shadow-lg shadow-neon-yellow/10">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-yellow-500/20 rounded-full">
-                <Trophy className="h-6 w-6 text-yellow-400" />
+              <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-pink/20 rounded-full border border-neon-yellow/30">
+                <Trophy className="h-6 w-6 text-neon-yellow" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">Level {userLevel}</div>
-                <div className="text-yellow-300 text-sm">{userXp} XP Total</div>
+                <div className="text-2xl font-bold text-white drop-shadow-lg">Level {userLevel}</div>
+                <div className="text-neon-yellow text-sm font-medium">{userXp} XP Total</div>
               </div>
             </div>
-            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 px-3 py-1">
+            <Badge className="bg-gradient-to-r from-neon-yellow/20 to-neon-pink/20 text-neon-yellow border-neon-yellow/40 px-3 py-1 shadow-lg">
               <Zap className="h-3 w-3 mr-1" />
               Active
             </Badge>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-white/70">Progress to Level {userLevel + 1}</span>
-              <span className="text-yellow-300 font-medium">{currentLevelProgress}/100 XP</span>
+              <span className="text-white/80">Progress to Level {userLevel + 1}</span>
+              <span className="text-neon-yellow font-medium">{currentLevelProgress}/100 XP</span>
             </div>
-            <Progress value={currentLevelProgress} className="h-2 bg-slate-700" />
+            <Progress 
+              value={currentLevelProgress} 
+              className="h-2 bg-slate-700/50" 
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Total Scenarios */}
-      <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/30 backdrop-blur-sm">
+      {/* Total Scenarios with Neon Theme */}
+      <Card className="bg-gradient-to-br from-neon-blue/10 to-neon-purple/10 border-neon-blue/40 backdrop-blur-sm shadow-lg shadow-neon-blue/10">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center mb-3">
-            <div className="p-3 bg-blue-500/20 rounded-full">
-              <BookOpen className="h-6 w-6 text-blue-400" />
+            <div className="p-3 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-full border border-neon-blue/30">
+              <BookOpen className="h-6 w-6 text-neon-blue" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">{scenarioHistory.length}</div>
-          <div className="text-blue-300 text-sm">Scenarios Completed</div>
+          <div className="text-2xl font-bold text-white mb-1 drop-shadow-lg">{scenarioHistory.length}</div>
+          <div className="text-neon-blue text-sm font-medium">Scenarios Completed</div>
         </CardContent>
       </Card>
 
-      {/* Average Score */}
-      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/30 backdrop-blur-sm">
+      {/* Average Score with Neon Theme */}
+      <Card className="bg-gradient-to-br from-neon-green/10 to-neon-blue/10 border-neon-green/40 backdrop-blur-sm shadow-lg shadow-neon-green/10">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center mb-3">
-            <div className="p-3 bg-green-500/20 rounded-full">
-              <Target className="h-6 w-6 text-green-400" />
+            <div className="p-3 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-full border border-neon-green/30">
+              <Target className="h-6 w-6 text-neon-green" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">{getAverageScore()}</div>
-          <div className="text-green-300 text-sm">Average Score</div>
+          <div className="text-2xl font-bold text-white mb-1 drop-shadow-lg">{getAverageScore()}</div>
+          <div className="text-neon-green text-sm font-medium">Average Score</div>
         </CardContent>
       </Card>
 
-      {/* Decision Metrics */}
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-sm col-span-1 md:col-span-2 lg:col-span-4">
+      {/* Decision Metrics with Enhanced Neon Theme */}
+      <Card className="bg-gradient-to-br from-slate-800/80 to-slate-700/80 border-neon-purple/40 backdrop-blur-sm col-span-1 md:col-span-2 lg:col-span-4 shadow-lg shadow-neon-purple/10">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-purple-400" />
+            <div className="p-2 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/30">
+              <TrendingUp className="h-5 w-5 text-neon-purple" />
             </div>
-            <h3 className="text-xl font-bold text-white">Decision Metrics</h3>
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+            <h3 className="text-xl font-bold text-white drop-shadow-lg">Decision Metrics</h3>
+            <Badge className="bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 text-neon-purple border-neon-purple/40 shadow-lg">
               Average Performance
             </Badge>
           </div>
@@ -158,17 +161,17 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
                 const percentage = Math.min((value / 120) * 100, 100);
                 
                 return (
-                  <div key={metric} className={`bg-slate-700/40 rounded-xl p-4 border ${colorClass.split(' ')[2]}`}>
+                  <div key={metric} className={`bg-gradient-to-br from-slate-700/60 to-slate-600/60 rounded-xl p-4 border ${colorClass.split(' ')[2]} hover:shadow-lg transition-all duration-300`}>
                     <div className="flex items-center gap-2 mb-3">
-                      <div className={`p-2 rounded-full ${colorClass.split(' ')[1]}`}>
+                      <div className={`p-2 rounded-full ${colorClass.split(' ')[1]} border ${colorClass.split(' ')[2]}`}>
                         <Icon className={`h-4 w-4 ${colorClass.split(' ')[0]}`} />
                       </div>
                       <span className="text-white font-medium capitalize text-sm">
                         {metric}
                       </span>
                     </div>
-                    <div className="text-2xl font-bold text-white mb-2">{value}</div>
-                    <Progress value={percentage} className="h-2 bg-slate-600" />
+                    <div className="text-2xl font-bold text-white mb-2 drop-shadow-lg">{value}</div>
+                    <Progress value={percentage} className="h-2 bg-slate-600/50" />
                     <div className="text-xs text-white/60 mt-1">
                       {percentage.toFixed(0)}% optimal
                     </div>
@@ -178,11 +181,11 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
             </div>
           ) : (
             <div className="text-center py-8">
-              <div className="p-4 bg-slate-700/30 rounded-full w-fit mx-auto mb-4">
-                <Award className="h-8 w-8 text-slate-500" />
+              <div className="p-4 bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-full w-fit mx-auto mb-4 border border-slate-600/30">
+                <Award className="h-8 w-8 text-slate-400" />
               </div>
-              <div className="text-slate-400 text-lg font-medium mb-2">No metrics yet</div>
-              <div className="text-slate-500">Complete scenarios to see your decision patterns</div>
+              <div className="text-slate-300 text-lg font-medium mb-2">No metrics yet</div>
+              <div className="text-slate-400">Complete scenarios to see your decision patterns</div>
             </div>
           )}
         </CardContent>
