@@ -23,14 +23,14 @@ interface ScenarioChoice {
   choiceId: string;
   choiceText: string;
   timestamp: any;
-  metricChanges?: any;
+  metricChanges?: Record<string, number>;
 }
 
 interface ScenarioHistory {
   scenarioId: string;
   title?: string;
   completedAt: any;
-  finalMetrics?: any;
+  finalMetrics?: Record<string, number>;
   choices?: ScenarioChoice[];
 }
 
@@ -43,14 +43,14 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getScenarioTitle = (id: string) => {
-    const titles = {
+    const titles: Record<string, string> = {
       'first-job': '🎯 Your First Job Adventure',
       'college-debt': '🎓 College Debt Dilemma',
       'friendship-drama': '👥 Friendship Drama',
       'family-conflict': '🏠 Family Conflict',
       'social-media': '📱 Social Media Crisis'
     };
-    return titles[id as keyof typeof titles] || `🌟 Scenario ${id}`;
+    return titles[id] || `🌟 Scenario ${id}`;
   };
 
   const formatDate = (timestamp: any) => {
@@ -65,34 +65,33 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
   };
 
   const getMetricIcon = (metric: string) => {
-    const icons = {
+    const icons: Record<string, any> = {
       health: Heart,
       money: DollarSign,
       happiness: Star,
       knowledge: Brain,
       relationships: Users
     };
-    return icons[metric as keyof typeof icons] || Star;
+    return icons[metric] || Star;
   };
 
   const getMetricColor = (metric: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       health: 'text-red-400',
       money: 'text-green-400',
       happiness: 'text-yellow-400',
       knowledge: 'text-blue-400',
       relationships: 'text-purple-400'
     };
-    return colors[metric as keyof typeof colors] || 'text-gray-400';
+    return colors[metric] || 'text-gray-400';
   };
 
   const totalScore = scenario.finalMetrics 
-    ? Object.values(scenario.finalMetrics).reduce((a, b) => a + b, 0)
+    ? Object.values(scenario.finalMetrics).reduce((a: number, b: number) => (a || 0) + (b || 0), 0)
     : 0;
 
   return (
-    <Card className="teen-card p-6 hover-lift animate-scale-in border-2 border-neon-blue/20 hover:border-neon-blue/40 bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-xl relative overflow-hidden"
-          style={{ animationDelay: `${index * 0.1}s` }}>
+    <Card className="teen-card p-6 hover-lift border-2 border-neon-blue/20 hover:border-neon-blue/40 bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-xl relative overflow-hidden">
       
       {/* Background pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-neon-blue/5 to-neon-purple/5 opacity-50"></div>
@@ -154,7 +153,7 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
                   <div className={`inline-flex items-center justify-center p-2 rounded-xl bg-gradient-to-r from-slate-700/60 to-slate-600/60 border border-white/10 mb-1`}>
                     <Icon className={`h-4 w-4 ${colorClass}`} />
                   </div>
-                  <div className={`text-lg font-bold ${colorClass}`}>{value}</div>
+                  <div className={`text-lg font-bold ${colorClass}`}>{String(value || 0)}</div>
                   <div className="text-xs text-white/60 capitalize font-medium">{metric}</div>
                 </div>
               );
@@ -164,7 +163,7 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
 
         {/* Expanded content */}
         {isExpanded && (
-          <div className="mt-6 space-y-4 animate-scale-in">
+          <div className="mt-6 space-y-4">
             <div className="border-t border-white/10 pt-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/30">
@@ -191,7 +190,7 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
                 </div>
               ) : (
                 <div className="text-center py-8 text-white/60">
-                  <Sparkles className="h-12 w-12 mx-auto mb-3 text-neon-purple animate-pulse" />
+                  <Sparkles className="h-12 w-12 mx-auto mb-3 text-neon-purple" />
                   <p className="font-medium">No detailed choices recorded for this scenario 📝</p>
                   <p className="text-sm mt-1">Future scenarios will show all your epic decisions! 🎮</p>
                 </div>
