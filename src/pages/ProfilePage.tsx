@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
+import ScenarioHistoryCard from '@/components/profile/ScenarioHistoryCard';
 import { 
   ArrowLeft, 
   User, 
@@ -25,20 +25,21 @@ import {
   Crown,
   Flame,
   Shield,
-  Gamepad2
+  Gamepad2,
+  History
 } from 'lucide-react';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { userStats, achievements } = useGameContext();
+  const { userStats, achievements, scenarioHistory } = useGameContext();
 
   const mockUserData = {
     username: userProfile?.displayName || 'Young Explorer',
     level: 12,
     xp: 2450,
     nextLevelXp: 3000,
-    totalScenarios: 15,
+    totalScenarios: scenarioHistory?.length || 0,
     streak: 7,
     rank: 'Rising Star',
     joinDate: 'November 2024'
@@ -135,7 +136,8 @@ const ProfilePage = () => {
         Back to Home
       </Button>
 
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Profile Header */}
         <Card className="teen-card p-8 text-center animate-scale-in">
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
@@ -174,6 +176,7 @@ const ProfilePage = () => {
           </div>
         </Card>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {statCards.map((stat, index) => (
             <Card 
@@ -198,6 +201,36 @@ const ProfilePage = () => {
           ))}
         </div>
 
+        {/* Scenario History */}
+        {scenarioHistory && scenarioHistory.length > 0 && (
+          <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-xl border-2 border-neon-blue/40">
+                <History className="h-6 w-6 text-neon-blue" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white">Your Epic Journey</h2>
+                <p className="text-white/70">Relive your amazing scenarios and choices</p>
+              </div>
+              <Badge className="bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 text-neon-blue border-2 border-neon-blue/40 px-4 py-2 shadow-lg font-black text-base rounded-xl ml-auto">
+                <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                {scenarioHistory.length} Completed
+              </Badge>
+            </div>
+
+            <div className="space-y-6">
+              {scenarioHistory.map((scenario, index) => (
+                <ScenarioHistoryCard 
+                  key={`${scenario.scenarioId}-${index}`}
+                  scenario={scenario}
+                  index={index}
+                />
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Achievements */}
         <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/40">
@@ -261,6 +294,7 @@ const ProfilePage = () => {
           </div>
         </Card>
 
+        {/* Quick Stats */}
         <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.5s' }}>
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-xl border-2 border-neon-green/40">
@@ -288,6 +322,7 @@ const ProfilePage = () => {
           </div>
         </Card>
 
+        {/* Call to Action */}
         <Card className="bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border-2 border-neon-purple/30 p-8 text-center animate-scale-in" style={{ animationDelay: '0.6s' }}>
           <div className="flex flex-col items-center gap-4">
             <div className="p-4 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-full border-2 border-neon-purple/40">
