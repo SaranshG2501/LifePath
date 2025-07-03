@@ -36,9 +36,6 @@ type GameContextType = {
   hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
   isModeLocked: boolean;
-  userStats: any;
-  achievements: any[];
-  scenarioHistory: any[];
 };
 
 const initialMetrics: Metrics = {
@@ -72,9 +69,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
   const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
-  const [userStats, setUserStats] = useState({});
-  const [achievements, setAchievements] = useState([]);
-  const [scenarioHistory, setScenarioHistory] = useState([]);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -323,23 +317,15 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         allChoices,
         newMetrics
       ).then(() => {
-        console.log("Scenario history saved successfully");
         toast({
           title: "Scenario Completed",
           description: "Your choices have been saved to your profile.",
         });
         
-        // Force refresh user profile to update history
-        setTimeout(() => {
-          refreshUserProfile();
-        }, 1000);
+        // Refresh user profile to get updated data
+        refreshUserProfile();
       }).catch(error => {
         console.error("Error saving scenario history:", error);
-        toast({
-          title: "Save Error",
-          description: "Failed to save your progress. Please check your connection.",
-          variant: "destructive",
-        });
       });
     }
 
@@ -416,17 +402,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return;
     }
-    
-    // Prevent guests from accessing classroom mode
-    if (mode === "classroom" && userRole === "guest") {
-      toast({
-        title: "Login Required",
-        description: "Please sign up or login to use classroom mode.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setGameMode(mode);
   };
 
@@ -456,10 +431,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         mirrorMomentsEnabled,
         hasJoinedClassroom,
         setCurrentScene,
-        isModeLocked,
-        userStats,
-        achievements,
-        scenarioHistory
+        isModeLocked
       }}
     >
       {children}

@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Radio, Users, Clock, Loader2, Wifi } from 'lucide-react';
+import { Radio, Users, Clock, Loader2 } from 'lucide-react';
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -39,7 +39,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
           
           <DialogTitle className="text-center text-xl text-white flex items-center justify-center gap-2">
             <Radio className="h-5 w-5 text-green-400" />
-            {isJoining ? 'Joining Session...' : 'Live Session Started!'}
+            Live Session Started!
           </DialogTitle>
           
           <DialogDescription className="text-center text-white/80 space-y-3">
@@ -49,12 +49,9 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 <span className="font-medium">{teacherName}</span>
               </div>
               
-              <div className="text-sm text-white/70">
-                {isJoining ? 'is connecting you to the session' : 'has started a live session'}
-              </div>
+              <div className="text-sm text-white/70">has started a live session</div>
               
-              <Badge className="bg-green-500/20 text-green-300 border-0 flex items-center gap-1">
-                <Wifi className="h-3 w-3" />
+              <Badge className="bg-green-500/20 text-green-300 border-0">
                 {scenarioTitle}
               </Badge>
               
@@ -67,19 +64,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             
             <div className="flex items-center justify-center gap-2 text-sm text-white/70">
               <Clock className="h-4 w-4" />
-              {isJoining 
-                ? "Setting up your session..." 
-                : "Join now to participate with your class"}
+              {isJoining ? "Connecting to session..." : "Join now to participate with your class"}
             </div>
-
-            {isJoining && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                <div className="flex items-center justify-center gap-2 text-green-300 text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading scenario and syncing with teacher...</span>
-                </div>
-              </div>
-            )}
           </DialogDescription>
         </DialogHeader>
         
@@ -90,7 +76,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             className="border-white/20 text-white hover:bg-white/10 flex-1"
             disabled={isJoining}
           >
-            {isJoining ? 'Connecting...' : 'Maybe Later'}
+            Maybe Later
           </Button>
           <Button 
             onClick={onJoin}
@@ -103,10 +89,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 Joining...
               </>
             ) : (
-              <>
-                <Wifi className="h-4 w-4 mr-2" />
-                Join Session
-              </>
+              "Join Session"
             )}
           </Button>
         </DialogFooter>

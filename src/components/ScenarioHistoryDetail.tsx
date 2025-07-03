@@ -1,16 +1,15 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Clock, Trophy, TrendingUp, Users, BookOpen } from 'lucide-react';
+import { X, ChevronRight, Calendar, Trophy } from 'lucide-react';
 import { ScenarioHistory } from '@/lib/firebase';
-import { convertTimestampToDate } from '@/lib/firebase';
+import MetricsDisplay from './MetricsDisplay';
 
 interface ScenarioHistoryDetailProps {
-  history: ScenarioHistory | null;
+  history: ScenarioHistory;
   open: boolean;
   onClose: () => void;
 }
@@ -18,191 +17,121 @@ interface ScenarioHistoryDetailProps {
 const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
   history,
   open,
-  onClose,
+  onClose
 }) => {
-  if (!history) return null;
-
-  const completedDate = history.completedAt ? convertTimestampToDate(history.completedAt) : new Date();
-  const totalChoices = history.choices?.length || 0;
+  // Format dates
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Unknown';
+    
+    try {
+      // Handle Firebase Timestamp
+      if (timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000).toLocaleDateString() + ' at ' + 
+               new Date(timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      // Handle Date objects
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString() + ' at ' + 
+               timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      return 'Unknown';
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return 'Unknown';
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-slate-700/50 backdrop-blur-sm">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-yellow-500" />
-            {history.scenarioTitle}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-black/30 border-slate-600/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Clock className="h-8 w-8 text-blue-400" />
-                <div>
-                  <p className="text-sm text-slate-400">Completed</p>
-                  <p className="text-white font-medium">
-                    {completedDate.toLocaleDateString()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-black/30 border-slate-600/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <BookOpen className="h-8 w-8 text-green-400" />
-                <div>
-                  <p className="text-sm text-slate-400">Choices Made</p>
-                  <p className="text-white font-medium">{totalChoices}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-black/30 border-slate-600/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-purple-400" />
-                <div>
-                  <p className="text-sm text-slate-400">Final Score</p>
-                  <p className="text-white font-medium">
-                    {Object.values(history.finalMetrics || {}).reduce((a, b) => a + b, 0)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+    <Dialog open={open} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-3xl bg-black/90 border border-white/10">
+        <DialogHeader>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-neon-yellow" />
+              {history.scenarioTitle || 'Scenario Results'}
+            </DialogTitle>
+            <Button 
+              variant="ghost" 
+              className="rounded-full w-8 h-8 p-0" 
+              onClick={onClose}
+            >
+              <X className="h-4 w-4 text-white/70" />
+            </Button>
           </div>
-
+          <DialogDescription className="text-white/80 flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            Completed on {formatDate(history.completedAt)}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6 my-2">
           {/* Final Metrics */}
           {history.finalMetrics && (
-            <Card className="bg-black/30 border-slate-600/30">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Final Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(history.finalMetrics).map(([key, value]) => {
-                    let color = '';
-                    let icon = '';
-                    switch(key) {
-                      case 'health':
-                        color = 'text-red-400 bg-red-500/20';
-                        icon = '❤️';
-                        break;
-                      case 'money':
-                        color = 'text-green-400 bg-green-500/20';
-                        icon = '💰';
-                        break;
-                      case 'happiness':
-                        color = 'text-yellow-400 bg-yellow-500/20';
-                        icon = '😊';
-                        break;
-                      case 'knowledge':
-                        color = 'text-blue-400 bg-blue-500/20';
-                        icon = '📚';
-                        break;
-                      case 'relationships':
-                        color = 'text-purple-400 bg-purple-500/20';
-                        icon = '👥';
-                        break;
-                      default:
-                        color = 'text-gray-400 bg-gray-500/20';
-                        icon = '⭐';
-                    }
-                    
-                    return (
-                      <div key={key} className={`p-3 rounded-lg ${color}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span>{icon}</span>
-                          <span className="text-sm font-medium capitalize">{key}</span>
-                        </div>
-                        <div className="text-2xl font-bold">{value}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            <div>
+              <h3 className="font-medium mb-2 text-white">Your Final Stats</h3>
+              <MetricsDisplay metrics={history.finalMetrics} />
+            </div>
           )}
-
-          {/* Choice History */}
-          {history.choices && history.choices.length > 0 && (
-            <Card className="bg-black/30 border-slate-600/30">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Your Journey ({history.choices.length} choices)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {history.choices.map((choice, index) => (
-                  <div key={index} className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/30">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge className="bg-primary/20 text-primary border-0">
-                        Choice {index + 1}
-                      </Badge>
-                      <span className="text-xs text-slate-400">
-                        {choice.timestamp ? convertTimestampToDate(choice.timestamp).toLocaleString() : 'Unknown time'}
-                      </span>
+          
+          {/* Journey Choices */}
+          <div>
+            <h3 className="font-medium mb-2 text-white">Your Journey</h3>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+              {history.choices.map((choice, index) => (
+                <div 
+                  key={index} 
+                  className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-white/10 hover:bg-black/40 transition-all duration-200"
+                >
+                  <div className="font-medium text-white">{`Scene ${index + 1}`}</div>
+                  <div className="text-sm text-white/70 flex items-start gap-2">
+                    <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div>{choice.choiceText || 'Choice made'}</div>
+                      <div className="text-xs text-white/50 mt-1">
+                        {formatDate(choice.timestamp)}
+                      </div>
                     </div>
-                    
-                    <p className="text-white mb-3">{choice.choiceText}</p>
-                    
-                    {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
-                      <div>
-                        <p className="text-sm text-slate-400 mb-2">Impact:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(choice.metricChanges).map(([key, value]) => {
-                            if (!value) return null;
-                            
-                            let color = '';
-                            let icon = '';
-                            switch(key) {
-                              case 'health':
-                                color = value > 0 ? 'text-red-300 bg-red-500/20' : 'text-red-500 bg-red-500/10';
-                                icon = '❤️';
-                                break;
-                              case 'money':
-                                color = value > 0 ? 'text-green-300 bg-green-500/20' : 'text-green-500 bg-green-500/10';
-                                icon = '💰';
-                                break;
-                              case 'happiness':
-                                color = value > 0 ? 'text-yellow-300 bg-yellow-500/20' : 'text-yellow-500 bg-yellow-500/10';
-                                icon = '😊';
-                                break;
-                              case 'knowledge':
-                                color = value > 0 ? 'text-blue-300 bg-blue-500/20' : 'text-blue-500 bg-blue-500/10';
-                                icon = '📚';
-                                break;
-                              case 'relationships':
-                                color = value > 0 ? 'text-purple-300 bg-purple-500/20' : 'text-purple-500 bg-purple-500/10';
-                                icon = '👥';
-                                break;
-                              default:
-                                color = value > 0 ? 'text-gray-300 bg-gray-500/20' : 'text-gray-500 bg-gray-500/10';
-                                icon = '⭐';
-                            }
-                            
-                            return (
-                              <span key={key} className={`text-xs px-2 py-1 rounded-full ${color} flex items-center gap-1`}>
-                                <span>{icon}</span>
-                                <span className="capitalize">{key}</span>
-                                <span>{value > 0 ? '+' : ''}{value}</span>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                  
+                  {choice.metricChanges && Object.entries(choice.metricChanges).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {Object.entries(choice.metricChanges).map(([key, value]) => {
+                        if (!value) return null;
+                        
+                        let color = "";
+                        switch(key) {
+                          case "health": color = value > 0 ? "bg-neon-red/20 text-neon-red" : "bg-red-900/20 text-red-300"; break;
+                          case "money": color = value > 0 ? "bg-neon-green/20 text-neon-green" : "bg-green-900/20 text-green-300"; break;
+                          case "happiness": color = value > 0 ? "bg-neon-yellow/20 text-neon-yellow" : "bg-yellow-900/20 text-yellow-300"; break;
+                          case "knowledge": color = value > 0 ? "bg-neon-blue/20 text-neon-blue" : "bg-blue-900/20 text-blue-300"; break;
+                          case "relationships": color = value > 0 ? "bg-neon-purple/20 text-neon-purple" : "bg-purple-900/20 text-purple-300"; break;
+                          default: color = value > 0 ? "bg-white/20 text-white" : "bg-white/10 text-white/70";
+                        }
+                        
+                        return (
+                          <Badge key={key} variant="outline" className={`${color} border-none text-xs`}>
+                            {key}: {value > 0 ? `+${value}` : value}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+        
+        <DialogFooter>
+          <Button 
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-primary to-secondary"
+          >
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
