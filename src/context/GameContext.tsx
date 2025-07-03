@@ -36,6 +36,9 @@ type GameContextType = {
   hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
   isModeLocked: boolean;
+  userStats: any;
+  achievements: any[];
+  scenarioHistory: any[];
 };
 
 const initialMetrics: Metrics = {
@@ -69,6 +72,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
   const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
+  const [userStats, setUserStats] = useState({});
+  const [achievements, setAchievements] = useState([]);
+  const [scenarioHistory, setScenarioHistory] = useState([]);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -450,7 +456,10 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         mirrorMomentsEnabled,
         hasJoinedClassroom,
         setCurrentScene,
-        isModeLocked
+        isModeLocked,
+        userStats,
+        achievements,
+        scenarioHistory
       }}
     >
       {children}

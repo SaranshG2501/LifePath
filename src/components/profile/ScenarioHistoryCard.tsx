@@ -17,7 +17,22 @@ import {
   Award,
   Sparkles
 } from 'lucide-react';
-import { ScenarioHistory } from '@/lib/firebase';
+
+interface ScenarioChoice {
+  sceneId: string;
+  choiceId: string;
+  choiceText: string;
+  timestamp: any;
+  metricChanges?: any;
+}
+
+interface ScenarioHistory {
+  scenarioId: string;
+  title?: string;
+  completedAt: any;
+  finalMetrics?: any;
+  choices?: ScenarioChoice[];
+}
 
 interface ScenarioHistoryCardProps {
   scenario: ScenarioHistory;
@@ -168,12 +183,7 @@ const ScenarioHistoryCard: React.FC<ScenarioHistoryCardProps> = ({ scenario, ind
                         </div>
                         <div className="flex-1">
                           <div className="text-white font-bold mb-1">Scene {choiceIndex + 1}</div>
-                          <div className="text-white/90 text-sm leading-relaxed">{choice.text}</div>
-                          {choice.consequences && (
-                            <div className="mt-2 text-xs text-neon-blue font-medium bg-neon-blue/10 px-3 py-1 rounded-lg border border-neon-blue/20">
-                              💡 {choice.consequences}
-                            </div>
-                          )}
+                          <div className="text-white/90 text-sm leading-relaxed">{choice.choiceText}</div>
                         </div>
                       </div>
                     </div>
