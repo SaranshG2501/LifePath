@@ -93,11 +93,13 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const fetchScenarioHistory = async () => {
       if (!currentUser) {
+        console.log("No current user, clearing scenario history");
         setScenarioHistory([]);
         return;
       }
       
       try {
+        console.log("Fetching scenario history for user:", currentUser.uid);
         const historyRef = collection(db, 'scenarioHistory');
         const q = query(
           historyRef,
@@ -110,8 +112,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          console.log("Processing scenario history document:", doc.id, data);
           history.push({
-            id: doc.id,
             userId: data.userId,
             scenarioId: data.scenarioId,
             scenarioTitle: data.scenarioTitle,
@@ -121,7 +123,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
           });
         });
         
-        console.log("Fetched scenario history:", history);
+        console.log("Final fetched scenario history:", history);
         setScenarioHistory(history);
       } catch (error) {
         console.error("Error fetching scenario history:", error);
@@ -360,6 +362,11 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     if ((nextScene.isEndScene || nextScene.isEnding) && currentUser && gameState.currentScenario && newChoice) {
       const allChoices = [...scenarioChoices, newChoice];
       
+      console.log("Saving scenario history - Current user:", currentUser.uid);
+      console.log("Saving scenario history - Scenario:", gameState.currentScenario.id, gameState.currentScenario.title);
+      console.log("Saving scenario history - Choices:", allChoices);
+      console.log("Saving scenario history - Final metrics:", newMetrics);
+      
       // Save completed scenario to Firestore
       saveScenarioHistory(
         currentUser.uid,
@@ -374,9 +381,36 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Your choices have been saved to your profile.",
         });
         
-        // Force refresh user profile to update history
-        setTimeout(() => {
-          refreshUserProfile();
+        // Refresh scenario history after saving
+        setTimeout(async () => {
+          try {
+            const historyRef = collection(db, 'scenarioHistory');
+            const q = query(
+              historyRef,
+              where('userId', '==', currentUser.uid),
+              orderBy('completedAt', 'desc')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const history: ScenarioHistory[] = [];
+            
+            querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              history.push({
+                userId: data.userId,
+                scenarioId: data.scenarioId,
+                scenarioTitle: data.scenarioTitle,
+                completedAt: data.completedAt,
+                choices: data.choices || [],
+                finalMetrics: data.finalMetrics || {}
+              });
+            });
+            
+            console.log("Refreshed scenario history after save:", history);
+            setScenarioHistory(history);
+          } catch (error) {
+            console.error("Error refreshing scenario history:", error);
+          }
         }, 1000);
       }).catch(error => {
         console.error("Error saving scenario history:", error);

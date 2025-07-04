@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,7 @@ const ProfilePage = () => {
   const { userProfile } = useAuth();
   const { scenarioHistory } = useGameContext();
 
+  console.log("ProfilePage - userProfile:", userProfile);
   console.log("ProfilePage - scenarioHistory:", scenarioHistory);
 
   const mockUserData = {
@@ -42,13 +42,18 @@ const ProfilePage = () => {
     joinDate: 'November 2024'
   };
 
+  const getUserRoleDisplay = () => {
+    if (!userProfile?.role) return 'Guest';
+    return userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1);
+  };
+
   const mockAchievements = [
     {
       id: 1,
       title: 'First Steps',
       description: 'Complete your first scenario',
       icon: Star,
-      unlocked: true,
+      unlocked: scenarioHistory.length >= 1,
       rarity: 'common'
     },
     {
@@ -56,7 +61,7 @@ const ProfilePage = () => {
       title: 'Money Master',
       description: 'Make 5 smart financial decisions',
       icon: DollarSign,
-      unlocked: true,
+      unlocked: scenarioHistory.length >= 3,
       rarity: 'rare'
     },
     {
@@ -64,7 +69,7 @@ const ProfilePage = () => {
       title: 'Social Butterfly',
       description: 'Excel in relationship scenarios',
       icon: Heart,
-      unlocked: true,
+      unlocked: scenarioHistory.length >= 5,
       rarity: 'epic'
     },
     {
@@ -72,7 +77,7 @@ const ProfilePage = () => {
       title: 'Scholar',
       description: 'Boost knowledge in 10 scenarios',
       icon: BookOpen,
-      unlocked: false,
+      unlocked: scenarioHistory.length >= 10,
       rarity: 'legendary'
     }
   ];
@@ -115,7 +120,7 @@ const ProfilePage = () => {
               </h1>
               <div className="flex items-center justify-center gap-2">
                 <Shield className="h-5 w-5 text-neon-purple" />
-                <span className="text-neon-purple font-bold">Young Explorer</span>
+                <span className="text-neon-purple font-bold">{getUserRoleDisplay()}</span>
                 <Sparkles className="h-4 w-4 text-neon-pink animate-pulse" />
               </div>
               <p className="text-white/70">
@@ -133,7 +138,7 @@ const ProfilePage = () => {
         />
 
         {/* Scenario History */}
-        {scenarioHistory && scenarioHistory.length > 0 && (
+        {scenarioHistory && scenarioHistory.length > 0 ? (
           <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-xl border-2 border-neon-blue/40">
@@ -153,10 +158,38 @@ const ProfilePage = () => {
               {scenarioHistory.map((scenario, index) => (
                 <ScenarioHistoryCard 
                   key={`${scenario.scenarioId}-${index}`}
-                  scenario={scenario}
+                  scenario={{
+                    scenarioId: scenario.scenarioId,
+                    title: scenario.scenarioTitle,
+                    completedAt: scenario.completedAt,
+                    finalMetrics: scenario.finalMetrics,  
+                    choices: scenario.choices
+                  }}
                   index={index}
                 />
               ))}
+            </div>
+          </Card>
+        ) : (
+          <Card className="teen-card p-8 text-center animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex flex-col items-center gap-4">
+              <div className="p-4 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-full border-2 border-neon-blue/40">
+                <History className="h-8 w-8 text-neon-blue" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white mb-2">No Adventures Yet!</h2>
+                <p className="text-white/70 mb-6">
+                  Start your first scenario to see your epic journey unfold here.
+                </p>
+                <Button 
+                  onClick={() => navigate('/game')}
+                  className="btn-primary text-lg px-8 py-4 hover:scale-110 transition-all duration-300"
+                >
+                  <Zap className="h-5 w-5 mr-2" />
+                  Start Your First Adventure
+                  <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
+                </Button>
+              </div>
             </div>
           </Card>
         )}
