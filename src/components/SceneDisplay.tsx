@@ -61,10 +61,10 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
           {scene.title}
         </CardTitle>
         
-        {/* Scene description - always visible for both teacher and student */}
-        <CardDescription className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20">
-          <div className="font-medium text-primary mb-2">Situation:</div>
-          <div className="text-base">{scene.description}</div>
+        {/* ALWAYS show scene description for both teacher and student in ALL modes */}
+        <CardDescription className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-6 rounded-lg border border-primary/20">
+          <div className="font-bold text-primary mb-3 text-xl">Question:</div>
+          <div className="text-lg font-medium">{scene.description}</div>
         </CardDescription>
       </CardHeader>
       

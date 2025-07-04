@@ -128,77 +128,100 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
             </Card>
           )}
 
-          {/* Choice History */}
+          {/* Choice History with Full Details */}
           {history.choices && history.choices.length > 0 && (
             <Card className="bg-black/30 border-slate-600/30">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
-                  Your Journey ({history.choices.length} choices)
+                  Your Complete Journey ({history.choices.length} decisions)
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {history.choices.map((choice, index) => (
-                  <div key={index} className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/30">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge className="bg-primary/20 text-primary border-0">
-                        Choice {index + 1}
-                      </Badge>
-                      <span className="text-xs text-slate-400">
-                        {choice.timestamp ? convertTimestampToDate(choice.timestamp).toLocaleString() : 'Unknown time'}
-                      </span>
-                    </div>
-                    
-                    <p className="text-white mb-3">{choice.choiceText}</p>
-                    
-                    {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
-                      <div>
-                        <p className="text-sm text-slate-400 mb-2">Impact:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(choice.metricChanges).map(([key, value]) => {
-                            if (!value) return null;
-                            
-                            let color = '';
-                            let icon = '';
-                            switch(key) {
-                              case 'health':
-                                color = value > 0 ? 'text-red-300 bg-red-500/20' : 'text-red-500 bg-red-500/10';
-                                icon = '❤️';
-                                break;
-                              case 'money':
-                                color = value > 0 ? 'text-green-300 bg-green-500/20' : 'text-green-500 bg-green-500/10';
-                                icon = '💰';
-                                break;
-                              case 'happiness':
-                                color = value > 0 ? 'text-yellow-300 bg-yellow-500/20' : 'text-yellow-500 bg-yellow-500/10';
-                                icon = '😊';
-                                break;
-                              case 'knowledge':
-                                color = value > 0 ? 'text-blue-300 bg-blue-500/20' : 'text-blue-500 bg-blue-500/10';
-                                icon = '📚';
-                                break;
-                              case 'relationships':
-                                color = value > 0 ? 'text-purple-300 bg-purple-500/20' : 'text-purple-500 bg-purple-500/10';
-                                icon = '👥';
-                                break;
-                              default:
-                                color = value > 0 ? 'text-gray-300 bg-gray-500/20' : 'text-gray-500 bg-gray-500/10';
-                                icon = '⭐';
-                            }
-                            
-                            return (
-                              <span key={key} className={`text-xs px-2 py-1 rounded-full ${color} flex items-center gap-1`}>
-                                <span>{icon}</span>
-                                <span className="capitalize">{key}</span>
-                                <span>{value > 0 ? '+' : ''}{value}</span>
-                              </span>
-                            );
-                          })}
-                        </div>
+              <CardContent className="space-y-6">
+                {history.choices.map((choice, index) => {
+                  console.log(`Rendering choice ${index + 1}:`, choice);
+                  
+                  return (
+                    <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
+                      <div className="flex items-start justify-between mb-4">
+                        <Badge className="bg-primary/20 text-primary border-0 px-3 py-1">
+                          Decision {index + 1}
+                        </Badge>
+                        <span className="text-xs text-slate-400">
+                          {choice.timestamp ? convertTimestampToDate(choice.timestamp).toLocaleString() : 'Unknown time'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      
+                      {/* Scene/Question context if available */}
+                      {choice.sceneTitle && (
+                        <div className="mb-4">
+                          <h4 className="text-white font-semibold text-lg mb-2">{choice.sceneTitle}</h4>
+                          {choice.sceneDescription && (
+                            <div className="text-slate-300 text-sm mb-3 bg-slate-700/30 p-3 rounded border-l-4 border-primary/50">
+                              <strong className="text-primary">Situation:</strong> {choice.sceneDescription}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* The actual choice made */}
+                      <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20 mb-4">
+                        <p className="text-xs text-primary font-medium mb-2">YOUR CHOICE:</p>
+                        <p className="text-white font-medium text-base leading-relaxed">
+                          {choice.choiceText || choice.text || `Choice ${index + 1}`}
+                        </p>
+                      </div>
+                      
+                      {/* Impact/Consequences */}
+                      {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
+                        <div>
+                          <p className="text-sm text-slate-400 mb-3 font-medium">Impact on your life:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(choice.metricChanges).map(([key, value]) => {
+                              if (!value) return null;
+                              
+                              let color = '';
+                              let icon = '';
+                              switch(key) {
+                                case 'health':
+                                  color = value > 0 ? 'text-red-300 bg-red-500/20 border-red-500/30' : 'text-red-500 bg-red-500/10 border-red-500/20';
+                                  icon = '❤️';
+                                  break;
+                                case 'money':
+                                  color = value > 0 ? 'text-green-300 bg-green-500/20 border-green-500/30' : 'text-green-500 bg-green-500/10 border-green-500/20';
+                                  icon = '💰';
+                                  break;
+                                case 'happiness':
+                                  color = value > 0 ? 'text-yellow-300 bg-yellow-500/20 border-yellow-500/30' : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+                                  icon = '😊';
+                                  break;
+                                case 'knowledge':
+                                  color = value > 0 ? 'text-blue-300 bg-blue-500/20 border-blue-500/30' : 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+                                  icon = '📚';
+                                  break;
+                                case 'relationships':
+                                  color = value > 0 ? 'text-purple-300 bg-purple-500/20 border-purple-500/30' : 'text-purple-500 bg-purple-500/10 border-purple-500/20';
+                                  icon = '👥';
+                                  break;
+                                default:
+                                  color = value > 0 ? 'text-gray-300 bg-gray-500/20 border-gray-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20';
+                                  icon = '⭐';
+                              }
+                              
+                              return (
+                                <span key={key} className={`text-sm px-3 py-2 rounded-full ${color} border flex items-center gap-2`}>
+                                  <span>{icon}</span>
+                                  <span className="capitalize font-medium">{key}</span>
+                                  <span className="font-bold">{value > 0 ? '+' : ''}{value}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           )}

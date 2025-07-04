@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameState } from '@/types/game';
 import { Button } from '@/components/ui/button';
@@ -194,29 +195,23 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     return gameState.history.map((entry, index) => {
       console.log(`Processing history entry ${index}:`, entry);
       
-      // Find the scene and choice from the current scenario
+      // Find the scene from the current scenario
       const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
       
-      // Get the choice text - entry should be the choice object itself
+      // Get the choice text from the entry itself (since it's the choice object)
       let choiceText = '';
-      if (entry.text) {
-        // If entry has text directly (it's a choice object)
+      if ('text' in entry && entry.text) {
         choiceText = entry.text;
       } else if (scene && entry.choiceId) {
-        // If we need to find the choice by ID
         const choice = scene.choices.find(c => c.id === entry.choiceId);
         choiceText = choice?.text || `Choice ${entry.choiceId}`;
-      } else if (entry.id && scene) {
-        // If entry.id is the choice ID
-        const choice = scene.choices.find(c => c.id === entry.id);
-        choiceText = choice?.text || entry.text || `Choice ${index + 1}`;
       } else {
-        choiceText = entry.text || `Choice ${index + 1}`;
+        choiceText = `Choice ${index + 1}`;
       }
       
       console.log(`Choice ${index + 1}:`, {
         sceneId: entry.sceneId,
-        choiceId: entry.choiceId || entry.id,
+        choiceId: entry.choiceId,
         scene: scene?.title,
         choiceText: choiceText,
         sceneDescription: scene?.description,
