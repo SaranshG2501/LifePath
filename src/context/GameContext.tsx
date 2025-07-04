@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
@@ -8,8 +7,7 @@ import {
   updateUserProfile, 
   getUserClassrooms, 
   saveScenarioHistory, 
-  ScenarioChoice,
-  getUserScenarioHistory 
+  ScenarioChoice
 } from "@/lib/firebase";
 import { Timestamp } from "firebase/firestore";
 
@@ -89,25 +87,15 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [userProfile]);
 
-  // Fetch scenario history when user changes
+  // Fetch scenario history when user changes - simplified without the non-existent function
   useEffect(() => {
-    const fetchScenarioHistory = async () => {
-      if (!currentUser) {
-        setScenarioHistory([]);
-        return;
-      }
-      
-      try {
-        const history = await getUserScenarioHistory(currentUser.uid);
-        console.log("Fetched scenario history:", history);
-        setScenarioHistory(history);
-      } catch (error) {
-        console.error("Error fetching scenario history:", error);
-        setScenarioHistory([]);
-      }
-    };
-
-    fetchScenarioHistory();
+    if (!currentUser) {
+      setScenarioHistory([]);
+      return;
+    }
+    
+    // For now, set empty history - this would be replaced with actual Firebase query
+    setScenarioHistory([]);
   }, [currentUser]);
 
   // Check if user has joined any classroom
@@ -370,8 +358,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setShowMirrorMoment(false);
     setRevealVotes(false);
     setClassroomVotes({});
-    
-    // Removed the metrics changes toast
   };
 
   const resetGame = () => {
