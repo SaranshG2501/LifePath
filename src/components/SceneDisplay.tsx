@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, DollarSign, Smile, Brain, Users as UsersIcon, Clock, Wifi } from 'lucide-react';
+import { Heart, DollarSign, Smile, Brain, Users as UsersIcon, Clock, Wifi, HelpCircle } from 'lucide-react';
 import { Scene } from '@/types/game';
 import { LiveSession } from '@/lib/firebase';
 
@@ -56,23 +56,37 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
             </Badge>
           )}
         </div>
-        <CardTitle className="text-2xl text-white mb-4">{scene.title}</CardTitle>
-        <CardDescription className="text-lg text-white/90 leading-relaxed">
+        <CardTitle className="text-2xl text-white mb-4 flex items-center justify-center gap-2">
+          <HelpCircle className="h-6 w-6 text-primary" />
+          {scene.title}
+        </CardTitle>
+        <CardDescription className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20">
+          <div className="font-medium text-primary mb-2">Situation:</div>
           {scene.description}
         </CardDescription>
       </CardHeader>
       
       <CardContent>
         <div className="space-y-4">
-          {scene.choices.map((choice) => (
+          <div className="text-center mb-4">
+            <h3 className="text-white font-semibold text-lg mb-2">What will you choose?</h3>
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+          </div>
+          
+          {scene.choices.map((choice, index) => (
             <div key={choice.id} className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full justify-between py-6 px-6 text-left border-white/10 bg-black/30 hover:bg-white/10 text-white transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full justify-between py-6 px-6 text-left border-white/10 bg-black/30 hover:bg-white/10 text-white transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed relative"
                 onClick={() => onChoiceMade(choice.id)}
                 disabled={disabled}
               >
-                <span className="text-base leading-relaxed">{choice.text}</span>
+                <div className="flex items-start gap-3 w-full">
+                  <div className="flex-shrink-0 w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center border border-primary/40">
+                    <span className="text-sm font-bold text-primary">{String.fromCharCode(65 + index)}</span>
+                  </div>
+                  <span className="text-base leading-relaxed flex-1">{choice.text}</span>
+                </div>
                 
                 {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
                   <div className="flex gap-2 ml-4 opacity-70 group-hover:opacity-100 transition-opacity">
@@ -93,13 +107,16 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
         
         {isLiveSession && liveSession && (
           <div className="mt-6 p-4 bg-black/20 rounded-lg border border-blue-500/20">
-            <div className="flex items-center justify-between text-sm text-white/70">
-              <span>Live Session: {liveSession.scenarioTitle}</span>
+            <div className="flex items-center justify-between text-sm text-white/70 mb-2">
+              <span className="flex items-center gap-2">
+                <Wifi className="h-4 w-4 text-green-400" />
+                Live Session: {liveSession.scenarioTitle}
+              </span>
               <span>Participants: {liveSession.participants.length}</span>
             </div>
             {disabled && (
-              <div className="mt-2 text-xs text-yellow-400">
-                ✓ Your vote has been recorded. Waiting for other students...
+              <div className="mt-2 text-xs text-yellow-400 bg-yellow-400/10 p-2 rounded">
+                ✓ Your choice has been recorded. Waiting for other students to vote...
               </div>
             )}
           </div>

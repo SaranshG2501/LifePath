@@ -201,11 +201,13 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         choiceId: entry.choiceId,
         scene: scene?.title,
         choiceText: choice?.text,
+        sceneDescription: scene?.description,
         metricChanges: entry.metricChanges
       });
       
       return {
         sceneTitle: scene?.title || `Scene ${index + 1}`,
+        sceneDescription: scene?.description || '',
         choiceText: choice?.text || `Choice ${index + 1}`,
         metricChanges: entry.metricChanges || {},
         index: index + 1
@@ -318,9 +320,9 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" />
-              Your Choices
+              Your Choices & Decisions
             </h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {choiceHistory.length > 0 ? (
                 choiceHistory.map((choice, index) => {
                   const animationDelay = `${0.3 + index * 0.1}s`;
@@ -328,28 +330,41 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                   return (
                     <div 
                       key={index} 
-                      className="bg-black/30 backdrop-blur-sm p-4 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
+                      className="bg-black/30 backdrop-blur-sm p-5 rounded-lg border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
                       style={{ animationDelay }}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-full flex items-center justify-center border-2 border-primary/40">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-full flex items-center justify-center border-2 border-primary/40">
                           <span className="text-sm font-bold text-white">{choice.index}</span>
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-white mb-1">{choice.sceneTitle}</div>
-                          <div className="text-sm text-white/90 mb-2">{choice.choiceText}</div>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <div className="font-semibold text-white text-lg mb-1">{choice.sceneTitle}</div>
+                            {choice.sceneDescription && (
+                              <div className="text-sm text-white/70 mb-3 leading-relaxed">
+                                {choice.sceneDescription}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-md border border-primary/20">
+                            <div className="text-xs text-primary font-medium mb-1">YOUR CHOICE:</div>
+                            <div className="text-white font-medium leading-relaxed">{choice.choiceText}</div>
+                          </div>
+                          
                           {Object.keys(choice.metricChanges).length > 0 && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              <div className="text-xs text-white/60 mr-2">Impact:</div>
                               {Object.entries(choice.metricChanges).map(([metric, change]) => (
                                 <span 
                                   key={metric}
-                                  className={`text-xs px-2 py-1 rounded-full ${
+                                  className={`text-xs px-3 py-1 rounded-full font-medium ${
                                     change > 0 
                                       ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
                                       : 'bg-red-500/20 text-red-300 border border-red-500/30'
                                   }`}
                                 >
-                                  {metric}: {change > 0 ? '+' : ''}{change}
+                                  {metric.charAt(0).toUpperCase() + metric.slice(1)}: {change > 0 ? '+' : ''}{change}
                                 </span>
                               ))}
                             </div>
