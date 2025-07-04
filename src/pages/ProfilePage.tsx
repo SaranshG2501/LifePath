@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,24 @@ import {
   History
 } from 'lucide-react';
 
+// Define interfaces to match the expected types
+interface ScenarioChoice {
+  sceneId: string;
+  choiceId: string;
+  choiceText: string;
+  timestamp: any;
+  metricChanges?: Record<string, number>;
+}
+
+interface ScenarioHistoryItem {
+  scenarioId: string;
+  title?: string;
+  scenarioTitle?: string;
+  completedAt: any;
+  finalMetrics?: Record<string, number>;
+  choices?: ScenarioChoice[];
+}
+
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
@@ -34,13 +53,6 @@ const ProfilePage = () => {
 
   console.log("ProfilePage - userProfile:", userProfile);
   console.log("ProfilePage - scenarioHistory:", scenarioHistory);
-
-  const mockUserData = {
-    username: userProfile?.displayName || 'Young Explorer',
-    level: 12,
-    xp: 2450,
-    joinDate: 'November 2024'
-  };
 
   const getUserRoleDisplay = () => {
     if (!userProfile?.role) return 'Guest';
@@ -116,7 +128,7 @@ const ProfilePage = () => {
             
             <div className="space-y-2">
               <h1 className="text-3xl md:text-4xl font-black gradient-heading">
-                {mockUserData.username}
+                {userProfile?.displayName || 'User'}
               </h1>
               <div className="flex items-center justify-center gap-2">
                 <Shield className="h-5 w-5 text-neon-purple" />
@@ -124,7 +136,7 @@ const ProfilePage = () => {
                 <Sparkles className="h-4 w-4 text-neon-pink animate-pulse" />
               </div>
               <p className="text-white/70">
-                Joined {mockUserData.joinDate}
+                Joined November 2024
               </p>
             </div>
           </div>
@@ -133,8 +145,8 @@ const ProfilePage = () => {
         {/* Decision Metrics */}
         <ProfileStats 
           scenarioHistory={scenarioHistory || []}
-          userLevel={mockUserData.level}
-          userXp={mockUserData.xp}
+          userLevel={1}
+          userXp={scenarioHistory.length * 50}
         />
 
         {/* Scenario History */}
@@ -155,19 +167,29 @@ const ProfilePage = () => {
             </div>
 
             <div className="space-y-6">
-              {scenarioHistory.map((scenario, index) => (
-                <ScenarioHistoryCard 
-                  key={`${scenario.scenarioId}-${index}`}
-                  scenario={{
-                    scenarioId: scenario.scenarioId,
-                    title: scenario.scenarioTitle,
-                    completedAt: scenario.completedAt,
-                    finalMetrics: scenario.finalMetrics,  
-                    choices: scenario.choices
-                  }}
-                  index={index}
-                />
-              ))}
+              {scenarioHistory.map((scenario, index) => {
+                const mappedScenario: ScenarioHistoryItem = {
+                  scenarioId: scenario.scenarioId,
+                  title: scenario.scenarioTitle || scenario.title,
+                  completedAt: scenario.completedAt,
+                  finalMetrics: scenario.finalMetrics,
+                  choices: scenario.choices?.map(choice => ({
+                    sceneId: choice.sceneId,
+                    choiceId: choice.choiceId,
+                    choiceText: choice.choiceText || '',
+                    timestamp: choice.timestamp,
+                    metricChanges: choice.metricChanges
+                  })) || []
+                };
+
+                return (
+                  <ScenarioHistoryCard 
+                    key={`${scenario.scenarioId}-${index}`}
+                    scenario={mappedScenario}
+                    index={index}
+                  />
+                );
+              })}
             </div>
           </Card>
         ) : (
@@ -194,69 +216,53 @@ const ProfilePage = () => {
           </Card>
         )}
 
-        {/* Achievements */}
-        <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/40">
-              <Award className="h-6 w-6 text-neon-yellow" />
+        {/* Achievements - Only show unlocked ones */}
+        {mockAchievements.some(achievement => achievement.unlocked) && (
+          <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/40">
+                <Award className="h-6 w-6 text-neon-yellow" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white">Achievements</h2>
+                <p className="text-white/70">Your epic accomplishments</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-white">Achievements</h2>
-              <p className="text-white/70">Your epic accomplishments</p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mockAchievements.map((achievement, index) => (
-              <Card 
-                key={achievement.id}
-                className={`p-6 border-2 transition-all duration-300 hover:scale-105 animate-scale-in ${
-                  achievement.unlocked 
-                    ? `bg-gradient-to-br from-slate-800/90 to-slate-700/90 ${getRarityColor(achievement.rarity)} shadow-lg hover:shadow-xl` 
-                    : 'bg-slate-800/50 border-slate-600/30 opacity-60'
-                }`}
-                style={{ animationDelay: `${0.4 + index * 0.1}s` }}
-              >
-                <div className="flex items-start gap-4">
-                  <div className={`p-3 rounded-xl border-2 ${
-                    achievement.unlocked 
-                      ? `${getRarityColor(achievement.rarity)} bg-gradient-to-r from-current/10 to-current/5` 
-                      : 'border-slate-600/30 bg-slate-700/30'
-                  }`}>
-                    <achievement.icon className={`h-6 w-6 ${
-                      achievement.unlocked 
-                        ? getRarityColor(achievement.rarity).split(' ')[0]
-                        : 'text-slate-500'
-                    }`} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className={`font-bold ${
-                        achievement.unlocked ? 'text-white' : 'text-slate-400'
-                      }`}>
-                        {achievement.title}
-                      </h3>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs px-2 py-1 ${getRarityColor(achievement.rarity)}`}
-                      >
-                        {achievement.rarity}
-                      </Badge>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mockAchievements.filter(achievement => achievement.unlocked).map((achievement, index) => (
+                <Card 
+                  key={achievement.id}
+                  className={`p-6 border-2 transition-all duration-300 hover:scale-105 animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 ${getRarityColor(achievement.rarity)} shadow-lg hover:shadow-xl`}
+                  style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-xl border-2 ${getRarityColor(achievement.rarity)} bg-gradient-to-r from-current/10 to-current/5`}>
+                      <achievement.icon className={`h-6 w-6 ${getRarityColor(achievement.rarity).split(' ')[0]}`} />
                     </div>
-                    <p className={`text-sm ${
-                      achievement.unlocked ? 'text-white/70' : 'text-slate-500'
-                    }`}>
-                      {achievement.description}
-                    </p>
-                  </div>
-                  {achievement.unlocked && (
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-bold text-white">
+                          {achievement.title}
+                        </h3>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs px-2 py-1 ${getRarityColor(achievement.rarity)}`}
+                        >
+                          {achievement.rarity}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-white/70">
+                        {achievement.description}
+                      </p>
+                    </div>
                     <Sparkles className="h-5 w-5 text-neon-yellow animate-pulse" />
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </Card>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Call to Action */}
         <Card className="bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border-2 border-neon-purple/30 p-8 text-center animate-scale-in" style={{ animationDelay: '0.6s' }}>

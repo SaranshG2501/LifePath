@@ -11,7 +11,7 @@ import {
   ScenarioHistory,
   db
 } from "@/lib/firebase";
-import { Timestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { Timestamp, collection, query, where, orderBy, getDocs, doc, getDoc, addDoc } from "firebase/firestore";
 
 type GameContextType = {
   gameState: GameState;
@@ -114,7 +114,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
           const data = doc.data();
           console.log("Processing scenario history document:", doc.id, data);
           history.push({
-            userId: data.userId,
             scenarioId: data.scenarioId,
             scenarioTitle: data.scenarioTitle,
             completedAt: data.completedAt,
@@ -127,7 +126,32 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         setScenarioHistory(history);
       } catch (error) {
         console.error("Error fetching scenario history:", error);
-        setScenarioHistory([]);
+        
+        // Fallback: try to get from user profile
+        try {
+          console.log("Trying fallback method - getting from user profile");
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userHistory = userData.history || [];
+            console.log("Found history in user profile:", userHistory);
+            
+            const formattedHistory: ScenarioHistory[] = userHistory.map((item: any) => ({
+              scenarioId: item.scenarioId,
+              scenarioTitle: item.scenarioTitle,
+              completedAt: item.completedAt,
+              choices: item.choices || [],
+              finalMetrics: item.finalMetrics || {}
+            }));
+            
+            setScenarioHistory(formattedHistory);
+          } else {
+            setScenarioHistory([]);
+          }
+        } catch (fallbackError) {
+          console.error("Fallback method also failed:", fallbackError);
+          setScenarioHistory([]);
+        }
       }
     };
     
@@ -367,14 +391,39 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Saving scenario history - Choices:", allChoices);
       console.log("Saving scenario history - Final metrics:", newMetrics);
       
-      // Save completed scenario to Firestore
-      saveScenarioHistory(
-        currentUser.uid,
-        gameState.currentScenario.id,
-        gameState.currentScenario.title,
-        allChoices,
-        newMetrics
-      ).then(() => {
+      // Save completed scenario to both collections
+      const saveToFirestore = async () => {
+        try {
+          // Save to scenarioHistory collection
+          const historyData = {
+            userId: currentUser.uid,
+            scenarioId: gameState.currentScenario!.id,
+            scenarioTitle: gameState.currentScenario!.title,
+            completedAt: Timestamp.now(),
+            choices: allChoices,
+            finalMetrics: newMetrics
+          };
+          
+          await addDoc(collection(db, 'scenarioHistory'), historyData);
+          console.log("Saved to scenarioHistory collection");
+          
+          // Also save to user profile for backward compatibility
+          await saveScenarioHistory(
+            currentUser.uid,
+            gameState.currentScenario!.id,
+            gameState.currentScenario!.title,
+            allChoices,
+            newMetrics
+          );
+          console.log("Saved to user profile");
+          
+        } catch (error) {
+          console.error("Error saving scenario history:", error);
+          throw error;
+        }
+      };
+      
+      saveToFirestore().then(() => {
         console.log("Scenario history saved successfully");
         toast({
           title: "Scenario Completed",
@@ -397,7 +446,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
             querySnapshot.forEach((doc) => {
               const data = doc.data();
               history.push({
-                userId: data.userId,
                 scenarioId: data.scenarioId,
                 scenarioTitle: data.scenarioTitle,
                 completedAt: data.completedAt,
