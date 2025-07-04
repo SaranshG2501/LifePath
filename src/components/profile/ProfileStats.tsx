@@ -16,10 +16,19 @@ import {
   Users,
   BookOpen
 } from 'lucide-react';
-import { ScenarioHistory } from '@/lib/firebase';
+
+// Use the local ScenarioHistory type from game context
+interface LocalScenarioHistory {
+  scenarioId: string;
+  scenarioTitle: string;
+  startedAt: Date;
+  completedAt: Date;
+  choices: any[];
+  finalMetrics: Record<string, number>;
+}
 
 interface ProfileStatsProps {
-  scenarioHistory: ScenarioHistory[];
+  scenarioHistory: LocalScenarioHistory[];
   userLevel: number;
   userXp: number;
 }
