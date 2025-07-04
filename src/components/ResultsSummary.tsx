@@ -200,13 +200,13 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         sceneId: entry.sceneId,
         choiceId: entry.choiceId,
         scene: scene?.title,
-        choiceText: choice?.text || entry.choiceText,
+        choiceText: choice?.text,
         metricChanges: entry.metricChanges
       });
       
       return {
         sceneTitle: scene?.title || `Scene ${index + 1}`,
-        choiceText: choice?.text || entry.choiceText || `Choice ${index + 1}`,
+        choiceText: choice?.text || `Choice ${index + 1}`,
         metricChanges: entry.metricChanges || {},
         index: index + 1
       };
