@@ -180,18 +180,6 @@ const ProfilePage = () => {
           </div>
         </Card>
 
-        {/* Debug info - remove this in production */}
-        <Card className="bg-yellow-500/10 border border-yellow-500/30 p-4">
-          <div className="text-yellow-400 text-sm">
-            Debug Info: Found {scenarioHistory?.length || 0} scenarios in history
-            {scenarioHistory && scenarioHistory.length > 0 && (
-              <div className="mt-2">
-                Latest scenario: {scenarioHistory[scenarioHistory.length - 1]?.scenarioTitle}
-              </div>
-            )}
-          </div>
-        </Card>
-
         <ProfileStats 
           scenarioHistory={scenarioHistory || []}
           userLevel={1}

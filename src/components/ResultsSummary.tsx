@@ -21,14 +21,19 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
+  console.log("ResultsSummary gameState:", gameState);
+  console.log("ResultsSummary history:", gameState.history);
+  
   // Calculate total metric changes
   const totalChanges = gameState.history.reduce(
     (acc, entry) => {
-      Object.entries(entry.metricChanges).forEach(([key, value]) => {
-        if (value) {
-          acc[key as keyof typeof acc] = (acc[key as keyof typeof acc] || 0) + value;
-        }
-      });
+      if (entry.metricChanges) {
+        Object.entries(entry.metricChanges).forEach(([key, value]) => {
+          if (value) {
+            acc[key as keyof typeof acc] = (acc[key as keyof typeof acc] || 0) + value;
+          }
+        });
+      }
       return acc;
     },
     {} as Record<string, number>
@@ -152,20 +157,21 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
 
   // Evaluate decision-making style
   const getDecisionStyle = () => {
-    const { metrics, history } = gameState;
+    const { history } = gameState;
     
-    // Count risky vs cautious choices (simplified example)
+    if (history.length === 0) {
+      return "Start making some decisions to see your unique decision-making style emerge!";
+    }
+    
+    // Analyze based on metric changes
     const riskyChoices = history.filter(entry => {
-      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      const choice = scene?.choices.find(c => c.id === entry.choiceId);
-      // This is a simplified example - would need actual choice data with risk indicators
-      return choice?.metricChanges.money && choice.metricChanges.money < -5;
+      if (!entry.metricChanges) return false;
+      return Object.values(entry.metricChanges).some(change => change < -10);
     }).length;
     
     const cautiousChoices = history.filter(entry => {
-      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      const choice = scene?.choices.find(c => c.id === entry.choiceId);
-      return choice?.metricChanges.money && choice.metricChanges.money > 5;
+      if (!entry.metricChanges) return false;
+      return Object.values(entry.metricChanges).every(change => change >= 0);
     }).length;
     
     if (riskyChoices > cautiousChoices) {
@@ -177,12 +183,43 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     }
   };
 
+  // Get the actual choices made with scene context
+  const getChoiceHistory = () => {
+    console.log("Getting choice history from gameState.history:", gameState.history);
+    
+    if (!gameState.history || gameState.history.length === 0) {
+      return [];
+    }
+
+    return gameState.history.map((entry, index) => {
+      // Find the scene and choice from the current scenario
+      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      
+      console.log(`Choice ${index + 1}:`, {
+        sceneId: entry.sceneId,
+        choiceId: entry.choiceId,
+        scene: scene?.title,
+        choiceText: choice?.text || entry.choiceText,
+        metricChanges: entry.metricChanges
+      });
+      
+      return {
+        sceneTitle: scene?.title || `Scene ${index + 1}`,
+        choiceText: choice?.text || entry.choiceText || `Choice ${index + 1}`,
+        metricChanges: entry.metricChanges || {},
+        index: index + 1
+      };
+    });
+  };
+
   if (!gameState.currentScenario || !gameState.currentScene) {
     return null;
   }
 
   const achievements = getAchievements();
   const personaltips = getPersonalizedTips();
+  const choiceHistory = getChoiceHistory();
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-scale-in">
@@ -280,29 +317,54 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Your Journey
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Your Choices
             </h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {gameState.history.map((entry, index) => {
-                const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-                const choice = scene?.choices.find(c => c.id === entry.choiceId);
-                const animationDelay = `${0.3 + index * 0.1}s`;
-                
-                return (
-                  <div 
-                    key={index} 
-                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
-                    style={{ animationDelay }}
-                  >
-                    <div className="font-medium text-white">{scene?.title}</div>
-                    <div className="text-sm text-white/70 flex items-start gap-2">
-                      <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      {choice?.text}
+              {choiceHistory.length > 0 ? (
+                choiceHistory.map((choice, index) => {
+                  const animationDelay = `${0.3 + index * 0.1}s`;
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className="bg-black/30 backdrop-blur-sm p-4 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
+                      style={{ animationDelay }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-full flex items-center justify-center border-2 border-primary/40">
+                          <span className="text-sm font-bold text-white">{choice.index}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-white mb-1">{choice.sceneTitle}</div>
+                          <div className="text-sm text-white/90 mb-2">{choice.choiceText}</div>
+                          {Object.keys(choice.metricChanges).length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(choice.metricChanges).map(([metric, change]) => (
+                                <span 
+                                  key={metric}
+                                  className={`text-xs px-2 py-1 rounded-full ${
+                                    change > 0 
+                                      ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                                      : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                  }`}
+                                >
+                                  {metric}: {change > 0 ? '+' : ''}{change}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-white/60">
+                  <p className="font-medium">No choices recorded for this session</p>
+                  <p className="text-sm mt-1">Your future games will show detailed choice history!</p>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
