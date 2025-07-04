@@ -141,6 +141,13 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 {history.choices.map((choice, index) => {
                   console.log(`Rendering choice ${index + 1}:`, choice);
                   
+                  // Handle different choice data structures
+                  const choiceText = choice.choiceText || choice.text || `Choice ${index + 1}`;
+                  const sceneTitle = choice.sceneTitle || `Decision ${index + 1}`;
+                  const sceneDescription = choice.sceneDescription || '';
+                  const timestamp = choice.timestamp ? convertTimestampToDate(choice.timestamp) : new Date();
+                  const metricChanges = choice.metricChanges || {};
+                  
                   return (
                     <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
                       <div className="flex items-start justify-between mb-4">
@@ -148,17 +155,17 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                           Decision {index + 1}
                         </Badge>
                         <span className="text-xs text-slate-400">
-                          {choice.timestamp ? convertTimestampToDate(choice.timestamp).toLocaleString() : 'Unknown time'}
+                          {timestamp.toLocaleString()}
                         </span>
                       </div>
                       
                       {/* Scene/Question context if available */}
-                      {choice.sceneTitle && (
+                      {sceneTitle && (
                         <div className="mb-4">
-                          <h4 className="text-white font-semibold text-lg mb-2">{choice.sceneTitle}</h4>
-                          {choice.sceneDescription && (
+                          <h4 className="text-white font-semibold text-lg mb-2">{sceneTitle}</h4>
+                          {sceneDescription && (
                             <div className="text-slate-300 text-sm mb-3 bg-slate-700/30 p-3 rounded border-l-4 border-primary/50">
-                              <strong className="text-primary">Situation:</strong> {choice.sceneDescription}
+                              <strong className="text-primary">Situation:</strong> {sceneDescription}
                             </div>
                           )}
                         </div>
@@ -168,16 +175,16 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                       <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20 mb-4">
                         <p className="text-xs text-primary font-medium mb-2">YOUR CHOICE:</p>
                         <p className="text-white font-medium text-base leading-relaxed">
-                          {choice.choiceText || choice.text || `Choice ${index + 1}`}
+                          {choiceText}
                         </p>
                       </div>
                       
                       {/* Impact/Consequences */}
-                      {choice.metricChanges && Object.keys(choice.metricChanges).length > 0 && (
+                      {metricChanges && Object.keys(metricChanges).length > 0 && (
                         <div>
                           <p className="text-sm text-slate-400 mb-3 font-medium">Impact on your life:</p>
                           <div className="flex flex-wrap gap-2">
-                            {Object.entries(choice.metricChanges).map(([key, value]) => {
+                            {Object.entries(metricChanges).map(([key, value]) => {
                               if (!value) return null;
                               
                               let color = '';

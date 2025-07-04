@@ -73,6 +73,7 @@ interface GameContextType {
   showMirrorMoment: boolean;
   setShowMirrorMoment: (show: boolean) => void;
   currentMirrorQuestion: string | null;
+  setCurrentMirrorQuestion: (question: string | null) => void;
   mirrorMomentsEnabled: boolean;
   toggleMirrorMoments: () => void;
   
@@ -433,6 +434,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showMirrorMoment,
     setShowMirrorMoment,
     currentMirrorQuestion,
+    setCurrentMirrorQuestion,
     mirrorMomentsEnabled,
     toggleMirrorMoments,
     

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GameState } from '@/types/game';
 import { Button } from '@/components/ui/button';
@@ -200,7 +199,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
       
       // Get the choice text from the entry itself (since it's the choice object)
       let choiceText = '';
-      if ('text' in entry && entry.text) {
+      if ('text' in entry && typeof entry.text === 'string') {
         choiceText = entry.text;
       } else if (scene && entry.choiceId) {
         const choice = scene.choices.find(c => c.id === entry.choiceId);
