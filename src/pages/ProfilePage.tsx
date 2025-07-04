@@ -3,7 +3,6 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
@@ -13,7 +12,6 @@ import {
   ArrowLeft, 
   User, 
   Trophy, 
-  Target, 
   Calendar,
   Star,
   Zap,
@@ -25,7 +23,6 @@ import {
   Award,
   Sparkles,
   Crown,
-  Flame,
   Shield,
   Gamepad2,
   History
@@ -42,47 +39,8 @@ const ProfilePage = () => {
     username: userProfile?.displayName || 'Young Explorer',
     level: 12,
     xp: 2450,
-    nextLevelXp: 3000,
-    totalScenarios: scenarioHistory?.length || 0,
-    streak: 7,
-    rank: 'Rising Star',
     joinDate: 'November 2024'
   };
-
-  const statCards = [
-    {
-      icon: Trophy,
-      label: 'Level',
-      value: mockUserData.level,
-      color: 'text-neon-yellow',
-      bgColor: 'from-neon-yellow/20 to-neon-orange/20',
-      borderColor: 'border-neon-yellow/40'
-    },
-    {
-      icon: Target,
-      label: 'Scenarios Completed',
-      value: mockUserData.totalScenarios,
-      color: 'text-neon-blue',
-      bgColor: 'from-neon-blue/20 to-neon-cyan/20',
-      borderColor: 'border-neon-blue/40'
-    },
-    {
-      icon: Flame,
-      label: 'Day Streak',
-      value: mockUserData.streak,
-      color: 'text-neon-red',
-      bgColor: 'from-neon-red/20 to-neon-pink/20',
-      borderColor: 'border-neon-red/40'
-    },
-    {
-      icon: Crown,
-      label: 'Rank',
-      value: mockUserData.rank,
-      color: 'text-neon-purple',
-      bgColor: 'from-neon-purple/20 to-neon-magenta/20',
-      borderColor: 'border-neon-purple/40'
-    }
-  ];
 
   const mockAchievements = [
     {
@@ -157,55 +115,17 @@ const ProfilePage = () => {
               </h1>
               <div className="flex items-center justify-center gap-2">
                 <Shield className="h-5 w-5 text-neon-purple" />
-                <span className="text-neon-purple font-bold">{mockUserData.rank}</span>
+                <span className="text-neon-purple font-bold">Young Explorer</span>
                 <Sparkles className="h-4 w-4 text-neon-pink animate-pulse" />
               </div>
               <p className="text-white/70">
-                Joined {mockUserData.joinDate} • Level {mockUserData.level}
+                Joined {mockUserData.joinDate}
               </p>
-            </div>
-
-            <div className="w-full max-w-md space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-white/70">Level Progress</span>
-                <span className="text-sm font-bold text-neon-blue">
-                  {mockUserData.xp} / {mockUserData.nextLevelXp} XP
-                </span>
-              </div>
-              <Progress 
-                value={(mockUserData.xp / mockUserData.nextLevelXp) * 100} 
-                className="h-3 bg-slate-700/50"
-              />
             </div>
           </div>
         </Card>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {statCards.map((stat, index) => (
-            <Card 
-              key={stat.label}
-              className={`teen-card p-6 text-center hover-lift animate-scale-in border-2 ${stat.borderColor} bg-gradient-to-br ${stat.bgColor}`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="space-y-3">
-                <div className={`mx-auto w-12 h-12 rounded-xl bg-gradient-to-r ${stat.bgColor} flex items-center justify-center border-2 ${stat.borderColor}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-                <div>
-                  <div className={`text-2xl font-black ${stat.color}`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-white/70 font-medium">
-                    {stat.label}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Decision Metrics - Replace Quick Stats */}
+        {/* Decision Metrics */}
         <ProfileStats 
           scenarioHistory={scenarioHistory || []}
           userLevel={mockUserData.level}

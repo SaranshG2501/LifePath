@@ -7,9 +7,11 @@ import {
   updateUserProfile, 
   getUserClassrooms, 
   saveScenarioHistory, 
-  ScenarioChoice
+  ScenarioChoice,
+  ScenarioHistory,
+  db
 } from "@/lib/firebase";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 
 type GameContextType = {
   gameState: GameState;
@@ -38,7 +40,7 @@ type GameContextType = {
   isModeLocked: boolean;
   userStats: any;
   achievements: any[];
-  scenarioHistory: any[];
+  scenarioHistory: ScenarioHistory[];
 };
 
 const initialMetrics: Metrics = {
@@ -74,7 +76,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
   const [userStats, setUserStats] = useState({});
   const [achievements, setAchievements] = useState([]);
-  const [scenarioHistory, setScenarioHistory] = useState([]);
+  const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistory[]>([]);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -87,15 +89,47 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [userProfile]);
 
-  // Fetch scenario history when user changes - simplified without the non-existent function
+  // Fetch scenario history when user changes
   useEffect(() => {
-    if (!currentUser) {
-      setScenarioHistory([]);
-      return;
-    }
+    const fetchScenarioHistory = async () => {
+      if (!currentUser) {
+        setScenarioHistory([]);
+        return;
+      }
+      
+      try {
+        const historyRef = collection(db, 'scenarioHistory');
+        const q = query(
+          historyRef,
+          where('userId', '==', currentUser.uid),
+          orderBy('completedAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const history: ScenarioHistory[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          history.push({
+            id: doc.id,
+            userId: data.userId,
+            scenarioId: data.scenarioId,
+            scenarioTitle: data.scenarioTitle,
+            completedAt: data.completedAt,
+            choices: data.choices || [],
+            finalMetrics: data.finalMetrics || {}
+          });
+        });
+        
+        console.log("Fetched scenario history:", history);
+        setScenarioHistory(history);
+      } catch (error) {
+        console.error("Error fetching scenario history:", error);
+        setScenarioHistory([]);
+      }
+    };
     
-    // For now, set empty history - this would be replaced with actual Firebase query
-    setScenarioHistory([]);
+    fetchScenarioHistory();
   }, [currentUser]);
 
   // Check if user has joined any classroom
