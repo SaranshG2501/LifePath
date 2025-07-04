@@ -25,7 +25,8 @@ import {
   Crown,
   Shield,
   Gamepad2,
-  History
+  History,
+  LogOut
 } from 'lucide-react';
 
 // Define interfaces to match the expected types
@@ -39,7 +40,6 @@ interface ScenarioChoice {
 
 interface ScenarioHistoryItem {
   scenarioId: string;
-  title?: string;
   scenarioTitle?: string;
   completedAt: any;
   finalMetrics?: Record<string, number>;
@@ -48,7 +48,7 @@ interface ScenarioHistoryItem {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
   const { scenarioHistory } = useGameContext();
 
   console.log("ProfilePage - userProfile:", userProfile);
@@ -57,6 +57,15 @@ const ProfilePage = () => {
   const getUserRoleDisplay = () => {
     if (!userProfile?.role) return 'Guest';
     return userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const mockAchievements = [
@@ -106,14 +115,25 @@ const ProfilePage = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
-      <Button 
-        variant="ghost" 
-        onClick={() => navigate('/')} 
-        className="mb-6 flex items-center gap-2 rounded-xl text-white border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-300"
-      >
-        <ArrowLeft size={16} />
-        Back to Home
-      </Button>
+      <div className="flex justify-between items-center mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2 rounded-xl text-white border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-300"
+        >
+          <ArrowLeft size={16} />
+          Back to Home
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={handleLogout}
+          className="flex items-center gap-2 rounded-xl border-2 border-red-400/60 bg-gradient-to-r from-red-900/40 to-red-800/40 text-red-300 hover:bg-gradient-to-r hover:from-red-800/60 hover:to-red-700/60 hover:border-red-300/80 transition-all duration-300 px-6 py-3 font-bold hover:scale-105 shadow-lg hover:shadow-red-500/30"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
+      </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Profile Header */}
@@ -170,7 +190,7 @@ const ProfilePage = () => {
               {scenarioHistory.map((scenario, index) => {
                 const mappedScenario: ScenarioHistoryItem = {
                   scenarioId: scenario.scenarioId,
-                  title: scenario.scenarioTitle || scenario.title,
+                  scenarioTitle: scenario.scenarioTitle,
                   completedAt: scenario.completedAt,
                   finalMetrics: scenario.finalMetrics,
                   choices: scenario.choices?.map(choice => ({

@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { School, User, BookOpen, X } from 'lucide-react';
+import { School, BookOpen, X } from 'lucide-react';
 import { UserRole } from '@/types/game';
 
 interface RoleSelectionDialogProps {
@@ -67,17 +67,6 @@ const RoleSelectionDialog: React.FC<RoleSelectionDialogProps> = ({
             </p>
           </div>
         </div>
-        
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Button
-            variant="outline"
-            onClick={() => onSelectRole('guest')}
-            className="border-white/20 text-white hover:bg-black/30 w-full sm:w-auto"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Continue as Guest
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
