@@ -34,6 +34,8 @@ const GamePage = () => {
     resetGame, 
     isGameActive, 
     showMirrorMoment, 
+    setShowMirrorMoment,
+    setCurrentMirrorQuestion,
     gameMode,
     setGameMode,
     userRole,
@@ -204,7 +206,29 @@ const GamePage = () => {
     if (isInLiveSession && liveSession) {
       handleLiveChoice(choiceId);
     } else {
-      makeChoice(choiceId);
+      // For individual mode, check if mirror moments should be triggered
+      if (mirrorMomentsEnabled && gameMode === 'individual') {
+        // Set a mirror moment question and show it
+        const mirrorQuestions = [
+          "How do you think this decision reflects your personal values and goals?",
+          "What emotions did you experience when making this choice, and why?",
+          "What did you learn about yourself from this decision?",
+          "How might this choice impact your future decisions?"
+        ];
+        
+        const randomQuestion = mirrorQuestions[Math.floor(Math.random() * mirrorQuestions.length)];
+        setCurrentMirrorQuestion(randomQuestion);
+        
+        // First make the choice, then show mirror moment
+        makeChoice(choiceId);
+        
+        // Show mirror moment after a brief delay
+        setTimeout(() => {
+          setShowMirrorMoment(true);
+        }, 500);
+      } else {
+        makeChoice(choiceId);
+      }
     }
   };
 
@@ -381,30 +405,35 @@ const GamePage = () => {
         </div>
       )}
 
-      {/* Main game content */}
-      {gameState.currentScene.isEnding ? (
-        <ResultsSummary 
-          gameState={gameState} 
-          onPlayAgain={handlePlayAgain} 
-          onReturnHome={handleReturnHome} 
-        />
-      ) : showMirrorMoment ? (
-        <MirrorMoment />
-      ) : isInLiveSession ? (
-        <SceneDisplay 
-          scene={gameState.currentScene} 
-          onChoiceMade={handleChoiceMade}
-          isLiveSession={true}
-          liveSession={liveSession}
-          disabled={hasVoted}
-        />
-      ) : gameMode === "classroom" && !isInLiveSession ? (
-        <EnhancedClassroomVoting scene={gameState.currentScene} />
-      ) : (
-        <SceneDisplay 
-          scene={gameState.currentScene} 
-          onChoiceMade={handleChoiceMade} 
-        />
+      {/* Mirror Moment Overlay - Show this first if active */}
+      {showMirrorMoment && <MirrorMoment />}
+
+      {/* Main game content - Only show if mirror moment is not active */}
+      {!showMirrorMoment && (
+        <>
+          {gameState.currentScene.isEnding ? (
+            <ResultsSummary 
+              gameState={gameState} 
+              onPlayAgain={handlePlayAgain} 
+              onReturnHome={handleReturnHome} 
+            />
+          ) : isInLiveSession ? (
+            <SceneDisplay 
+              scene={gameState.currentScene} 
+              onChoiceMade={handleChoiceMade}
+              isLiveSession={true}
+              liveSession={liveSession}
+              disabled={hasVoted}
+            />
+          ) : gameMode === "classroom" && !isInLiveSession ? (
+            <EnhancedClassroomVoting scene={gameState.currentScene} />
+          ) : (
+            <SceneDisplay 
+              scene={gameState.currentScene} 
+              onChoiceMade={handleChoiceMade} 
+            />
+          )}
+        </>
       )}
     </div>
   );
