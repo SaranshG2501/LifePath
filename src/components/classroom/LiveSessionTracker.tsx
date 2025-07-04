@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,9 +88,9 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                 variant="destructive"
                 size="sm"
                 onClick={onEndSession}
-                className="bg-red-500 hover:bg-red-600 text-white border-0 flex items-center gap-1"
+                className="bg-red-500 hover:bg-red-600 text-white border-0"
               >
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangle className="h-4 w-4 mr-1" />
                 End Session
               </Button>
             </div>

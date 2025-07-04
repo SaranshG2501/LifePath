@@ -61,10 +61,10 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
           {scene.title}
         </CardTitle>
         
-        {/* Always show scene description during live sessions */}
+        {/* Scene description - always visible for both teacher and student */}
         <CardDescription className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20">
           <div className="font-medium text-primary mb-2">Situation:</div>
-          {scene.description}
+          <div className="text-base">{scene.description}</div>
         </CardDescription>
       </CardHeader>
       

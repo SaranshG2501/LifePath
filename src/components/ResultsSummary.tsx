@@ -182,24 +182,43 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     }
   };
 
-  // Get the actual choices made with scene context
+  // Get the actual choices made with scene context - Fixed to show proper choice text
   const getChoiceHistory = () => {
     console.log("Getting choice history from gameState.history:", gameState.history);
+    console.log("Current scenario scenes:", gameState.currentScenario?.scenes);
     
     if (!gameState.history || gameState.history.length === 0) {
       return [];
     }
 
     return gameState.history.map((entry, index) => {
+      console.log(`Processing history entry ${index}:`, entry);
+      
       // Find the scene and choice from the current scenario
       const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      
+      // Get the choice text - entry should be the choice object itself
+      let choiceText = '';
+      if (entry.text) {
+        // If entry has text directly (it's a choice object)
+        choiceText = entry.text;
+      } else if (scene && entry.choiceId) {
+        // If we need to find the choice by ID
+        const choice = scene.choices.find(c => c.id === entry.choiceId);
+        choiceText = choice?.text || `Choice ${entry.choiceId}`;
+      } else if (entry.id && scene) {
+        // If entry.id is the choice ID
+        const choice = scene.choices.find(c => c.id === entry.id);
+        choiceText = choice?.text || entry.text || `Choice ${index + 1}`;
+      } else {
+        choiceText = entry.text || `Choice ${index + 1}`;
+      }
       
       console.log(`Choice ${index + 1}:`, {
         sceneId: entry.sceneId,
-        choiceId: entry.choiceId,
+        choiceId: entry.choiceId || entry.id,
         scene: scene?.title,
-        choiceText: choice?.text,
+        choiceText: choiceText,
         sceneDescription: scene?.description,
         metricChanges: entry.metricChanges
       });
@@ -207,7 +226,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
       return {
         sceneTitle: scene?.title || `Scene ${index + 1}`,
         sceneDescription: scene?.description || '',
-        choiceText: choice?.text || `Choice ${index + 1}`,
+        choiceText: choiceText,
         metricChanges: entry.metricChanges || {},
         index: index + 1
       };
@@ -348,7 +367,9 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                           
                           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-md border border-primary/20">
                             <div className="text-xs text-primary font-medium mb-1">YOUR CHOICE:</div>
-                            <div className="text-white font-medium leading-relaxed">{choice.choiceText}</div>
+                            <div className="text-white font-medium leading-relaxed">
+                              {choice.choiceText || `Choice ${choice.index}`}
+                            </div>
                           </div>
                           
                           {Object.keys(choice.metricChanges).length > 0 && (
