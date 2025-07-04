@@ -8,17 +8,30 @@ import { useGameContext } from '@/context/GameContext';
 import { motion } from 'framer-motion';
 
 const MirrorMoment: React.FC = () => {
-  const { currentMirrorQuestion, setShowMirrorMoment, makeChoice, gameState } = useGameContext();
+  const { 
+    currentMirrorQuestion, 
+    setShowMirrorMoment, 
+    gameState,
+    sceneHistory
+  } = useGameContext();
+  
   const [reflection, setReflection] = useState('');
   
   const handleContinue = () => {
-    // In a full implementation, this would save the reflection
-    // For now, just proceed with the previously selected choice
-    if (gameState.currentScene && gameState.currentScene.choices.length > 0) {
-      const lastChoice = gameState.currentScene.choices[0].id;
-      setShowMirrorMoment(false);
-      makeChoice(lastChoice);
+    console.log("Mirror moment completed with reflection:", reflection);
+    
+    // Save the reflection (in a full implementation, this would be stored)
+    if (reflection.trim()) {
+      console.log("Saving reflection:", reflection);
+      // Here you could save to localStorage or send to backend
+      localStorage.setItem('lastMirrorReflection', reflection);
     }
+    
+    // Close the mirror moment
+    setShowMirrorMoment(false);
+    
+    // Continue with the game flow - the parent component should handle the next step
+    console.log("Mirror moment closed, game should continue");
   };
 
   return (
@@ -26,37 +39,37 @@ const MirrorMoment: React.FC = () => {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="w-full max-w-lg mx-auto"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
-      <Card className="bg-black/40 border-primary/20 backdrop-blur-lg shadow-xl">
+      <Card className="bg-black/90 border-primary/30 backdrop-blur-lg shadow-2xl w-full max-w-lg">
         <CardHeader className="relative pb-2">
-          <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-primary to-secondary text-white p-3 rounded-full shadow-glow">
-            <Brain className="w-6 h-6 animate-pulse" />
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-full shadow-lg">
+            <Brain className="w-8 h-8 animate-pulse" />
           </div>
-          <CardTitle className="text-xl text-center pt-5 text-white">Mirror Moment</CardTitle>
-          <CardDescription className="text-center text-white/80">Take a moment to reflect</CardDescription>
+          <CardTitle className="text-2xl text-center pt-6 text-white">Mirror Moment</CardTitle>
+          <CardDescription className="text-center text-white/80 text-lg">Take a moment to reflect</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-lg font-medium text-center my-4 text-white">
+        <CardContent className="space-y-4">
+          <div className="text-lg font-medium text-center p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20 text-white">
             <span className="relative">
-              {currentMirrorQuestion}
-              <Sparkles className="h-3 w-3 text-neon-yellow absolute -top-2 -right-4 animate-pulse-slow" />
+              {currentMirrorQuestion || "How do you think this decision reflects your values?"}
+              <Sparkles className="h-4 w-4 text-yellow-400 absolute -top-2 -right-6 animate-pulse" />
             </span>
           </div>
           <Textarea
-            placeholder="Write your thoughts here..."
-            className="min-h-24 mt-4 bg-black/20 border-primary/30 text-white"
+            placeholder="Write your thoughts here... What did you learn? How do you feel about your choice?"
+            className="min-h-32 bg-black/30 border-primary/30 text-white placeholder:text-white/50 text-base"
             value={reflection}
             onChange={(e) => setReflection(e.target.value)}
           />
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex justify-center pt-4">
           <Button 
-            className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white"
+            className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold py-3 text-base"
             onClick={handleContinue}
           >
-            Continue
-            <ArrowRight className="ml-2 h-4 w-4" />
+            Continue Journey
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </CardFooter>
       </Card>

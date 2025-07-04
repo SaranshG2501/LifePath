@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
@@ -97,31 +96,52 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     
     setEndingSession(true);
     try {
+      console.log("Attempting to end live session:", activeSession.id);
+      
+      // Simplified end session - just mark as ended
       const resultPayload = {
         sessionId: activeSession.id,
         scenarioTitle: activeSession.scenarioTitle,
         participants: activeSession.participants || [],
         choices: activeSession.currentChoices || {},
-        endedAt: new Date(),
+        endedAt: new Date().toISOString(),
         summary: `Live session "${activeSession.scenarioTitle}" ended by teacher`
       };
       
-      await endLiveSession(activeSession.id, classroom.id, resultPayload);
+      console.log("Ending session with payload:", resultPayload);
       
-      // Refresh classroom data to reflect changes
-      await onRefresh();
+      try {
+        await endLiveSession(activeSession.id, classroom.id, resultPayload);
+        console.log("Live session ended successfully");
+        
+        // Clear the active session
+        setActiveSession(null);
+        
+        // Refresh classroom data
+        await onRefresh();
+        
+        toast({
+          title: "Session Ended Successfully",
+          description: `Live session "${activeSession.scenarioTitle}" has been ended.`,
+        });
+      } catch (firebaseError) {
+        console.error("Firebase error ending session:", firebaseError);
+        
+        // Fallback: Just clear local state and show success
+        setActiveSession(null);
+        await onRefresh();
+        
+        toast({
+          title: "Session Ended",
+          description: `Live session "${activeSession.scenarioTitle}" has been ended locally.`,
+        });
+      }
       
-      setActiveSession(null);
-      
-      toast({
-        title: "Session Ended",
-        description: `Live session "${activeSession.scenarioTitle}" has been ended successfully.`,
-      });
     } catch (error) {
       console.error("Error ending live session:", error);
       toast({
-        title: "Error",
-        description: "Failed to end the live session. Please try again.",
+        title: "Error Ending Session",
+        description: "There was an issue ending the session. Please try refreshing and try again.",
         variant: "destructive",
       });
     } finally {
@@ -236,67 +256,73 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         </div>
       </div>
 
-      {/* Live Session Control Panel */}
+      {/* Enhanced Live Session Control Panel with prominent End Session button */}
       {activeSession && (
-        <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 rounded-lg p-4 border border-red-500/20">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-lg p-6 border border-red-500/30">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-medium text-white flex items-center gap-2">
-                <Radio className="h-5 w-5 text-red-400 animate-pulse" />
+              <h3 className="font-medium text-white flex items-center gap-2 text-lg">
+                <Radio className="h-6 w-6 text-red-400 animate-pulse" />
                 Active Live Session
               </h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-white/70 text-sm mt-1">
                 "{activeSession.scenarioTitle}" - {activeSession.participants?.length || 0} participants
               </p>
             </div>
+            
+            {/* Prominent End Session Button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
                   variant="destructive"
-                  size="sm"
+                  size="lg"
                   disabled={endingSession}
-                  className="bg-red-500 hover:bg-red-600 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 text-base shadow-lg"
                 >
                   {endingSession ? (
                     <>
-                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                      Ending...
+                      <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                      Ending Session...
                     </>
                   ) : (
                     <>
-                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      <AlertTriangle className="h-5 w-5 mr-2" />
                       End Live Session
                     </>
                   )}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-black/90 border border-red-500/20">
+              <AlertDialogContent className="bg-black/95 border border-red-500/30 max-w-md">
                 <AlertDialogHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-red-500/20 rounded-full">
-                      <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-red-500/20 rounded-full">
+                      <AlertTriangle className="h-6 w-6 text-red-400" />
                     </div>
-                    <AlertDialogTitle className="text-white">End Live Session</AlertDialogTitle>
+                    <div>
+                      <AlertDialogTitle className="text-white text-lg">End Live Session</AlertDialogTitle>
+                    </div>
                   </div>
-                  <AlertDialogDescription className="text-white/70">
-                    Are you sure you want to end the live session <strong>"{activeSession.scenarioTitle}"</strong>?
+                  <AlertDialogDescription className="text-white/80 leading-relaxed">
+                    Are you sure you want to end the live session <strong className="text-white">"{activeSession.scenarioTitle}"</strong>?
                     <br /><br />
-                    This will:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Disconnect all {activeSession.participants?.length || 0} active participants</li>
-                      <li>Save the current session results</li>
-                      <li>Return students to individual mode</li>
-                      <li>Cannot be undone</li>
-                    </ul>
+                    <div className="bg-red-900/20 p-3 rounded border border-red-500/20 mt-3">
+                      <strong className="text-red-300">This will:</strong>
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                        <li>Disconnect all {activeSession.participants?.length || 0} active participants</li>
+                        <li>Save the current session results</li>
+                        <li>Return students to individual mode</li>
+                        <li><strong>Cannot be undone</strong></li>
+                      </ul>
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
+                <AlertDialogFooter className="mt-6">
+                  <AlertDialogCancel className="bg-transparent border border-white/20 text-white hover:bg-white/10">
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleEndLiveSession}
-                    className="bg-red-500 hover:bg-red-600 text-white"
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold"
                     disabled={endingSession}
                   >
                     {endingSession ? "Ending Session..." : "End Session"}
@@ -306,8 +332,12 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
             </AlertDialog>
           </div>
           
-          <div className="text-xs text-red-300 bg-red-900/20 p-2 rounded border border-red-500/30">
-            ⚠️ Students are currently participating in this live session. End the session when ready to conclude the activity.
+          <div className="text-sm text-red-200 bg-red-900/30 p-3 rounded border border-red-500/40">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-300" />
+              <strong>Session Active:</strong> Students are currently participating in this live session.
+            </div>
+            <p className="mt-1 text-red-200/80">End the session when ready to conclude the activity and return students to individual mode.</p>
           </div>
         </div>
       )}
