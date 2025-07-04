@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
 import ScenarioHistoryCard from '@/components/profile/ScenarioHistoryCard';
+import ProfileStats from '@/components/profile/ProfileStats';
 import { 
   ArrowLeft, 
   User, 
@@ -32,7 +34,9 @@ import {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { userStats, achievements, scenarioHistory } = useGameContext();
+  const { scenarioHistory } = useGameContext();
+
+  console.log("ProfilePage - scenarioHistory:", scenarioHistory);
 
   const mockUserData = {
     username: userProfile?.displayName || 'Young Explorer',
@@ -201,6 +205,13 @@ const ProfilePage = () => {
           ))}
         </div>
 
+        {/* Decision Metrics - Replace Quick Stats */}
+        <ProfileStats 
+          scenarioHistory={scenarioHistory || []}
+          userLevel={mockUserData.level}
+          userXp={mockUserData.xp}
+        />
+
         {/* Scenario History */}
         {scenarioHistory && scenarioHistory.length > 0 && (
           <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
@@ -294,39 +305,11 @@ const ProfilePage = () => {
           </div>
         </Card>
 
-        {/* Quick Stats */}
-        <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.5s' }}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-r from-neon-green/20 to-neon-blue/20 rounded-xl border-2 border-neon-green/40">
-              <TrendingUp className="h-6 w-6 text-neon-green" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-white">Quick Stats</h2>
-              <p className="text-white/70">Your journey at a glance</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-black text-neon-blue mb-2">89%</div>
-              <div className="text-sm text-white/70">Smart Choices</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-black text-neon-purple mb-2">42</div>
-              <div className="text-sm text-white/70">Friends Made</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-black text-neon-green mb-2">$2.3K</div>
-              <div className="text-sm text-white/70">Money Saved</div>
-            </div>
-          </div>
-        </Card>
-
         {/* Call to Action */}
         <Card className="bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border-2 border-neon-purple/30 p-8 text-center animate-scale-in" style={{ animationDelay: '0.6s' }}>
           <div className="flex flex-col items-center gap-4">
             <div className="p-4 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-full border-2 border-neon-purple/40">
-              <Gamepad2 className="h-8 w-8 text-neon-purple animate-bounce" />
+              <Gamepad2 className="h-8 w-8 text-neon-purple" />
             </div>
             <div>
               <h2 className="text-2xl font-black gradient-heading mb-2">

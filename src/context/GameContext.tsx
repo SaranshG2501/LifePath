@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
@@ -7,7 +8,8 @@ import {
   updateUserProfile, 
   getUserClassrooms, 
   saveScenarioHistory, 
-  ScenarioChoice 
+  ScenarioChoice,
+  getUserScenarioHistory 
 } from "@/lib/firebase";
 import { Timestamp } from "firebase/firestore";
 
@@ -86,6 +88,27 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole("guest");
     }
   }, [userProfile]);
+
+  // Fetch scenario history when user changes
+  useEffect(() => {
+    const fetchScenarioHistory = async () => {
+      if (!currentUser) {
+        setScenarioHistory([]);
+        return;
+      }
+      
+      try {
+        const history = await getUserScenarioHistory(currentUser.uid);
+        console.log("Fetched scenario history:", history);
+        setScenarioHistory(history);
+      } catch (error) {
+        console.error("Error fetching scenario history:", error);
+        setScenarioHistory([]);
+      }
+    };
+
+    fetchScenarioHistory();
+  }, [currentUser]);
 
   // Check if user has joined any classroom
   useEffect(() => {
@@ -422,6 +445,16 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       toast({
         title: "Login Required",
         description: "Please sign up or login to use classroom mode.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Prevent students from accessing classroom mode without joining a classroom
+    if (mode === "classroom" && userRole === "student" && !hasJoinedClassroom) {
+      toast({
+        title: "Join Classroom Required",
+        description: "You need to join a classroom before using squad mode.",
         variant: "destructive",
       });
       return;
