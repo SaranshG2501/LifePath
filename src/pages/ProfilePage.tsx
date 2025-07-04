@@ -25,7 +25,9 @@ import {
   Crown,
   Shield,
   Gamepad2,
-  History
+  History,
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
 
 // Define interfaces to match the expected types
@@ -39,7 +41,6 @@ interface ScenarioChoice {
 
 interface ScenarioHistoryItem {
   scenarioId: string;
-  title?: string;
   scenarioTitle?: string;
   completedAt: any;
   finalMetrics?: Record<string, number>;
@@ -48,7 +49,7 @@ interface ScenarioHistoryItem {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
   const { scenarioHistory } = useGameContext();
 
   console.log("ProfilePage - userProfile:", userProfile);
@@ -57,6 +58,15 @@ const ProfilePage = () => {
   const getUserRoleDisplay = () => {
     if (!userProfile?.role) return 'Guest';
     return userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1);
+  };
+
+  const handleSwitchRole = async () => {
+    try {
+      await logout();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
   const mockAchievements = [
@@ -138,6 +148,22 @@ const ProfilePage = () => {
               <p className="text-white/70">
                 Joined November 2024
               </p>
+              
+              {/* Guest role switching option */}
+              {userProfile?.role === 'guest' && (
+                <div className="mt-4">
+                  <Button 
+                    onClick={handleSwitchRole}
+                    className="bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 border-2 border-neon-purple/40 text-neon-purple hover:bg-gradient-to-r hover:from-neon-purple/30 hover:to-neon-pink/30 hover:scale-105 transition-all duration-300"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Switch to Teacher/Student
+                  </Button>
+                  <p className="text-sm text-white/50 mt-2">
+                    Sign in as Teacher or Student to unlock more features
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </Card>
@@ -170,7 +196,7 @@ const ProfilePage = () => {
               {scenarioHistory.map((scenario, index) => {
                 const mappedScenario: ScenarioHistoryItem = {
                   scenarioId: scenario.scenarioId,
-                  title: scenario.scenarioTitle || scenario.title,
+                  scenarioTitle: scenario.scenarioTitle,
                   completedAt: scenario.completedAt,
                   finalMetrics: scenario.finalMetrics,
                   choices: scenario.choices?.map(choice => ({
