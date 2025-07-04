@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
+import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw, AlertTriangle, Radio } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom, endLiveSession } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -26,6 +26,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   const [currentClassroom, setCurrentClassroom] = useState(classroom);
   const [activeSession, setActiveSession] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
   const { toast } = useToast();
   
   // Set up real-time listener for classroom updates
@@ -88,6 +89,43 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       console.error("Error refreshing:", error);
     } finally {
       setRefreshing(false);
+    }
+  };
+  
+  const handleEndLiveSession = async () => {
+    if (!activeSession?.id) return;
+    
+    setEndingSession(true);
+    try {
+      const resultPayload = {
+        sessionId: activeSession.id,
+        scenarioTitle: activeSession.scenarioTitle,
+        participants: activeSession.participants || [],
+        choices: activeSession.currentChoices || {},
+        endedAt: new Date(),
+        summary: `Live session "${activeSession.scenarioTitle}" ended by teacher`
+      };
+      
+      await endLiveSession(activeSession.id, classroom.id, resultPayload);
+      
+      // Refresh classroom data to reflect changes
+      await onRefresh();
+      
+      setActiveSession(null);
+      
+      toast({
+        title: "Session Ended",
+        description: `Live session "${activeSession.scenarioTitle}" has been ended successfully.`,
+      });
+    } catch (error) {
+      console.error("Error ending live session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to end the live session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setEndingSession(false);
     }
   };
   
@@ -189,13 +227,90 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               
               {activeSession && (
                 <Badge className="bg-blue-500/20 text-blue-300 border-0">
-                  Live Session
+                  <Radio className="h-3 w-3 mr-1" />
+                  Live Session: {activeSession.scenarioTitle}
                 </Badge>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Live Session Control Panel */}
+      {activeSession && (
+        <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 rounded-lg p-4 border border-red-500/20">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-medium text-white flex items-center gap-2">
+                <Radio className="h-5 w-5 text-red-400 animate-pulse" />
+                Active Live Session
+              </h3>
+              <p className="text-white/70 text-sm">
+                "{activeSession.scenarioTitle}" - {activeSession.participants?.length || 0} participants
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  size="sm"
+                  disabled={endingSession}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  {endingSession ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      Ending...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      End Live Session
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-black/90 border border-red-500/20">
+                <AlertDialogHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-red-500/20 rounded-full">
+                      <AlertTriangle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <AlertDialogTitle className="text-white">End Live Session</AlertDialogTitle>
+                  </div>
+                  <AlertDialogDescription className="text-white/70">
+                    Are you sure you want to end the live session <strong>"{activeSession.scenarioTitle}"</strong>?
+                    <br /><br />
+                    This will:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Disconnect all {activeSession.participants?.length || 0} active participants</li>
+                      <li>Save the current session results</li>
+                      <li>Return students to individual mode</li>
+                      <li>Cannot be undone</li>
+                    </ul>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleEndLiveSession}
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                    disabled={endingSession}
+                  >
+                    {endingSession ? "Ending Session..." : "End Session"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          
+          <div className="text-xs text-red-300 bg-red-900/20 p-2 rounded border border-red-500/30">
+            ⚠️ Students are currently participating in this live session. End the session when ready to conclude the activity.
+          </div>
+        </div>
+      )}
       
       <div>
         <div className="flex justify-between items-center mb-3">
