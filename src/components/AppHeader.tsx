@@ -55,7 +55,7 @@ const AppHeader: React.FC = () => {
               
               {gameMode === "classroom" ? <Button variant="ghost" size="sm" onClick={() => setGameMode("individual")} className="rounded-xl text-white hover:bg-gradient-to-r hover:from-neon-purple/20 hover:to-neon-pink/20 hover:text-neon-purple border-2 border-transparent hover:border-neon-purple/30 transition-all duration-300 px-4 py-3 font-semibold hover:scale-105">
                   <Users className="h-5 w-5 text-neon-purple" />
-                  <span className="hidden md:inline">Squad Mode</span>
+                  <span className="hidden md:inline">Classroom Mode</span>
                   <Sparkles className="h-4 w-4 ml-1 animate-pulse" />
                 </Button> : <Button variant="ghost" size="sm" onClick={() => setGameMode("classroom")} className="rounded-xl text-white hover:bg-gradient-to-r hover:from-neon-blue/20 hover:to-neon-purple/20 hover:text-neon-blue border-2 border-transparent hover:border-neon-blue/30 transition-all duration-300 px-4 py-3 font-semibold hover:scale-105">
                   <User className="h-5 w-5" />
