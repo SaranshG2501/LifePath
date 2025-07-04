@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,7 @@ interface ScenarioChoice {
   metricChanges?: Record<string, number>;
 }
 
-interface ScenarioHistoryItem {
+interface LocalScenarioHistory {
   scenarioId: string;
   scenarioTitle?: string;
   completedAt: any;
@@ -136,7 +135,6 @@ const ProfilePage = () => {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Profile Header */}
         <Card className="teen-card p-8 text-center animate-scale-in">
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
@@ -162,14 +160,12 @@ const ProfilePage = () => {
           </div>
         </Card>
 
-        {/* Decision Metrics */}
         <ProfileStats 
           scenarioHistory={scenarioHistory || []}
           userLevel={1}
           userXp={scenarioHistory.length * 50}
         />
 
-        {/* Scenario History */}
         {scenarioHistory && scenarioHistory.length > 0 ? (
           <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center gap-4 mb-6">
@@ -188,7 +184,7 @@ const ProfilePage = () => {
 
             <div className="space-y-6">
               {scenarioHistory.map((scenario, index) => {
-                const mappedScenario: ScenarioHistoryItem = {
+                const mappedScenario: LocalScenarioHistory = {
                   scenarioId: scenario.scenarioId,
                   scenarioTitle: scenario.scenarioTitle,
                   completedAt: scenario.completedAt,
@@ -236,7 +232,6 @@ const ProfilePage = () => {
           </Card>
         )}
 
-        {/* Achievements - Only show unlocked ones */}
         {mockAchievements.some(achievement => achievement.unlocked) && (
           <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-4 mb-6">
@@ -284,7 +279,6 @@ const ProfilePage = () => {
           </Card>
         )}
 
-        {/* Call to Action */}
         <Card className="bg-gradient-to-r from-neon-purple/10 to-neon-pink/10 border-2 border-neon-purple/30 p-8 text-center animate-scale-in" style={{ animationDelay: '0.6s' }}>
           <div className="flex flex-col items-center gap-4">
             <div className="p-4 bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 rounded-full border-2 border-neon-purple/40">
