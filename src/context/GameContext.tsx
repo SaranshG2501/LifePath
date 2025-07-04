@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -13,12 +12,21 @@ import {
   GameMode,
   UserRole,
   Achievement,
-  ScenarioHistory,
   Metrics,
 } from '@/types/game';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './AuthContext';
 import { scenarios } from '@/data/scenarios';
+
+// Local interface for scenario history to avoid conflicts
+interface LocalScenarioHistory {
+  scenarioId: string;
+  scenarioTitle: string;
+  startedAt: Date;
+  completedAt: Date;
+  choices: any[];
+  finalMetrics: Record<string, number>;
+}
 
 interface GameContextType {
   // Game state
@@ -32,7 +40,7 @@ interface GameContextType {
   
   // Scenarios
   scenarios: Scenario[];
-  scenarioHistory: ScenarioHistory[];
+  scenarioHistory: LocalScenarioHistory[];
   isScenarioHistoryLoading: boolean;
   
   // Game controls
@@ -96,7 +104,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isTeacherViewOpen, setIsTeacherViewOpen] = useState<boolean>(false);
   const [classroomVotingData, setClassroomVotingData] = useState<any | null>(null);
   const [gameMode, setGameMode] = useState<GameMode>('individual');
-  const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistory[]>([]);
+  const [scenarioHistory, setScenarioHistory] = useState<LocalScenarioHistory[]>([]);
   const [isScenarioHistoryLoading, setIsScenarioHistoryLoading] = useState<boolean>(true);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
@@ -119,24 +127,129 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     history: sceneHistory,
   };
 
-  const saveScenarioHistory = async (scenarioData: ScenarioHistory) => {
-    try {
-      if (!currentUser) {
-        console.log("No authenticated user, saving to local storage only");
-        setScenarioHistory(prev => [...prev, scenarioData]);
-        const existingHistory = localStorage.getItem('scenarioHistory');
-        const history = existingHistory ? JSON.parse(existingHistory) : [];
-        history.push(scenarioData);
-        localStorage.setItem('scenarioHistory', JSON.stringify(history));
-        return;
-      }
+  // Load mock data for testing
+  useEffect(() => {
+    const loadMockData = () => {
+      console.log("Loading mock scenario history data...");
+      
+      const mockHistory: LocalScenarioHistory[] = [
+        {
+          scenarioId: 'first-job',
+          scenarioTitle: '🎯 Your First Job Adventure',
+          startedAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
+          completedAt: new Date(Date.now() - 86400000 * 2 + 3600000), // 2 days ago + 1 hour
+          choices: [
+            {
+              sceneId: 'scene1',
+              choiceId: 'choice1',
+              choiceText: 'Accept the challenging project to learn new skills',
+              timestamp: new Date(Date.now() - 86400000 * 2),
+              metricChanges: { knowledge: 10, money: -5 }
+            },
+            {
+              sceneId: 'scene2',
+              choiceId: 'choice2',
+              choiceText: 'Ask for help from a senior colleague',
+              timestamp: new Date(Date.now() - 86400000 * 2 + 1800000),
+              metricChanges: { relationships: 15, happiness: 5 }
+            }
+          ],
+          finalMetrics: {
+            health: 75,
+            money: 65,
+            happiness: 80,
+            knowledge: 85,
+            relationships: 70
+          }
+        },
+        {
+          scenarioId: 'college-debt',
+          scenarioTitle: '🎓 College Debt Dilemma',
+          startedAt: new Date(Date.now() - 86400000), // 1 day ago
+          completedAt: new Date(Date.now() - 86400000 + 2700000), // 1 day ago + 45 minutes
+          choices: [
+            {
+              sceneId: 'scene1',
+              choiceId: 'choice1',
+              choiceText: 'Create a strict budget and stick to it',
+              timestamp: new Date(Date.now() - 86400000),
+              metricChanges: { money: 20, knowledge: 5 }
+            }
+          ],
+          finalMetrics: {
+            health: 60,
+            money: 90,
+            happiness: 65,
+            knowledge: 75,
+            relationships: 55
+          }
+        },
+        {
+          scenarioId: 'friendship-drama',
+          scenarioTitle: '👥 Friendship Drama',
+          startedAt: new Date(Date.now() - 43200000), // 12 hours ago
+          completedAt: new Date(Date.now() - 43200000 + 1800000), // 12 hours ago + 30 minutes
+          choices: [
+            {
+              sceneId: 'scene1',
+              choiceId: 'choice1',
+              choiceText: 'Have an honest conversation with your friend',
+              timestamp: new Date(Date.now() - 43200000),
+              metricChanges: { relationships: 25, happiness: 10 }
+            }
+          ],
+          finalMetrics: {
+            health: 70,
+            money: 50,
+            happiness: 85,
+            knowledge: 60,
+            relationships: 95
+          }
+        }
+      ];
 
-      // For now, just save to local state and localStorage
-      setScenarioHistory(prev => [...prev, scenarioData]);
-      const existingHistory = localStorage.getItem('scenarioHistory');
-      const history = existingHistory ? JSON.parse(existingHistory) : [];
-      history.push(scenarioData);
-      localStorage.setItem('scenarioHistory', JSON.stringify(history));
+      console.log("Mock scenario history loaded:", mockHistory);
+      setScenarioHistory(mockHistory);
+      setIsScenarioHistoryLoading(false);
+      
+      // Also save to localStorage for persistence
+      localStorage.setItem('scenarioHistory', JSON.stringify(mockHistory));
+    };
+
+    // Load from localStorage first, if empty load mock data
+    const fetchScenarioHistory = async () => {
+      try {
+        setIsScenarioHistoryLoading(true);
+        console.log("Fetching scenario history...");
+        
+        const storedHistory = localStorage.getItem('scenarioHistory');
+        if (storedHistory && JSON.parse(storedHistory).length > 0) {
+          const parsedHistory = JSON.parse(storedHistory);
+          console.log("Loaded from localStorage:", parsedHistory);
+          setScenarioHistory(parsedHistory);
+        } else {
+          console.log("No stored history found, loading mock data");
+          loadMockData();
+        }
+      } catch (error) {
+        console.error('Error fetching scenario history:', error);
+        console.log("Error occurred, loading mock data as fallback");
+        loadMockData();
+      } finally {
+        setIsScenarioHistoryLoading(false);
+      }
+    };
+
+    fetchScenarioHistory();
+  }, []);
+
+  const saveScenarioHistory = async (scenarioData: LocalScenarioHistory) => {
+    try {
+      console.log("Saving scenario history:", scenarioData);
+      
+      const newHistory = [...scenarioHistory, scenarioData];
+      setScenarioHistory(newHistory);
+      localStorage.setItem('scenarioHistory', JSON.stringify(newHistory));
       
       toast({
         title: "Progress Saved!",
@@ -152,26 +265,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const fetchScenarioHistory = useCallback(async () => {
+  const fetchScenarioHistoryCallback = useCallback(async () => {
     try {
       setIsScenarioHistoryLoading(true);
       const storedHistory = localStorage.getItem('scenarioHistory');
       if (storedHistory) {
-        setScenarioHistory(JSON.parse(storedHistory));
-      } else {
-        setScenarioHistory([]);
+        const parsedHistory = JSON.parse(storedHistory);
+        console.log("Refreshed scenario history:", parsedHistory);
+        setScenarioHistory(parsedHistory);
       }
     } catch (error) {
       console.error('Error fetching scenario history:', error);
-      setScenarioHistory([]);
     } finally {
       setIsScenarioHistoryLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchScenarioHistory();
-  }, [fetchScenarioHistory]);
 
   const startScenario = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId);
@@ -248,7 +356,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeScenario = async (finalMetrics: Record<string, number>) => {
     if (!currentScenario) return;
 
-    const scenarioData: ScenarioHistory = {
+    const scenarioData: LocalScenarioHistory = {
       scenarioId: currentScenario.id,
       scenarioTitle: currentScenario.title,
       startedAt: new Date(),
@@ -301,7 +409,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     makeChoice,
     resetGame,
     completeScenario,
-    fetchScenarioHistory,
+    fetchScenarioHistory: fetchScenarioHistoryCallback,
     
     // Game modes and settings
     gameMode,

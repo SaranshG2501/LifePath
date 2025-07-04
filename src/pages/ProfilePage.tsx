@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,8 +50,10 @@ const ProfilePage = () => {
   const { userProfile, logout } = useAuth();
   const { scenarioHistory, isScenarioHistoryLoading } = useGameContext();
 
+  console.log("ProfilePage rendering");
   console.log("ProfilePage - userProfile:", userProfile);
   console.log("ProfilePage - scenarioHistory:", scenarioHistory);
+  console.log("ProfilePage - scenarioHistory length:", scenarioHistory?.length || 0);
   console.log("ProfilePage - isScenarioHistoryLoading:", isScenarioHistoryLoading);
 
   const getUserRoleDisplay = () => {
@@ -116,6 +117,7 @@ const ProfilePage = () => {
 
   // Show loading state
   if (isScenarioHistoryLoading) {
+    console.log("ProfilePage showing loading state");
     return (
       <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
         <div className="flex justify-center items-center min-h-screen">
@@ -127,6 +129,8 @@ const ProfilePage = () => {
       </div>
     );
   }
+
+  console.log("ProfilePage rendering main content with scenario count:", scenarioHistory?.length || 0);
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
@@ -173,6 +177,18 @@ const ProfilePage = () => {
                 Joined November 2024
               </p>
             </div>
+          </div>
+        </Card>
+
+        {/* Debug info - remove this in production */}
+        <Card className="bg-yellow-500/10 border border-yellow-500/30 p-4">
+          <div className="text-yellow-400 text-sm">
+            Debug Info: Found {scenarioHistory?.length || 0} scenarios in history
+            {scenarioHistory && scenarioHistory.length > 0 && (
+              <div className="mt-2">
+                Latest scenario: {scenarioHistory[scenarioHistory.length - 1]?.scenarioTitle}
+              </div>
+            )}
           </div>
         </Card>
 
