@@ -60,6 +60,8 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
           <HelpCircle className="h-6 w-6 text-primary" />
           {scene.title}
         </CardTitle>
+        
+        {/* Always show scene description during live sessions */}
         <CardDescription className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20">
           <div className="font-medium text-primary mb-2">Situation:</div>
           {scene.description}

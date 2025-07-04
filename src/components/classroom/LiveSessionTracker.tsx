@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
 
 interface LiveSessionTrackerProps {
@@ -86,11 +86,12 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                 {showResults ? 'Hide' : 'Show'} Results
               </Button>
               <Button 
-                variant="outline" 
+                variant="destructive"
                 size="sm"
                 onClick={onEndSession}
-                className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                className="bg-red-500 hover:bg-red-600 text-white border-0 flex items-center gap-1"
               >
+                <AlertTriangle className="h-4 w-4" />
                 End Session
               </Button>
             </div>

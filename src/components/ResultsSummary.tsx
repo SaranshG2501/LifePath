@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GameState } from '@/types/game';
 import { Button } from '@/components/ui/button';
