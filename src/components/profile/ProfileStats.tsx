@@ -16,61 +16,76 @@ import {
   Users,
   BookOpen
 } from 'lucide-react';
-
-// Use the local ScenarioHistory type from game context
-interface LocalScenarioHistory {
-  scenarioId: string;
-  scenarioTitle: string;
-  startedAt: Date;
-  completedAt: Date;
-  choices: any[];
-  finalMetrics: Record<string, number>;
-}
+import { ScenarioHistory } from '@/types/game';
 
 interface ProfileStatsProps {
-  scenarioHistory: LocalScenarioHistory[];
+  scenarioHistory: ScenarioHistory[];
   userLevel: number;
   userXp: number;
 }
 
 const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel, userXp }) => {
+  console.log("ProfileStats - scenarioHistory:", scenarioHistory);
+
   const getTotalScore = () => {
+    if (!scenarioHistory || scenarioHistory.length === 0) return 0;
+    
     return scenarioHistory.reduce((total, history) => {
-      if (history.finalMetrics) {
-        return total + Object.values(history.finalMetrics).reduce((a, b) => a + b, 0);
+      if (history.finalMetrics && typeof history.finalMetrics === 'object') {
+        const metricsSum = Object.values(history.finalMetrics).reduce((a, b) => {
+          const numA = typeof a === 'number' ? a : 0;
+          const numB = typeof b === 'number' ? b : 0;
+          return numA + numB;
+        }, 0);
+        return total + (typeof metricsSum === 'number' ? metricsSum : 0);
       }
       return total;
     }, 0);
   };
 
   const getAverageScore = () => {
-    if (scenarioHistory.length === 0) return 0;
-    return Math.round(getTotalScore() / scenarioHistory.length);
+    if (!scenarioHistory || scenarioHistory.length === 0) return 0;
+    const totalScore = getTotalScore();
+    return Math.round(totalScore / scenarioHistory.length);
   };
 
   const getMetricAverages = () => {
-    if (scenarioHistory.length === 0) {
+    if (!scenarioHistory || scenarioHistory.length === 0) {
       return { health: 0, money: 0, happiness: 0, knowledge: 0, relationships: 0 };
     }
 
-    const totals = scenarioHistory.reduce((acc, history) => {
-      if (history.finalMetrics) {
+    const totals = { health: 0, money: 0, happiness: 0, knowledge: 0, relationships: 0 };
+    let validScenarios = 0;
+
+    scenarioHistory.forEach(history => {
+      if (history.finalMetrics && typeof history.finalMetrics === 'object') {
+        validScenarios++;
         Object.entries(history.finalMetrics).forEach(([key, value]) => {
-          acc[key] = (acc[key] || 0) + value;
+          if (key in totals && typeof value === 'number') {
+            totals[key as keyof typeof totals] += value;
+          }
         });
       }
-      return acc;
-    }, {} as Record<string, number>);
+    });
+
+    if (validScenarios === 0) {
+      return { health: 0, money: 0, happiness: 0, knowledge: 0, relationships: 0 };
+    }
 
     return Object.fromEntries(
       Object.entries(totals).map(([key, value]) => [
         key, 
-        Math.round(value / scenarioHistory.length)
+        Math.round(value / validScenarios)
       ])
-    );
+    ) as typeof totals;
   };
 
   const averageMetrics = getMetricAverages();
+  const totalScore = getTotalScore();
+  const averageScore = getAverageScore();
+
+  console.log("ProfileStats - averageMetrics:", averageMetrics);
+  console.log("ProfileStats - totalScore:", totalScore);
 
   const metricIcons = {
     health: Heart,
@@ -98,7 +113,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
               <BookOpen className="h-8 w-8 text-blue-400" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white mb-2">{scenarioHistory.length}</div>
+          <div className="text-3xl font-bold text-white mb-2">{scenarioHistory?.length || 0}</div>
           <div className="text-blue-400 font-medium">Scenarios Completed</div>
         </CardContent>
       </Card>
@@ -111,7 +126,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
               <Target className="h-8 w-8 text-green-400" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white mb-2">{getAverageScore()}</div>
+          <div className="text-3xl font-bold text-white mb-2">{averageScore}</div>
           <div className="text-green-400 font-medium">Average Score</div>
         </CardContent>
       </Card>
@@ -124,7 +139,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
               <Trophy className="h-8 w-8 text-purple-400" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white mb-2">{getTotalScore()}</div>
+          <div className="text-3xl font-bold text-white mb-2">{totalScore}</div>
           <div className="text-purple-400 font-medium">Total Score</div>
         </CardContent>
       </Card>
@@ -142,7 +157,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
             </div>
           </div>
           
-          {scenarioHistory.length > 0 ? (
+          {scenarioHistory && scenarioHistory.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.entries(averageMetrics).map(([metric, value]) => {
                 const Icon = metricIcons[metric as keyof typeof metricIcons];
@@ -155,7 +170,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ scenarioHistory, userLevel,
                     </div>
                     <div className="text-2xl font-bold text-white mb-1">{value}</div>
                     <div className="text-sm text-slate-400 capitalize">{metric}</div>
-                    <Progress value={(value / 100) * 100} className="h-2 mt-2" />
+                    <Progress value={Math.min(100, Math.max(0, value))} className="h-2 mt-2" />
                   </div>
                 );
               })}

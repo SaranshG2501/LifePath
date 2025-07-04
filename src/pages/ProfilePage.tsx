@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import {
   LogOut
 } from 'lucide-react';
 
-// Define interfaces to match the expected types
+// Define interfaces to match the expected types for the cards
 interface ScenarioChoice {
   sceneId: string;
   choiceId: string;
@@ -48,10 +49,11 @@ interface LocalScenarioHistory {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile, logout } = useAuth();
-  const { scenarioHistory } = useGameContext();
+  const { scenarioHistory, isScenarioHistoryLoading } = useGameContext();
 
   console.log("ProfilePage - userProfile:", userProfile);
   console.log("ProfilePage - scenarioHistory:", scenarioHistory);
+  console.log("ProfilePage - isScenarioHistoryLoading:", isScenarioHistoryLoading);
 
   const getUserRoleDisplay = () => {
     if (!userProfile?.role) return 'Guest';
@@ -73,7 +75,7 @@ const ProfilePage = () => {
       title: 'First Steps',
       description: 'Complete your first scenario',
       icon: Star,
-      unlocked: scenarioHistory.length >= 1,
+      unlocked: scenarioHistory && scenarioHistory.length >= 1,
       rarity: 'common'
     },
     {
@@ -81,7 +83,7 @@ const ProfilePage = () => {
       title: 'Money Master',
       description: 'Make 5 smart financial decisions',
       icon: DollarSign,
-      unlocked: scenarioHistory.length >= 3,
+      unlocked: scenarioHistory && scenarioHistory.length >= 3,
       rarity: 'rare'
     },
     {
@@ -89,7 +91,7 @@ const ProfilePage = () => {
       title: 'Social Butterfly',
       description: 'Excel in relationship scenarios',
       icon: Heart,
-      unlocked: scenarioHistory.length >= 5,
+      unlocked: scenarioHistory && scenarioHistory.length >= 5,
       rarity: 'epic'
     },
     {
@@ -97,7 +99,7 @@ const ProfilePage = () => {
       title: 'Scholar',
       description: 'Boost knowledge in 10 scenarios',
       icon: BookOpen,
-      unlocked: scenarioHistory.length >= 10,
+      unlocked: scenarioHistory && scenarioHistory.length >= 10,
       rarity: 'legendary'
     }
   ];
@@ -111,6 +113,20 @@ const ProfilePage = () => {
       default: return 'text-gray-400 border-gray-400/30';
     }
   };
+
+  // Show loading state
+  if (isScenarioHistoryLoading) {
+    return (
+      <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-neon-blue mx-auto mb-4"></div>
+            <p className="text-white/70">Loading your profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
@@ -163,7 +179,7 @@ const ProfilePage = () => {
         <ProfileStats 
           scenarioHistory={scenarioHistory || []}
           userLevel={1}
-          userXp={scenarioHistory.length * 50}
+          userXp={(scenarioHistory?.length || 0) * 50}
         />
 
         {scenarioHistory && scenarioHistory.length > 0 ? (
@@ -190,8 +206,8 @@ const ProfilePage = () => {
                   completedAt: scenario.completedAt,
                   finalMetrics: scenario.finalMetrics,
                   choices: scenario.choices?.map(choice => ({
-                    sceneId: choice.sceneId,
-                    choiceId: choice.choiceId,
+                    sceneId: choice.sceneId || '',
+                    choiceId: choice.choiceId || '',
                     choiceText: choice.choiceText || '',
                     timestamp: choice.timestamp,
                     metricChanges: choice.metricChanges
