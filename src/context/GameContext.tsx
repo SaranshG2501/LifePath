@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -19,14 +18,21 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './AuthContext';
 import { scenarios } from '@/data/scenarios';
 
-// Local interface for scenario history to avoid conflicts
-interface LocalScenarioHistory {
+// Simple scenario history interface
+interface ScenarioHistoryItem {
+  id: string;
   scenarioId: string;
-  scenarioTitle: string;
-  startedAt: Date;
-  completedAt: Date;
-  choices: any[];
-  finalMetrics: Record<string, number>;
+  title: string;
+  completedAt: string;
+  score: number;
+  choices: number;
+  metrics: {
+    health: number;
+    money: number;
+    happiness: number;
+    knowledge: number;
+    relationships: number;
+  };
 }
 
 interface GameContextType {
@@ -41,8 +47,8 @@ interface GameContextType {
   
   // Scenarios
   scenarios: Scenario[];
-  scenarioHistory: LocalScenarioHistory[];
-  isScenarioHistoryLoading: boolean;
+  scenarioHistory: ScenarioHistoryItem[];
+  isHistoryLoading: boolean;
   
   // Game controls
   startScenario: (id: string) => Promise<void>;
@@ -50,8 +56,7 @@ interface GameContextType {
   makeChoice: (choiceId: string) => void;
   resetGame: () => void;
   completeScenario: (finalMetrics: Record<string, number>) => Promise<void>;
-  fetchScenarioHistory: () => Promise<void>;
-  refreshScenarioHistory: () => Promise<void>;
+  refreshHistory: () => void;
   
   // Game modes and settings
   gameMode: GameMode;
@@ -107,8 +112,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isTeacherViewOpen, setIsTeacherViewOpen] = useState<boolean>(false);
   const [classroomVotingData, setClassroomVotingData] = useState<any | null>(null);
   const [gameMode, setGameMode] = useState<GameMode>('individual');
-  const [scenarioHistory, setScenarioHistory] = useState<LocalScenarioHistory[]>([]);
-  const [isScenarioHistoryLoading, setIsScenarioHistoryLoading] = useState<boolean>(false);
+  const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
@@ -130,127 +135,73 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     history: sceneHistory,
   };
 
-  // Enhanced mock data generation with immediate loading
-  const generateMockHistory = useCallback(() => {
-    console.log("🎮 Generating fresh mock scenario history...");
-    
-    const mockHistory: LocalScenarioHistory[] = [
+  // Generate fresh mock history data
+  const generateHistory = useCallback((): ScenarioHistoryItem[] => {
+    const historyItems: ScenarioHistoryItem[] = [
       {
+        id: '1',
         scenarioId: 'first-job',
-        scenarioTitle: '🎯 Your First Job Adventure',
-        startedAt: new Date(Date.now() - 86400000 * 2),
-        completedAt: new Date(Date.now() - 86400000 * 2 + 3600000),
-        choices: [
-          {
-            sceneId: 'scene1',
-            choiceId: 'choice1',
-            choiceText: 'Accept the challenging project to learn new skills and prove your worth',
-            timestamp: new Date(Date.now() - 86400000 * 2),
-            metricChanges: { knowledge: 15, money: -5, health: -5 }
-          },
-          {
-            sceneId: 'scene2',
-            choiceId: 'choice2',
-            choiceText: 'Ask for help from a senior colleague and build relationships',
-            timestamp: new Date(Date.now() - 86400000 * 2 + 1800000),
-            metricChanges: { relationships: 20, happiness: 10, knowledge: 5 }
-          }
-        ],
-        finalMetrics: {
-          health: 75,
-          money: 65,
-          happiness: 80,
-          knowledge: 85,
-          relationships: 70
-        }
+        title: 'Your First Job Adventure',
+        completedAt: new Date(Date.now() - 86400000).toISOString(),
+        score: 385,
+        choices: 4,
+        metrics: { health: 75, money: 80, happiness: 85, knowledge: 90, relationships: 85 }
       },
       {
+        id: '2',
         scenarioId: 'college-debt',
-        scenarioTitle: '🎓 College Debt Dilemma',
-        startedAt: new Date(Date.now() - 86400000),
-        completedAt: new Date(Date.now() - 86400000 + 2700000),
-        choices: [
-          {
-            sceneId: 'scene1',
-            choiceId: 'choice1',
-            choiceText: 'Create a strict budget and stick to it religiously',
-            timestamp: new Date(Date.now() - 86400000),
-            metricChanges: { money: 25, knowledge: 10, happiness: -5 }
-          }
-        ],
-        finalMetrics: {
-          health: 60,
-          money: 90,
-          happiness: 65,
-          knowledge: 75,
-          relationships: 55
-        }
+        title: 'College Debt Dilemma',
+        completedAt: new Date(Date.now() - 172800000).toISOString(),
+        score: 340,
+        choices: 3,
+        metrics: { health: 65, money: 95, happiness: 60, knowledge: 80, relationships: 70 }
       },
       {
+        id: '3',
         scenarioId: 'friendship-drama',
-        scenarioTitle: '👥 Friendship Drama Crisis',
-        startedAt: new Date(Date.now() - 43200000),
-        completedAt: new Date(Date.now() - 43200000 + 1800000),
-        choices: [
-          {
-            sceneId: 'scene1',
-            choiceId: 'choice1',
-            choiceText: 'Have an honest conversation with your friend',
-            timestamp: new Date(Date.now() - 43200000),
-            metricChanges: { relationships: 30, happiness: 15 }
-          }
-        ],
-        finalMetrics: {
-          health: 70,
-          money: 50,
-          happiness: 85,
-          knowledge: 60,
-          relationships: 95
-        }
+        title: 'Friendship Drama Crisis',
+        completedAt: new Date(Date.now() - 259200000).toISOString(),
+        score: 410,
+        choices: 5,
+        metrics: { health: 80, money: 70, happiness: 90, knowledge: 75, relationships: 95 }
       }
     ];
-
-    console.log("✅ Mock history generated:", mockHistory.length, "scenarios");
-    return mockHistory;
+    
+    console.log('Generated fresh history:', historyItems);
+    return historyItems;
   }, []);
 
-  // Initialize history immediately
+  // Load history on mount
   useEffect(() => {
-    console.log("🚀 Initializing scenario history...");
-    setIsScenarioHistoryLoading(true);
-    
-    const history = generateMockHistory();
-    setScenarioHistory(history);
-    localStorage.setItem('scenarioHistory', JSON.stringify(history));
+    console.log('Loading scenario history...');
+    setIsHistoryLoading(true);
     
     setTimeout(() => {
-      setIsScenarioHistoryLoading(false);
-      console.log("✅ History loading complete!");
+      const history = generateHistory();
+      setScenarioHistory(history);
+      localStorage.setItem('lifepath_history', JSON.stringify(history));
+      setIsHistoryLoading(false);
+      console.log('History loaded successfully');
     }, 500);
-  }, [generateMockHistory]);
+  }, [generateHistory]);
 
-  const fetchScenarioHistoryCallback = useCallback(async () => {
-    console.log("🔄 Refreshing scenario history...");
-    setIsScenarioHistoryLoading(true);
+  // Refresh history function
+  const refreshHistory = useCallback(() => {
+    console.log('Refreshing history...');
+    setIsHistoryLoading(true);
     
-    try {
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate loading
-      const newHistory = generateMockHistory();
+    setTimeout(() => {
+      const newHistory = generateHistory();
       setScenarioHistory(newHistory);
-      localStorage.setItem('scenarioHistory', JSON.stringify(newHistory));
+      localStorage.setItem('lifepath_history', JSON.stringify(newHistory));
+      setIsHistoryLoading(false);
       
       toast({
-        title: "🎉 History Refreshed!",
-        description: "Your epic adventures have been updated.",
+        title: "History Refreshed!",
+        description: "Your adventure history has been updated.",
       });
-    } catch (error) {
-      console.error('Error refreshing history:', error);
-    } finally {
-      setIsScenarioHistoryLoading(false);
-    }
-  }, [generateMockHistory, toast]);
-
-  const refreshScenarioHistory = fetchScenarioHistoryCallback;
+    }, 300);
+  }, [generateHistory, toast]);
 
   const startScenario = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId);
@@ -295,7 +246,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (choice.nextSceneId === 'end') {
-      // End of scenario
       return;
     }
 
@@ -327,18 +277,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeScenario = async (finalMetrics: Record<string, number>) => {
     if (!currentScenario) return;
 
-    const scenarioData: LocalScenarioHistory = {
+    const newHistoryItem: ScenarioHistoryItem = {
+      id: Date.now().toString(),
       scenarioId: currentScenario.id,
-      scenarioTitle: currentScenario.title,
-      startedAt: new Date(),
-      completedAt: new Date(),
-      choices: sceneHistory,
-      finalMetrics: finalMetrics,
+      title: currentScenario.title,
+      completedAt: new Date().toISOString(),
+      score: Object.values(finalMetrics).reduce((a, b) => a + b, 0),
+      choices: sceneHistory.length,
+      metrics: {
+        health: finalMetrics.health || 0,
+        money: finalMetrics.money || 0,
+        happiness: finalMetrics.happiness || 0,
+        knowledge: finalMetrics.knowledge || 0,
+        relationships: finalMetrics.relationships || 0,
+      }
     };
 
-    // Save to local history instead of calling undefined function
-    setScenarioHistory(prev => [scenarioData, ...prev]);
-    localStorage.setItem('scenarioHistory', JSON.stringify([scenarioData, ...scenarioHistory]));
+    // Add to history
+    setScenarioHistory(prev => [newHistoryItem, ...prev]);
+    localStorage.setItem('lifepath_history', JSON.stringify([newHistoryItem, ...scenarioHistory]));
     
     resetGame();
   };
@@ -375,7 +332,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Scenarios
     scenarios,
     scenarioHistory,
-    isScenarioHistoryLoading,
+    isHistoryLoading,
     
     // Game controls
     startScenario,
@@ -383,8 +340,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     makeChoice,
     resetGame,
     completeScenario,
-    fetchScenarioHistory: fetchScenarioHistoryCallback,
-    refreshScenarioHistory,
+    refreshHistory,
     
     // Game modes and settings
     gameMode,

@@ -20,27 +20,35 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
   const { currentUser } = useAuth();
   const isGuest = !currentUser;
 
+  const handleModeChange = (mode: GameMode) => {
+    if (disabled) return;
+    if (mode === 'classroom' && isGuest) {
+      return; // Prevent guests from switching to classroom mode
+    }
+    onModeChange(mode);
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
       <Card 
         className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
           currentMode === 'individual' 
             ? 'border-primary bg-primary/10' 
             : 'border-white/20 hover:border-primary/50'
         }`}
-        onClick={() => !disabled && onModeChange('individual')}
+        onClick={() => handleModeChange('individual')}
       >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <User className="h-5 w-5" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-white text-sm">
+            <User className="h-4 w-4" />
             Individual Play
           </CardTitle>
-          <CardDescription className="text-white/70">
+          <CardDescription className="text-white/70 text-xs">
             Play scenarios at your own pace
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-white/80">
+        <CardContent className="pt-0">
+          <p className="text-xs text-white/80">
             Complete scenarios independently and track your personal progress.
           </p>
         </CardContent>
@@ -54,20 +62,20 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
               ? 'border-primary bg-primary/10 cursor-pointer hover:shadow-lg' 
               : 'border-white/20 hover:border-primary/50 cursor-pointer hover:shadow-lg'
         }`}
-        onClick={() => !disabled && !isGuest && onModeChange('classroom')}
+        onClick={() => handleModeChange('classroom')}
       >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Users className="h-5 w-5" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-white text-sm">
+            <Users className="h-4 w-4" />
             Classroom Mode
-            {isGuest && <Lock className="h-4 w-4 text-gray-400" />}
+            {isGuest && <Lock className="h-3 w-3 text-gray-400" />}
           </CardTitle>
-          <CardDescription className="text-white/70">
+          <CardDescription className="text-white/70 text-xs">
             {isGuest ? 'Login required' : 'Collaborate with your class'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-white/80">
+        <CardContent className="pt-0">
+          <p className="text-xs text-white/80">
             {isGuest 
               ? 'Sign in or create an account to access classroom features.'
               : 'Vote on decisions together and see class results in real-time.'
