@@ -48,6 +48,7 @@ interface ScenarioChoice {
 interface LocalScenarioHistory {
   scenarioId: string;
   scenarioTitle?: string;
+  startedAt?: any;
   completedAt: any;
   finalMetrics?: Record<string, number>;
   choices?: ScenarioChoice[];
@@ -56,7 +57,7 @@ interface LocalScenarioHistory {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile, logout } = useAuth();
-  const { scenarioHistory, isScenarioHistoryLoading, fetchScenarioHistory } = useGameContext();
+  const { scenarioHistory, isScenarioHistoryLoading, fetchScenarioHistory, refreshScenarioHistory } = useGameContext();
   const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -71,8 +72,8 @@ const ProfilePage = () => {
   const handleRefreshHistory = async () => {
     setIsRefreshing(true);
     try {
-      if (fetchScenarioHistory) {
-        await fetchScenarioHistory();
+      if (refreshScenarioHistory) {
+        await refreshScenarioHistory();
       }
     } catch (error) {
       console.error('Failed to refresh history:', error);
@@ -92,6 +93,7 @@ const ProfilePage = () => {
     const mappedHistory: ScenarioHistory = {
       scenarioId: scenario.scenarioId,
       scenarioTitle: scenario.scenarioTitle,
+      startedAt: scenario.startedAt || scenario.completedAt,
       completedAt: scenario.completedAt,
       finalMetrics: {
         health: scenario.finalMetrics?.health || 0,
@@ -299,6 +301,7 @@ const ProfilePage = () => {
                   const mappedScenario: LocalScenarioHistory = {
                     scenarioId: scenario.scenarioId,
                     scenarioTitle: scenario.scenarioTitle,
+                    startedAt: scenario.startedAt,
                     completedAt: scenario.completedAt,
                     finalMetrics: scenario.finalMetrics,
                     choices: scenario.choices?.map(choice => ({
