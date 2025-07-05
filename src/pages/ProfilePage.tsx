@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,6 +112,7 @@ const ProfilePage = () => {
       }))
     };
     
+    console.log("Opening details for scenario:", mappedHistory);
     setSelectedHistory(mappedHistory);
     setIsDetailOpen(true);
   };
@@ -178,17 +180,17 @@ const ProfilePage = () => {
   if (isScenarioHistoryLoading) {
     console.log("ProfilePage showing loading state");
     return (
-      <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+      <div className="container mx-auto px-4 py-4 animate-fade-in">
         <div className="flex justify-center items-center min-h-screen">
           <div className="text-center">
             <div className="relative">
-              <div className="animate-spin rounded-full h-20 w-20 border-4 border-neon-blue/30 border-t-neon-blue mx-auto mb-6"></div>
-              <div className="absolute inset-0 animate-ping rounded-full h-20 w-20 border-2 border-neon-purple/20 mx-auto"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-neon-blue/30 border-t-neon-blue mx-auto mb-4"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-neon-purple/20 mx-auto"></div>
             </div>
-            <p className="text-white/80 text-xl font-bold flex items-center justify-center gap-2">
-              <Zap className="h-6 w-6 text-neon-blue animate-pulse" />
+            <p className="text-white/80 text-lg font-bold flex items-center justify-center gap-2">
+              <Zap className="h-5 w-5 text-neon-blue animate-pulse" />
               Loading your epic profile...
-              <Bolt className="h-6 w-6 text-neon-yellow animate-bounce-light" />
+              <Bolt className="h-5 w-5 text-neon-yellow animate-bounce-light" />
             </p>
           </div>
         </div>
@@ -199,40 +201,40 @@ const ProfilePage = () => {
   console.log("ProfilePage rendering main content with scenario count:", scenarioHistory?.length || 0);
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-800">
-      {/* Enhanced floating background elements */}
+    <div className="container mx-auto px-4 py-4 animate-fade-in min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/15 to-slate-800">
+      {/* Compact floating background elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-40 h-40 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-56 h-56 bg-gradient-to-r from-neon-pink/10 to-neon-yellow/10 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-gradient-to-r from-neon-green/10 to-neon-cyan/10 rounded-full blur-2xl animate-pulse-glow"></div>
+        <div className="absolute top-10 left-5 w-24 h-24 bg-gradient-to-r from-neon-blue/8 to-neon-purple/8 rounded-full blur-2xl animate-float"></div>
+        <div className="absolute bottom-10 right-5 w-32 h-32 bg-gradient-to-r from-neon-pink/8 to-neon-yellow/8 rounded-full blur-2xl animate-pulse-slow"></div>
+        <div className="absolute top-1/2 left-1/2 w-20 h-20 bg-gradient-to-r from-neon-green/8 to-neon-cyan/8 rounded-full blur-xl animate-pulse-glow"></div>
       </div>
 
       <div className="relative z-10">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/')} 
-            className="flex items-center gap-3 rounded-2xl text-white border-2 border-white/20 hover:bg-white/10 hover:scale-105 transition-all duration-300 px-6 py-3 font-bold shadow-lg hover:shadow-xl backdrop-blur-sm"
+            className="flex items-center gap-2 rounded-xl text-white border border-white/20 hover:bg-white/10 hover:scale-105 transition-all duration-300 px-4 py-2 font-bold shadow-lg hover:shadow-xl backdrop-blur-sm"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
             Back to Home
           </Button>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
               onClick={handleRefreshHistory}
               disabled={isRefreshing}
-              className="flex items-center gap-2 rounded-2xl border-2 border-neon-blue/60 bg-gradient-to-r from-neon-blue/20 to-neon-cyan/20 text-neon-blue hover:bg-gradient-to-r hover:from-neon-blue/30 hover:to-neon-cyan/30 hover:border-neon-blue/80 transition-all duration-300 px-6 py-3 font-bold hover:scale-105 shadow-lg hover:shadow-neon-blue/30"
+              className="flex items-center gap-2 rounded-xl border border-neon-blue/50 bg-gradient-to-r from-neon-blue/15 to-neon-cyan/15 text-neon-blue hover:bg-gradient-to-r hover:from-neon-blue/25 hover:to-neon-cyan/25 hover:border-neon-blue/70 transition-all duration-300 px-4 py-2 font-bold hover:scale-105 shadow-lg hover:shadow-neon-blue/20"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh History'}
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
             
             <Button 
               variant="outline" 
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-2xl border-2 border-red-400/60 bg-gradient-to-r from-red-900/40 to-red-800/40 text-red-300 hover:bg-gradient-to-r hover:from-red-800/60 hover:to-red-700/60 hover:border-red-300/80 transition-all duration-300 px-6 py-3 font-bold hover:scale-105 shadow-lg hover:shadow-red-500/30"
+              className="flex items-center gap-2 rounded-xl border border-red-400/50 bg-gradient-to-r from-red-900/30 to-red-800/30 text-red-300 hover:bg-gradient-to-r hover:from-red-800/50 hover:to-red-700/50 hover:border-red-300/70 transition-all duration-300 px-4 py-2 font-bold hover:scale-105 shadow-lg hover:shadow-red-500/20"
             >
               <LogOut className="h-4 w-4" />
               Logout
@@ -240,31 +242,31 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto space-y-10">
-          <Card className="teen-card p-10 text-center animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-4 border-neon-purple/50 shadow-2xl shadow-neon-purple/20 rounded-3xl">
-            <div className="flex flex-col items-center gap-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <Card className="teen-card p-6 text-center animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-2 border-neon-purple/40 shadow-xl shadow-neon-purple/15 rounded-2xl">
+            <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink rounded-full blur-3xl opacity-75 animate-pulse-slow"></div>
-                <div className="relative w-32 h-32 bg-gradient-to-r from-neon-blue/40 to-neon-purple/40 rounded-full flex items-center justify-center border-4 border-neon-purple/80 shadow-2xl shadow-neon-purple/50">
-                  <User className="h-16 w-16 text-neon-blue drop-shadow-lg" />
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink rounded-full blur-2xl opacity-60 animate-pulse-slow"></div>
+                <div className="relative w-20 h-20 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 rounded-full flex items-center justify-center border-2 border-neon-purple/60 shadow-xl shadow-neon-purple/40">
+                  <User className="h-10 w-10 text-neon-blue drop-shadow-lg" />
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl font-black gradient-heading flex items-center justify-center gap-3">
-                  <Crown className="h-12 w-12 text-neon-yellow animate-pulse" />
+              <div className="space-y-2">
+                <h1 className="text-2xl md:text-3xl font-black gradient-heading flex items-center justify-center gap-2">
+                  <Crown className="h-8 w-8 text-neon-yellow animate-pulse" />
                   {userProfile?.displayName || 'Epic Hero'}
-                  <Gem className="h-10 w-10 text-neon-pink animate-bounce-light" />
+                  <Gem className="h-6 w-6 text-neon-pink animate-bounce-light" />
                 </h1>
-                <div className="flex items-center justify-center gap-3">
-                  <Shield className="h-6 w-6 text-neon-purple" />
-                  <span className="text-neon-purple font-black text-xl">{getUserRoleDisplay()}</span>
-                  <Sparkles className="h-5 w-5 text-neon-pink animate-pulse" />
+                <div className="flex items-center justify-center gap-2">
+                  <Shield className="h-4 w-4 text-neon-purple" />
+                  <span className="text-neon-purple font-bold text-lg">{getUserRoleDisplay()}</span>
+                  <Sparkles className="h-4 w-4 text-neon-pink animate-pulse" />
                 </div>
-                <p className="text-white/80 text-lg font-bold flex items-center justify-center gap-2">
-                  <Calendar className="h-5 w-5 text-neon-blue" />
+                <p className="text-white/70 text-sm font-medium flex items-center justify-center gap-2">
+                  <Calendar className="h-4 w-4 text-neon-blue" />
                   Joined November 2024 - Epic Journey Begins!
-                  <Rocket className="h-5 w-5 text-neon-cyan animate-bounce-light" />
+                  <Rocket className="h-4 w-4 text-neon-cyan animate-bounce-light" />
                 </p>
               </div>
             </div>
@@ -277,26 +279,26 @@ const ProfilePage = () => {
           />
 
           {scenarioHistory && scenarioHistory.length > 0 ? (
-            <Card className="teen-card p-10 animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-4 border-neon-blue/50 shadow-2xl shadow-neon-blue/20 rounded-3xl" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-6 mb-8">
-                <div className="p-4 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 rounded-2xl border-4 border-neon-blue/60 shadow-xl shadow-neon-blue/40">
-                  <History className="h-8 w-8 text-neon-blue drop-shadow-lg" />
+            <Card className="teen-card p-6 animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-2 border-neon-blue/40 shadow-xl shadow-neon-blue/15 rounded-2xl" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-gradient-to-r from-neon-blue/25 to-neon-purple/25 rounded-xl border-2 border-neon-blue/50 shadow-lg shadow-neon-blue/30">
+                  <History className="h-6 w-6 text-neon-blue drop-shadow-lg" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                  <h2 className="text-xl font-black text-white flex items-center gap-2">
                     Your Epic Adventure Chronicle
-                    <Bolt className="h-8 w-8 text-neon-yellow animate-pulse" />
+                    <Bolt className="h-6 w-6 text-neon-yellow animate-pulse" />
                   </h2>
-                  <p className="text-white/80 font-bold text-lg">Relive your legendary scenarios and power moves</p>
+                  <p className="text-white/70 font-medium text-sm">Relive your legendary scenarios and power moves</p>
                 </div>
-                <Badge className="bg-gradient-to-r from-neon-blue/40 to-neon-purple/40 text-neon-blue border-4 border-neon-blue/60 px-6 py-4 shadow-xl font-black text-xl rounded-2xl">
-                  <Zap className="h-5 w-5 mr-2 animate-pulse" />
+                <Badge className="bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 text-neon-blue border-2 border-neon-blue/50 px-4 py-2 shadow-lg font-bold text-lg rounded-xl">
+                  <Zap className="h-4 w-4 mr-2 animate-pulse" />
                   {scenarioHistory.length} COMPLETED
-                  <Trophy className="h-5 w-5 ml-2 text-neon-yellow" />
+                  <Trophy className="h-4 w-4 ml-2 text-neon-yellow" />
                 </Badge>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-4">
                 {scenarioHistory.map((scenario, index) => {
                   const mappedScenario: LocalScenarioHistory = {
                     scenarioId: scenario.scenarioId,
@@ -321,11 +323,11 @@ const ProfilePage = () => {
                       />
                       <Button 
                         onClick={() => handleViewDetails(mappedScenario)}
-                        className="absolute top-4 right-4 bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 text-neon-purple border-2 border-neon-purple/50 hover:bg-gradient-to-r hover:from-neon-purple/50 hover:to-neon-pink/50 hover:border-neon-purple/80 transition-all duration-300 px-4 py-2 font-bold rounded-xl hover:scale-105 shadow-lg hover:shadow-neon-purple/30"
+                        className="absolute top-3 right-3 bg-gradient-to-r from-neon-purple/25 to-neon-pink/25 text-neon-purple border border-neon-purple/40 hover:bg-gradient-to-r hover:from-neon-purple/40 hover:to-neon-pink/40 hover:border-neon-purple/60 transition-all duration-300 px-3 py-2 font-bold rounded-lg hover:scale-105 shadow-lg hover:shadow-neon-purple/20 text-sm"
                       >
-                        <Target className="h-4 w-4 mr-2" />
-                        View Epic Details
-                        <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
+                        <Target className="h-3 w-3 mr-1" />
+                        View Details
+                        <Sparkles className="h-3 w-3 ml-1 animate-pulse" />
                       </Button>
                     </div>
                   );
@@ -333,26 +335,26 @@ const ProfilePage = () => {
               </div>
             </Card>
           ) : (
-            <Card className="teen-card p-10 text-center animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-4 border-neon-blue/50 shadow-2xl shadow-neon-blue/20 rounded-3xl" style={{ animationDelay: '0.2s' }}>
-              <div className="flex flex-col items-center gap-6">
-                <div className="p-6 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 rounded-full border-4 border-neon-blue/60 animate-pulse-glow shadow-xl shadow-neon-blue/40">
-                  <History className="h-12 w-12 text-neon-blue drop-shadow-lg" />
+            <Card className="teen-card p-6 text-center animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-2 border-neon-blue/40 shadow-xl shadow-neon-blue/15 rounded-2xl" style={{ animationDelay: '0.2s' }}>
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-gradient-to-r from-neon-blue/25 to-neon-purple/25 rounded-full border-2 border-neon-blue/50 animate-pulse-glow shadow-lg shadow-neon-blue/30">
+                  <History className="h-8 w-8 text-neon-blue drop-shadow-lg" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-white mb-4 flex items-center justify-center gap-3">
+                  <h2 className="text-xl font-bold text-white mb-3 flex items-center justify-center gap-2">
                     No Epic Adventures Yet!
-                    <Rocket className="h-8 w-8 text-neon-cyan animate-bounce-light" />
+                    <Rocket className="h-6 w-6 text-neon-cyan animate-bounce-light" />
                   </h2>
-                  <p className="text-white/80 mb-8 text-lg font-bold">
+                  <p className="text-white/70 mb-6 text-sm font-medium">
                     Start your first legendary scenario to see your epic journey unfold here.
                   </p>
                   <Button 
                     onClick={() => navigate('/game')}
-                    className="btn-primary text-xl px-10 py-5 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 border-4 border-neon-blue/60 text-neon-blue hover:from-neon-blue/50 hover:to-neon-purple/50 hover:border-neon-blue/80 font-black rounded-2xl shadow-2xl hover:shadow-neon-blue/40"
+                    className="btn-primary text-lg px-8 py-3 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-neon-blue/25 to-neon-purple/25 border-2 border-neon-blue/50 text-neon-blue hover:from-neon-blue/40 hover:to-neon-purple/40 hover:border-neon-blue/70 font-bold rounded-xl shadow-xl hover:shadow-neon-blue/30"
                   >
-                    <Zap className="h-6 w-6 mr-3" />
+                    <Zap className="h-5 w-5 mr-2" />
                     Start Your First Epic Quest
-                    <Sparkles className="h-5 w-5 ml-3 animate-pulse" />
+                    <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
                   </Button>
                 </div>
               </div>
@@ -360,45 +362,45 @@ const ProfilePage = () => {
           )}
 
           {mockAchievements.some(achievement => achievement.unlocked) && (
-            <Card className="teen-card p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-xl border-2 border-neon-yellow/40">
-                  <Award className="h-6 w-6 text-neon-yellow" />
+            <Card className="teen-card p-6 animate-scale-in" style={{ animationDelay: '0.3s' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 rounded-lg border border-neon-yellow/30">
+                  <Award className="h-5 w-5 text-neon-yellow" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-white">Achievements</h2>
-                  <p className="text-white/70">Your epic accomplishments</p>
+                  <h2 className="text-lg font-bold text-white">Achievements</h2>
+                  <p className="text-white/60 text-sm">Your epic accomplishments</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {mockAchievements.filter(achievement => achievement.unlocked).map((achievement, index) => (
                   <Card 
                     key={achievement.id}
-                    className={`p-6 border-2 transition-all duration-300 hover:scale-105 animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 ${getRarityColor(achievement.rarity)} shadow-lg hover:shadow-xl`}
+                    className={`p-4 border transition-all duration-300 hover:scale-105 animate-scale-in bg-gradient-to-br from-slate-800/90 to-slate-700/90 ${getRarityColor(achievement.rarity)} shadow-lg hover:shadow-xl rounded-xl`}
                     style={{ animationDelay: `${0.4 + index * 0.1}s` }}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-xl border-2 ${getRarityColor(achievement.rarity)} bg-gradient-to-r from-current/10 to-current/5`}>
-                        <achievement.icon className={`h-6 w-6 ${getRarityColor(achievement.rarity).split(' ')[0]}`} />
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg border ${getRarityColor(achievement.rarity)} bg-gradient-to-r from-current/10 to-current/5`}>
+                        <achievement.icon className={`h-5 w-5 ${getRarityColor(achievement.rarity).split(' ')[0]}`} />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-bold text-white">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-white text-sm">
                             {achievement.title}
                           </h3>
                           <Badge 
                             variant="outline" 
-                            className={`text-xs px-2 py-1 ${getRarityColor(achievement.rarity)}`}
+                            className={`text-xs px-2 py-0.5 ${getRarityColor(achievement.rarity)}`}
                           >
                             {achievement.rarity}
                           </Badge>
                         </div>
-                        <p className="text-sm text-white/70">
+                        <p className="text-xs text-white/60">
                           {achievement.description}
                         </p>
                       </div>
-                      <Sparkles className="h-5 w-5 text-neon-yellow animate-pulse" />
+                      <Sparkles className="h-4 w-4 text-neon-yellow animate-pulse" />
                     </div>
                   </Card>
                 ))}
@@ -406,26 +408,26 @@ const ProfilePage = () => {
             </Card>
           )}
 
-          <Card className="bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 border-4 border-neon-purple/50 p-10 text-center animate-scale-in rounded-3xl shadow-2xl shadow-neon-purple/20" style={{ animationDelay: '0.6s' }}>
-            <div className="flex flex-col items-center gap-6">
-              <div className="p-6 bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 rounded-full border-4 border-neon-purple/60 shadow-xl shadow-neon-purple/40">
-                <Gamepad2 className="h-12 w-12 text-neon-purple drop-shadow-lg" />
+          <Card className="bg-gradient-to-r from-neon-purple/15 to-neon-pink/15 border-2 border-neon-purple/40 p-6 text-center animate-scale-in rounded-2xl shadow-xl shadow-neon-purple/15" style={{ animationDelay: '0.6s' }}>
+            <div className="flex flex-col items-center gap-4">
+              <div className="p-4 bg-gradient-to-r from-neon-purple/25 to-neon-pink/25 rounded-full border-2 border-neon-purple/50 shadow-lg shadow-neon-purple/30">
+                <Gamepad2 className="h-8 w-8 text-neon-purple drop-shadow-lg" />
               </div>
               <div>
-                <h2 className="text-3xl font-black gradient-heading mb-4 flex items-center justify-center gap-3">
+                <h2 className="text-xl font-bold gradient-heading mb-3 flex items-center justify-center gap-2">
                   Ready for Your Next Epic Adventure?
-                  <Crown className="h-8 w-8 text-neon-yellow animate-pulse" />
+                  <Crown className="h-6 w-6 text-neon-yellow animate-pulse" />
                 </h2>
-                <p className="text-white/80 mb-8 text-lg font-bold">
+                <p className="text-white/70 mb-6 text-sm font-medium">
                   Jump back into LifePath and continue leveling up your legendary decision-making powers!
                 </p>
                 <Button 
                   onClick={() => navigate('/game')}
-                  className="btn-primary text-xl px-10 py-5 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 border-4 border-neon-purple/60 text-neon-purple hover:from-neon-purple/50 hover:to-neon-pink/50 hover:border-neon-purple/80 font-black rounded-2xl shadow-2xl hover:shadow-neon-purple/40"
+                  className="btn-primary text-lg px-8 py-3 hover:scale-110 transition-all duration-300 bg-gradient-to-r from-neon-purple/25 to-neon-pink/25 border-2 border-neon-purple/50 text-neon-purple hover:from-neon-purple/40 hover:to-neon-pink/40 hover:border-neon-purple/70 font-bold rounded-xl shadow-xl hover:shadow-neon-purple/30"
                 >
-                  <Zap className="h-6 w-6 mr-3" />
+                  <Zap className="h-5 w-5 mr-2" />
                   Start New Epic Scenario
-                  <Bolt className="h-5 w-5 ml-3 animate-bounce-light" />
+                  <Bolt className="h-4 w-4 ml-2 animate-bounce-light" />
                 </Button>
               </div>
             </div>

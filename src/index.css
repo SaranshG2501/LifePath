@@ -39,9 +39,10 @@
 @layer base {
   body {
     @apply bg-background text-foreground font-poppins;
-    background: linear-gradient(135deg, #0f0f23 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #0d1117 100%);
+    background: linear-gradient(135deg, #0f0f23 0%, #1a0b2e 20%, #16213e 40%, #0f3460 60%, #0d1117 80%, #1a0b2e 100%);
     background-attachment: fixed;
     background-size: 400% 400%;
+    animation: gradient-flow 15s ease-in-out infinite;
     overflow-x: hidden;
   }
   
@@ -49,37 +50,47 @@
     font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
 
-  /* Hide scrollbars */
+  /* Enhanced scrollbars with neon glow */
   ::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
-    background: transparent;
+    width: 8px;
+    height: 8px;
   }
   
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(15, 15, 35, 0.8);
+    border-radius: 10px;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: transparent;
+    background: linear-gradient(45deg, #4DEEEA, #A566FF);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(77, 238, 234, 0.5);
   }
 
-  /* Hide scrollbar for Firefox */
-  html {
-    scrollbar-width: none;
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, #A566FF, #F768A1);
+    box-shadow: 0 0 15px rgba(165, 102, 255, 0.7);
   }
 
-  /* Custom selection colors */
+  /* Enhanced selection colors */
   ::selection {
-    background: rgba(77, 238, 234, 0.3);
+    background: rgba(77, 238, 234, 0.4);
     color: white;
+    text-shadow: 0 0 8px rgba(77, 238, 234, 0.8);
   }
 
-  /* Smooth focus styles */
+  /* Enhanced focus styles with neon glow */
   *:focus-visible {
     outline: 2px solid #A566FF;
     outline-offset: 2px;
     border-radius: 8px;
+    box-shadow: 0 0 20px rgba(165, 102, 255, 0.6);
+  }
+
+  /* Smooth text rendering */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -90,68 +101,123 @@
 
   .glassmorphic-card {
     @apply bg-black/20 backdrop-blur-xl border-2 border-white/10 shadow-2xl rounded-2xl;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 30px rgba(165, 102, 255, 0.15);
   }
 
   .teen-card {
-    @apply rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-xl border-2 border-primary/30 shadow-2xl transition-all duration-300 hover:shadow-primary/40 hover:border-primary/50;
-    background-image: radial-gradient(circle at 1px 1px, rgba(155, 135, 245, 0.15) 1px, transparent 0);
-    background-size: 20px 20px;
+    @apply rounded-2xl bg-gradient-to-br from-slate-800/95 to-slate-700/95 backdrop-blur-xl border-2 border-primary/30 shadow-2xl transition-all duration-300 hover:shadow-primary/30 hover:border-primary/50 hover:scale-[1.02];
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(155, 135, 245, 0.15) 1px, transparent 0),
+      linear-gradient(135deg, rgba(77, 238, 234, 0.03), rgba(165, 102, 255, 0.03));
+    background-size: 20px 20px, 100% 100%;
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(165, 102, 255, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   
   .glass-card {
-    @apply p-8 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-xl border-2 border-white/10 shadow-2xl hover:shadow-primary/30 transition-all duration-300;
-    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
-    background-size: 20px 20px;
+    @apply p-6 rounded-2xl bg-gradient-to-br from-slate-800/95 to-slate-700/95 backdrop-blur-xl border-2 border-white/10 shadow-2xl hover:shadow-primary/20 transition-all duration-300 hover:scale-[1.01];
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0),
+      linear-gradient(135deg, rgba(77, 238, 234, 0.05), rgba(165, 102, 255, 0.05));
+    background-size: 20px 20px, 100% 100%;
   }
 
   .gradient-heading {
     @apply text-transparent bg-clip-text bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink font-black;
+    background-size: 300% 300%;
+    animation: shimmer 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(77, 238, 234, 0.3));
   }
 
   .stat-badge {
-    @apply flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold bg-gradient-to-r from-slate-800/80 to-slate-700/80 backdrop-blur-xl border-2 border-white/10 shadow-lg hover:bg-black/40 transition-all duration-300;
+    @apply flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-xl border-2 border-white/10 shadow-lg hover:bg-black/40 transition-all duration-300 hover:scale-105;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(165, 102, 255, 0.1);
   }
 
   .choice-button {
     @apply flex items-center gap-3 w-full p-6 rounded-2xl text-left transition-all duration-300 
-    bg-gradient-to-r from-slate-800/90 to-slate-700/90 backdrop-blur-xl border-2 border-primary/20 hover:bg-gradient-to-r hover:from-primary/20 hover:to-secondary/20 hover:border-primary/50 
-    hover:translate-x-2 shadow-lg hover:shadow-primary/30 font-medium;
+    bg-gradient-to-r from-slate-800/95 to-slate-700/95 backdrop-blur-xl border-2 border-primary/20 hover:bg-gradient-to-r hover:from-primary/20 hover:to-secondary/20 hover:border-primary/50 
+    hover:translate-x-2 shadow-lg hover:shadow-primary/20 font-medium hover:scale-[1.02];
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 0 15px rgba(165, 102, 255, 0.1);
   }
 
   .scenario-card {
-    @apply rounded-3xl overflow-hidden bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-xl border-2 border-white/10 
-    shadow-2xl transition-all duration-300 hover:shadow-primary/40 hover:border-primary/40 hover:-translate-y-1;
-    background-image: radial-gradient(circle at 1px 1px, rgba(155, 135, 245, 0.1) 1px, transparent 0);
-    background-size: 20px 20px;
+    @apply rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800/95 to-slate-700/95 backdrop-blur-xl border-2 border-white/10 
+    shadow-2xl transition-all duration-300 hover:shadow-primary/30 hover:border-primary/40 hover:-translate-y-1 hover:scale-[1.02];
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(155, 135, 245, 0.1) 1px, transparent 0),
+      linear-gradient(135deg, rgba(77, 238, 234, 0.05), rgba(165, 102, 255, 0.05));
+    background-size: 20px 20px, 100% 100%;
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.3),
+      0 0 25px rgba(165, 102, 255, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/20 hover:scale-105;
   }
 
   .glow-button {
     @apply relative overflow-hidden bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-2xl font-bold text-lg
-    shadow-2xl transition-all duration-300 hover:shadow-primary/40 border-2 border-primary/30 hover:border-primary/60;
+    shadow-2xl transition-all duration-300 hover:shadow-primary/30 border-2 border-primary/30 hover:border-primary/60 hover:scale-110;
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(165, 102, 255, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .neon-border {
     @apply border-2 border-transparent relative rounded-2xl;
     background: linear-gradient(135deg, #4DEEEA, #A566FF, #F768A1);
     background-clip: padding-box;
-    box-shadow: 0 0 20px rgba(155, 135, 245, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 0 30px rgba(155, 135, 245, 0.6), 
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 0 50px rgba(77, 238, 234, 0.3);
   }
 
-  /* Button hover effects */
+  /* Enhanced Button hover effects */
   .btn-primary {
-    @apply bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-purple/50 border-2 border-neon-purple/30 hover:border-neon-purple/60;
+    @apply bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-purple/40 border-2 border-neon-purple/30 hover:border-neon-purple/60 hover:scale-110;
+    box-shadow: 
+      0 8px 25px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(165, 102, 255, 0.3);
   }
 
   .btn-secondary {
-    @apply bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-pink/50 border-2 border-neon-pink/30 hover:border-neon-pink/60;
+    @apply bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-pink/40 border-2 border-neon-pink/30 hover:border-neon-pink/60 hover:scale-110;
+    box-shadow: 
+      0 8px 25px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(247, 104, 161, 0.3);
   }
 
   .btn-success {
-    @apply bg-gradient-to-r from-neon-green to-neon-blue text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-green/50 border-2 border-neon-green/30 hover:border-neon-green/60;
+    @apply bg-gradient-to-r from-neon-green to-neon-blue text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-neon-green/40 border-2 border-neon-green/30 hover:border-neon-green/60 hover:scale-110;
+    box-shadow: 
+      0 8px 25px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(74, 255, 145, 0.3);
+  }
+
+  /* Enhanced text effects */
+  .neon-text {
+    color: #4DEEEA;
+    text-shadow: 
+      0 0 5px rgba(77, 238, 234, 0.5),
+      0 0 10px rgba(77, 238, 234, 0.3),
+      0 0 15px rgba(77, 238, 234, 0.2);
+  }
+
+  .epic-text {
+    background: linear-gradient(45deg, #4DEEEA, #A566FF, #F768A1, #FDDA16);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-flow 3s ease-in-out infinite;
+    font-weight: 900;
+    filter: drop-shadow(0 0 10px rgba(77, 238, 234, 0.3));
   }
 }
