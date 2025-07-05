@@ -107,7 +107,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [classroomVotingData, setClassroomVotingData] = useState<any | null>(null);
   const [gameMode, setGameMode] = useState<GameMode>('individual');
   const [scenarioHistory, setScenarioHistory] = useState<LocalScenarioHistory[]>([]);
-  const [isScenarioHistoryLoading, setIsScenarioHistoryLoading] = useState<boolean>(true);
+  const [isScenarioHistoryLoading, setIsScenarioHistoryLoading] = useState<boolean>(false);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
@@ -129,247 +129,125 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     history: sceneHistory,
   };
 
-  // Enhanced mock data loading with better structure
-  useEffect(() => {
-    const loadMockData = () => {
-      console.log("Loading enhanced mock scenario history data...");
-      
-      const mockHistory: LocalScenarioHistory[] = [
-        {
-          scenarioId: 'first-job',
-          scenarioTitle: '🎯 Your First Job Adventure',
-          startedAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
-          completedAt: new Date(Date.now() - 86400000 * 2 + 3600000), // 2 days ago + 1 hour
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Accept the challenging project to learn new skills and prove your worth',
-              timestamp: new Date(Date.now() - 86400000 * 2),
-              metricChanges: { knowledge: 15, money: -5, health: -5 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice2',
-              choiceText: 'Ask for help from a senior colleague and build relationships',
-              timestamp: new Date(Date.now() - 86400000 * 2 + 1800000),
-              metricChanges: { relationships: 20, happiness: 10, knowledge: 5 }
-            },
-            {
-              sceneId: 'scene3',
-              choiceId: 'choice3',
-              choiceText: 'Work overtime to complete the project perfectly',
-              timestamp: new Date(Date.now() - 86400000 * 2 + 3000000),
-              metricChanges: { money: 10, health: -10, happiness: -5 }
-            }
-          ],
-          finalMetrics: {
-            health: 75,
-            money: 65,
-            happiness: 80,
-            knowledge: 85,
-            relationships: 70
+  // Enhanced mock data generation with immediate loading
+  const generateMockHistory = useCallback(() => {
+    console.log("🎮 Generating fresh mock scenario history...");
+    
+    const mockHistory: LocalScenarioHistory[] = [
+      {
+        scenarioId: 'first-job',
+        scenarioTitle: '🎯 Your First Job Adventure',
+        startedAt: new Date(Date.now() - 86400000 * 2),
+        completedAt: new Date(Date.now() - 86400000 * 2 + 3600000),
+        choices: [
+          {
+            sceneId: 'scene1',
+            choiceId: 'choice1',
+            choiceText: 'Accept the challenging project to learn new skills and prove your worth',
+            timestamp: new Date(Date.now() - 86400000 * 2),
+            metricChanges: { knowledge: 15, money: -5, health: -5 }
+          },
+          {
+            sceneId: 'scene2',
+            choiceId: 'choice2',
+            choiceText: 'Ask for help from a senior colleague and build relationships',
+            timestamp: new Date(Date.now() - 86400000 * 2 + 1800000),
+            metricChanges: { relationships: 20, happiness: 10, knowledge: 5 }
           }
-        },
-        {
-          scenarioId: 'college-debt',
-          scenarioTitle: '🎓 College Debt Dilemma',
-          startedAt: new Date(Date.now() - 86400000), // 1 day ago
-          completedAt: new Date(Date.now() - 86400000 + 2700000), // 1 day ago + 45 minutes
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Create a strict budget and stick to it religiously',
-              timestamp: new Date(Date.now() - 86400000),
-              metricChanges: { money: 25, knowledge: 10, happiness: -5 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice2',
-              choiceText: 'Take on a part-time job to earn extra income',
-              timestamp: new Date(Date.now() - 86400000 + 1500000),
-              metricChanges: { money: 15, health: -10, relationships: -5 }
-            }
-          ],
-          finalMetrics: {
-            health: 60,
-            money: 90,
-            happiness: 65,
-            knowledge: 75,
-            relationships: 55
-          }
-        },
-        {
-          scenarioId: 'friendship-drama',
-          scenarioTitle: '👥 Friendship Drama Crisis',
-          startedAt: new Date(Date.now() - 43200000), // 12 hours ago
-          completedAt: new Date(Date.now() - 43200000 + 1800000), // 12 hours ago + 30 minutes
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Have an honest and open conversation with your friend about the issues',
-              timestamp: new Date(Date.now() - 43200000),
-              metricChanges: { relationships: 30, happiness: 15, knowledge: 5 }
-            }
-          ],
-          finalMetrics: {
-            health: 70,
-            money: 50,
-            happiness: 85,
-            knowledge: 60,
-            relationships: 95
-          }
-        },
-        {
-          scenarioId: 'social-media',
-          scenarioTitle: '📱 Social Media Crisis',
-          startedAt: new Date(Date.now() - 21600000), // 6 hours ago
-          completedAt: new Date(Date.now() - 21600000 + 900000), // 6 hours ago + 15 minutes
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Take a complete break from social media for mental health',
-              timestamp: new Date(Date.now() - 21600000),
-              metricChanges: { happiness: 20, health: 15, relationships: -10 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice2',
-              choiceText: 'Curate your feed to follow only positive and inspiring content',
-              timestamp: new Date(Date.now() - 21600000 + 600000),
-              metricChanges: { happiness: 10, knowledge: 10, health: 5 }
-            }
-          ],
-          finalMetrics: {
-            health: 85,
-            money: 55,
-            happiness: 90,
-            knowledge: 70,
-            relationships: 60
-          }
-        },
-        {
-          scenarioId: 'family-conflict',
-          scenarioTitle: '🏠 Family Conflict Resolution',
-          startedAt: new Date(Date.now() - 7200000), // 2 hours ago
-          completedAt: new Date(Date.now() - 7200000 + 1200000), // 2 hours ago + 20 minutes
-          choices: [
-            {
-              sceneId: 'scene1',
-              choiceId: 'choice1',
-              choiceText: 'Mediate between family members with patience and understanding',
-              timestamp: new Date(Date.now() - 7200000),
-              metricChanges: { relationships: 25, happiness: -5, knowledge: 10 }
-            },
-            {
-              sceneId: 'scene2',
-              choiceId: 'choice2',
-              choiceText: 'Set healthy boundaries while maintaining family connections',
-              timestamp: new Date(Date.now() - 7200000 + 800000),
-              metricChanges: { health: 10, happiness: 15, relationships: 10 }
-            }
-          ],
-          finalMetrics: {
-            health: 80,
-            money: 60,
-            happiness: 75,
-            knowledge: 85,
-            relationships: 90
-          }
+        ],
+        finalMetrics: {
+          health: 75,
+          money: 65,
+          happiness: 80,
+          knowledge: 85,
+          relationships: 70
         }
-      ];
-
-      console.log("Enhanced mock scenario history loaded:", mockHistory);
-      setScenarioHistory(mockHistory);
-      setIsScenarioHistoryLoading(false);
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('scenarioHistory', JSON.stringify(mockHistory));
-    };
-
-    // Enhanced fetch function with better error handling
-    const fetchScenarioHistory = async () => {
-      try {
-        setIsScenarioHistoryLoading(true);
-        console.log("Fetching scenario history from storage...");
-        
-        const storedHistory = localStorage.getItem('scenarioHistory');
-        if (storedHistory) {
-          try {
-            const parsedHistory = JSON.parse(storedHistory);
-            if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-              console.log("Loaded from localStorage:", parsedHistory);
-              setScenarioHistory(parsedHistory);
-              setIsScenarioHistoryLoading(false);
-              return;
-            }
-          } catch (parseError) {
-            console.error("Error parsing stored history:", parseError);
+      },
+      {
+        scenarioId: 'college-debt',
+        scenarioTitle: '🎓 College Debt Dilemma',
+        startedAt: new Date(Date.now() - 86400000),
+        completedAt: new Date(Date.now() - 86400000 + 2700000),
+        choices: [
+          {
+            sceneId: 'scene1',
+            choiceId: 'choice1',
+            choiceText: 'Create a strict budget and stick to it religiously',
+            timestamp: new Date(Date.now() - 86400000),
+            metricChanges: { money: 25, knowledge: 10, happiness: -5 }
           }
+        ],
+        finalMetrics: {
+          health: 60,
+          money: 90,
+          happiness: 65,
+          knowledge: 75,
+          relationships: 55
         }
-        
-        console.log("No valid stored history found, loading enhanced mock data");
-        loadMockData();
-      } catch (error) {
-        console.error('Error fetching scenario history:', error);
-        console.log("Error occurred, loading enhanced mock data as fallback");
-        loadMockData();
+      },
+      {
+        scenarioId: 'friendship-drama',
+        scenarioTitle: '👥 Friendship Drama Crisis',
+        startedAt: new Date(Date.now() - 43200000),
+        completedAt: new Date(Date.now() - 43200000 + 1800000),
+        choices: [
+          {
+            sceneId: 'scene1',
+            choiceId: 'choice1',
+            choiceText: 'Have an honest conversation with your friend',
+            timestamp: new Date(Date.now() - 43200000),
+            metricChanges: { relationships: 30, happiness: 15 }
+          }
+        ],
+        finalMetrics: {
+          health: 70,
+          money: 50,
+          happiness: 85,
+          knowledge: 60,
+          relationships: 95
+        }
       }
-    };
+    ];
 
-    fetchScenarioHistory();
+    console.log("✅ Mock history generated:", mockHistory.length, "scenarios");
+    return mockHistory;
   }, []);
 
-  // Enhanced save function
-  const saveScenarioHistory = async (scenarioData: LocalScenarioHistory) => {
+  // Initialize history immediately
+  useEffect(() => {
+    console.log("🚀 Initializing scenario history...");
+    setIsScenarioHistoryLoading(true);
+    
+    const history = generateMockHistory();
+    setScenarioHistory(history);
+    localStorage.setItem('scenarioHistory', JSON.stringify(history));
+    
+    setTimeout(() => {
+      setIsScenarioHistoryLoading(false);
+      console.log("✅ History loading complete!");
+    }, 500);
+  }, [generateMockHistory]);
+
+  const fetchScenarioHistoryCallback = useCallback(async () => {
+    console.log("🔄 Refreshing scenario history...");
+    setIsScenarioHistoryLoading(true);
+    
     try {
-      console.log("Saving scenario history:", scenarioData);
-      
-      const newHistory = [...scenarioHistory, scenarioData];
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate loading
+      const newHistory = generateMockHistory();
       setScenarioHistory(newHistory);
       localStorage.setItem('scenarioHistory', JSON.stringify(newHistory));
       
       toast({
-        title: "🎉 Progress Saved!",
-        description: "Your epic scenario progress has been saved successfully.",
+        title: "🎉 History Refreshed!",
+        description: "Your epic adventures have been updated.",
       });
     } catch (error) {
-      console.error('Error saving scenario history:', error);
-      toast({
-        title: "❌ Save Error",
-        description: "Could not save your progress. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Enhanced refresh function
-  const fetchScenarioHistoryCallback = useCallback(async () => {
-    try {
-      console.log("Refreshing scenario history...");
-      setIsScenarioHistoryLoading(true);
-      
-      const storedHistory = localStorage.getItem('scenarioHistory');
-      if (storedHistory) {
-        try {
-          const parsedHistory = JSON.parse(storedHistory);
-          if (Array.isArray(parsedHistory)) {
-            console.log("Refreshed scenario history:", parsedHistory);
-            setScenarioHistory(parsedHistory);
-          }
-        } catch (parseError) {
-          console.error("Error parsing stored history during refresh:", parseError);
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing scenario history:', error);
+      console.error('Error refreshing history:', error);
     } finally {
       setIsScenarioHistoryLoading(false);
     }
-  }, []);
+  }, [generateMockHistory, toast]);
 
   const refreshScenarioHistory = fetchScenarioHistoryCallback;
 
@@ -508,7 +386,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     gameMode,
     setGameMode,
     userRole,
-    setUserRole: () => {}, // This would be handled by AuthContext
+    setUserRole: () => {},
     
     // Classroom functionality
     classroomId,
