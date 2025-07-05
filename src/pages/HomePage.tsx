@@ -149,7 +149,7 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {scenarios.map((scenario, index) => (
               <div key={scenario.id} className="animate-fade-in" style={{animationDelay: `${0.1 * (index + 1)}s`}}>
-                <ScenarioCard scenario={scenario} onStart={handleStartScenario} />
+                <ScenarioCard scenario={scenario} onStartScenario={handleStartScenario} />
               </div>
             ))}
           </div>

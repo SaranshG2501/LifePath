@@ -53,17 +53,6 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     setChoiceStats(stats);
   }, [session.currentChoices]);
 
-  // Listen for session messages
-  useEffect(() => {
-    if (session.messages) {
-      setMessages(session.messages.map((msg, index) => ({
-        id: `${index}`,
-        text: msg,
-        timestamp: Date.now() - (session.messages!.length - index) * 1000
-      })));
-    }
-  }, [session.messages]);
-
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
     
