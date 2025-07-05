@@ -141,10 +141,9 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 {history.choices.map((choice, index) => {
                   console.log(`Rendering choice ${index + 1}:`, choice);
                   
-                  // Safe property access with fallbacks - using correct property names
-                  const choiceText = choice?.choiceText || choice?.choice || `Decision ${index + 1}`;
-                  const sceneTitle = choice?.sceneId || choice?.scene || `Decision ${index + 1}`;
-                  const sceneDescription = choice?.description || null;
+                  // Safe property access with fallbacks - using only properties that exist
+                  const choiceText = choice?.choiceText || `Decision ${index + 1}`;
+                  const sceneTitle = choice?.sceneId || `Scene ${index + 1}`;
                   
                   // Handle timestamp safely
                   let timestamp: Date;
@@ -176,11 +175,6 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                       {/* Scene/Question context */}
                       <div className="mb-4">
                         <h4 className="text-white font-semibold text-lg mb-2">{sceneTitle}</h4>
-                        {sceneDescription && (
-                          <p className="text-slate-300 text-sm mb-3 bg-slate-700/30 p-3 rounded">
-                            {sceneDescription}
-                          </p>
-                        )}
                       </div>
                       
                       {/* The actual choice made */}
