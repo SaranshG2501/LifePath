@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -135,73 +136,57 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     history: sceneHistory,
   };
 
-  // Generate fresh mock history data
-  const generateHistory = useCallback((): ScenarioHistoryItem[] => {
-    const historyItems: ScenarioHistoryItem[] = [
-      {
-        id: '1',
-        scenarioId: 'first-job',
-        title: 'Your First Job Adventure',
-        completedAt: new Date(Date.now() - 86400000).toISOString(),
-        score: 385,
-        choices: 4,
-        metrics: { health: 75, money: 80, happiness: 85, knowledge: 90, relationships: 85 }
-      },
-      {
-        id: '2',
-        scenarioId: 'college-debt',
-        title: 'College Debt Dilemma',
-        completedAt: new Date(Date.now() - 172800000).toISOString(),
-        score: 340,
-        choices: 3,
-        metrics: { health: 65, money: 95, happiness: 60, knowledge: 80, relationships: 70 }
-      },
-      {
-        id: '3',
-        scenarioId: 'friendship-drama',
-        title: 'Friendship Drama Crisis',
-        completedAt: new Date(Date.now() - 259200000).toISOString(),
-        score: 410,
-        choices: 5,
-        metrics: { health: 80, money: 70, happiness: 90, knowledge: 75, relationships: 95 }
-      }
-    ];
-    
-    console.log('Generated fresh history:', historyItems);
-    return historyItems;
-  }, []);
-
-  // Load history on mount
-  useEffect(() => {
-    console.log('Loading scenario history...');
+  // Load history from localStorage on mount and when user changes
+  const loadHistory = useCallback(() => {
+    console.log('Loading scenario history for user:', currentUser?.uid);
     setIsHistoryLoading(true);
     
-    setTimeout(() => {
-      const history = generateHistory();
-      setScenarioHistory(history);
-      localStorage.setItem('lifepath_history', JSON.stringify(history));
+    try {
+      const storageKey = currentUser ? `lifepath_history_${currentUser.uid}` : 'lifepath_history_guest';
+      const savedHistory = localStorage.getItem(storageKey);
+      
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
+        console.log('Loaded history from storage:', parsedHistory);
+        setScenarioHistory(parsedHistory);
+      } else {
+        console.log('No history found, starting fresh');
+        setScenarioHistory([]);
+      }
+    } catch (error) {
+      console.error('Error loading history:', error);
+      setScenarioHistory([]);
+    } finally {
       setIsHistoryLoading(false);
-      console.log('History loaded successfully');
-    }, 500);
-  }, [generateHistory]);
+    }
+  }, [currentUser]);
+
+  // Load history when component mounts or user changes
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // Save history to localStorage whenever it changes
+  const saveHistory = useCallback((newHistory: ScenarioHistoryItem[]) => {
+    try {
+      const storageKey = currentUser ? `lifepath_history_${currentUser.uid}` : 'lifepath_history_guest';
+      localStorage.setItem(storageKey, JSON.stringify(newHistory));
+      console.log('Saved history to storage:', newHistory);
+    } catch (error) {
+      console.error('Error saving history:', error);
+    }
+  }, [currentUser]);
 
   // Refresh history function
   const refreshHistory = useCallback(() => {
     console.log('Refreshing history...');
-    setIsHistoryLoading(true);
+    loadHistory();
     
-    setTimeout(() => {
-      const newHistory = generateHistory();
-      setScenarioHistory(newHistory);
-      localStorage.setItem('lifepath_history', JSON.stringify(newHistory));
-      setIsHistoryLoading(false);
-      
-      toast({
-        title: "History Refreshed!",
-        description: "Your adventure history has been updated.",
-      });
-    }, 300);
-  }, [generateHistory, toast]);
+    toast({
+      title: "History Refreshed!",
+      description: "Your adventure history has been updated.",
+    });
+  }, [loadHistory, toast]);
 
   const startScenario = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId);
@@ -278,7 +263,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentScenario) return;
 
     const newHistoryItem: ScenarioHistoryItem = {
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       scenarioId: currentScenario.id,
       title: currentScenario.title,
       completedAt: new Date().toISOString(),
@@ -293,9 +278,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Add to history
-    setScenarioHistory(prev => [newHistoryItem, ...prev]);
-    localStorage.setItem('lifepath_history', JSON.stringify([newHistoryItem, ...scenarioHistory]));
+    // Add to history and save
+    const updatedHistory = [newHistoryItem, ...scenarioHistory];
+    setScenarioHistory(updatedHistory);
+    saveHistory(updatedHistory);
+    
+    console.log('Scenario completed and saved:', newHistoryItem);
+    
+    toast({
+      title: "Scenario Complete!",
+      description: "Your progress has been saved to your history.",
+    });
     
     resetGame();
   };

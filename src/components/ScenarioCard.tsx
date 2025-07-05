@@ -8,11 +8,11 @@ import { Scenario } from '@/types/game';
 
 interface ScenarioCardProps {
   scenario: Scenario;
-  onStart: (id: string) => void;
+  onStartScenario: (id: string) => void;
   disabled?: boolean;
 }
 
-const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, disabled = false }) => {
+const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStartScenario, disabled = false }) => {
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'financial literacy':
@@ -99,7 +99,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, disabled
         </div>
 
         <Button
-          onClick={() => onStart(scenario.id)}
+          onClick={() => onStartScenario(scenario.id)}
           disabled={disabled}
           className="w-full bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-600 hover:to-pink-600 text-white border-2 border-purple-500/60 hover:border-purple-500 font-bold text-sm py-2 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 backdrop-blur-sm group-hover:shadow-xl"
         >
