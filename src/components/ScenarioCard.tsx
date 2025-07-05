@@ -8,61 +8,65 @@ import { Scenario } from '@/types/game';
 
 interface ScenarioCardProps {
   scenario: Scenario;
-  onSelect: (id: string) => void;
+  onStart: (id: string) => void;
   disabled?: boolean;
 }
 
-const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onSelect, disabled = false }) => {
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
+const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStart, disabled = false }) => {
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'financial literacy':
         return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'medium':
+      case 'social skills':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'ethics':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'personal growth':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'hard':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
-  const getDifficultyIcon = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return '🌟';
-      case 'medium':
-        return '⚡';
-      case 'hard':
-        return '🔥';
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'financial literacy':
+        return '💰';
+      case 'social skills':
+        return '👥';
+      case 'ethics':
+        return '⚖️';
+      case 'personal growth':
+        return '🌱';
       default:
-        return '⭐';
+        return '📚';
     }
   };
 
   return (
-    <Card className="teen-card h-full flex flex-col transition-all duration-300 hover:scale-105 hover:shadow-xl border-2 border-neon-blue/30 hover:border-neon-blue/50 bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-sm shadow-lg hover:shadow-neon-blue/20 rounded-2xl overflow-hidden group">
+    <Card className="teen-card h-full flex flex-col transition-all duration-300 hover:scale-105 hover:shadow-xl border-2 border-purple-500/30 hover:border-purple-500/50 bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-sm shadow-lg hover:shadow-purple-500/20 rounded-2xl overflow-hidden group">
       
       {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-neon-blue/5 via-neon-purple/5 to-neon-pink/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-neon-purple/20 to-transparent rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-purple-500/20 to-transparent rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       
       <CardHeader className="pb-3 relative z-10">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 rounded-xl border-2 border-neon-blue/50 shadow-lg">
-              <BookOpen className="h-4 w-4 text-neon-blue" />
+            <div className="p-2 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-xl border-2 border-purple-500/50 shadow-lg">
+              <BookOpen className="h-4 w-4 text-purple-400" />
             </div>
-            <Badge className={`px-2 py-1 border text-xs font-bold rounded-lg ${getDifficultyColor(scenario.difficulty)}`}>
-              {getDifficultyIcon(scenario.difficulty)} {scenario.difficulty.toUpperCase()}
+            <Badge className={`px-2 py-1 border text-xs font-bold rounded-lg ${getCategoryColor(scenario.category)}`}>
+              {getCategoryIcon(scenario.category)} {scenario.category.toUpperCase()}
             </Badge>
           </div>
           <div className="flex items-center gap-1">
-            <Crown className="h-3 w-3 text-neon-yellow animate-pulse" />
-            <Sparkles className="h-3 w-3 text-neon-pink animate-pulse" />
+            <Crown className="h-3 w-3 text-yellow-400 animate-pulse" />
+            <Sparkles className="h-3 w-3 text-pink-400 animate-pulse" />
           </div>
         </div>
         
-        <CardTitle className="text-white font-black text-base mb-2 group-hover:text-neon-blue transition-colors duration-300">
+        <CardTitle className="text-white font-black text-sm mb-2 group-hover:text-purple-400 transition-colors duration-300">
           {scenario.title}
         </CardTitle>
         
@@ -74,40 +78,30 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onSelect, disable
       <CardContent className="flex-1 flex flex-col justify-between pt-0 relative z-10">
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1 text-neon-blue">
-              <Clock className="h-3 w-3" />
-              <span className="font-medium">{scenario.estimatedTime}</span>
-            </div>
-            <div className="flex items-center gap-1 text-neon-purple">
+            <div className="flex items-center gap-1 text-purple-400">
               <Users className="h-3 w-3" />
+              <span className="font-medium">{scenario.ageGroup}</span>
+            </div>
+            <div className="flex items-center gap-1 text-pink-400">
+              <BookOpen className="h-3 w-3" />
               <span className="font-medium">{scenario.scenes?.length || 0} scenes</span>
             </div>
           </div>
           
-          {scenario.tags && (
-            <div className="flex flex-wrap gap-1">
-              {scenario.tags.slice(0, 3).map((tag, index) => (
-                <Badge 
-                  key={index} 
-                  variant="outline" 
-                  className="text-xs px-2 py-0 bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40 font-medium"
-                >
-                  {tag}
-                </Badge>
-              ))}
-              {scenario.tags.length > 3 && (
-                <Badge variant="outline" className="text-xs px-2 py-0 bg-white/10 text-white/60 border-white/20">
-                  +{scenario.tags.length - 3}
-                </Badge>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1">
+            <Badge 
+              variant="outline" 
+              className="text-xs px-2 py-0 bg-purple-500/20 text-purple-400 border-purple-500/40 font-medium"
+            >
+              {scenario.category}
+            </Badge>
+          </div>
         </div>
 
         <Button
-          onClick={() => onSelect(scenario.id)}
+          onClick={() => onStart(scenario.id)}
           disabled={disabled}
-          className="w-full bg-gradient-to-r from-neon-purple/80 to-neon-pink/80 hover:from-neon-purple hover:to-neon-pink text-white border-2 border-neon-purple/60 hover:border-neon-purple font-bold text-sm py-2 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-neon-purple/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 backdrop-blur-sm group-hover:shadow-xl"
+          className="w-full bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-600 hover:to-pink-600 text-white border-2 border-purple-500/60 hover:border-purple-500 font-bold text-sm py-2 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 backdrop-blur-sm group-hover:shadow-xl"
         >
           <Zap className="h-4 w-4 mr-2 animate-pulse" />
           Start Epic Quest
