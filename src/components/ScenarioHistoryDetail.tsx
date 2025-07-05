@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Clock, Trophy, TrendingUp, Users, BookOpen, Star, Sparkles, Crown, Zap, Award, Target, Gamepad2, Flame, Rocket, Lightning, Gem, Shield } from 'lucide-react';
+import { Clock, Trophy, TrendingUp, Users, BookOpen, Star, Sparkles, Crown, Zap, Award, Target, Gamepad2, Flame, Rocket, Bolt, Gem, Shield } from 'lucide-react';
 import { ScenarioHistory } from '@/lib/firebase';
 import { convertTimestampToDate } from '@/lib/firebase';
 
@@ -54,7 +53,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
           <div className="text-2xl text-neon-blue font-black flex items-center gap-3">
             <Rocket className="h-8 w-8 text-neon-cyan animate-bounce-light" />
             {history.scenarioTitle || 'Amazing Life Adventure'}
-            <Lightning className="h-6 w-6 text-neon-yellow animate-pulse" />
+            <Bolt className="h-6 w-6 text-neon-yellow animate-pulse" />
           </div>
         </DialogHeader>
 
@@ -232,7 +231,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                     <Badge className="bg-gradient-to-r from-neon-blue/40 to-neon-purple/40 text-neon-blue border-4 border-neon-blue/60 px-6 py-3 shadow-xl font-black text-lg rounded-2xl mt-2 self-start">
                       <Zap className="h-5 w-5 mr-2 animate-pulse" />
                       {history.choices.length} LEGENDARY CHOICES
-                      <Lightning className="h-5 w-5 ml-2 animate-bounce-light" />
+                      <Bolt className="h-5 w-5 ml-2 animate-bounce-light" />
                     </Badge>
                   </div>
                 </CardTitle>
@@ -293,7 +292,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                         
                         <div className="bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 p-8 rounded-3xl border-4 border-neon-blue/50 mb-8 hover:border-neon-blue/80 transition-all duration-500 shadow-xl shadow-neon-blue/20">
                           <p className="text-sm text-neon-blue font-black mb-4 flex items-center gap-2 uppercase tracking-wider">
-                            <Lightning className="h-5 w-5 animate-pulse" />
+                            <Bolt className="h-5 w-5 animate-pulse" />
                             YOUR LEGENDARY DECISION:
                             <Crown className="h-5 w-5 text-neon-yellow" />
                           </p>
@@ -399,7 +398,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                   </h2>
                   <p className="text-white/80 font-bold text-lg mb-2">This might be an older completed scenario.</p>
                   <p className="text-neon-blue text-lg font-black flex items-center justify-center gap-2">
-                    <Lightning className="h-5 w-5 animate-pulse" />
+                    <Bolt className="h-5 w-5 animate-pulse" />
                     Future adventures will show all your epic decisions! 
                     <Rocket className="h-5 w-5 animate-bounce-light" />
                   </p>

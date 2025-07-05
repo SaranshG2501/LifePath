@@ -29,7 +29,7 @@ import {
   LogOut,
   Flame,
   Rocket,
-  Lightning,
+  Bolt,
   Gem,
   Target,
   RefreshCw
@@ -56,7 +56,7 @@ interface LocalScenarioHistory {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userProfile, logout } = useAuth();
-  const { scenarioHistory, isScenarioHistoryLoading, refreshScenarioHistory } = useGameContext();
+  const { scenarioHistory, isScenarioHistoryLoading, fetchScenarioHistory } = useGameContext();
   const [selectedHistory, setSelectedHistory] = useState<ScenarioHistory | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -71,8 +71,8 @@ const ProfilePage = () => {
   const handleRefreshHistory = async () => {
     setIsRefreshing(true);
     try {
-      if (refreshScenarioHistory) {
-        await refreshScenarioHistory();
+      if (fetchScenarioHistory) {
+        await fetchScenarioHistory();
       }
     } catch (error) {
       console.error('Failed to refresh history:', error);
@@ -83,17 +83,23 @@ const ProfilePage = () => {
 
   // Auto-refresh on component mount
   useEffect(() => {
-    if (refreshScenarioHistory) {
-      refreshScenarioHistory();
+    if (fetchScenarioHistory) {
+      fetchScenarioHistory();
     }
-  }, [refreshScenarioHistory]);
+  }, [fetchScenarioHistory]);
 
   const handleViewDetails = (scenario: LocalScenarioHistory) => {
     const mappedHistory: ScenarioHistory = {
       scenarioId: scenario.scenarioId,
       scenarioTitle: scenario.scenarioTitle,
       completedAt: scenario.completedAt,
-      finalMetrics: scenario.finalMetrics,
+      finalMetrics: {
+        health: scenario.finalMetrics?.health || 0,
+        money: scenario.finalMetrics?.money || 0,
+        happiness: scenario.finalMetrics?.happiness || 0,
+        knowledge: scenario.finalMetrics?.knowledge || 0,
+        relationships: scenario.finalMetrics?.relationships || 0,
+      },
       choices: scenario.choices?.map(choice => ({
         sceneId: choice.sceneId,
         choiceId: choice.choiceId,
@@ -180,7 +186,7 @@ const ProfilePage = () => {
             <p className="text-white/80 text-xl font-bold flex items-center justify-center gap-2">
               <Zap className="h-6 w-6 text-neon-blue animate-pulse" />
               Loading your epic profile...
-              <Lightning className="h-6 w-6 text-neon-yellow animate-bounce-light" />
+              <Bolt className="h-6 w-6 text-neon-yellow animate-bounce-light" />
             </p>
           </div>
         </div>
@@ -277,7 +283,7 @@ const ProfilePage = () => {
                 <div className="flex-1">
                   <h2 className="text-3xl font-black text-white flex items-center gap-3">
                     Your Epic Adventure Chronicle
-                    <Lightning className="h-8 w-8 text-neon-yellow animate-pulse" />
+                    <Bolt className="h-8 w-8 text-neon-yellow animate-pulse" />
                   </h2>
                   <p className="text-white/80 font-bold text-lg">Relive your legendary scenarios and power moves</p>
                 </div>
@@ -416,7 +422,7 @@ const ProfilePage = () => {
                 >
                   <Zap className="h-6 w-6 mr-3" />
                   Start New Epic Scenario
-                  <Lightning className="h-5 w-5 ml-3 animate-bounce-light" />
+                  <Bolt className="h-5 w-5 ml-3 animate-bounce-light" />
                 </Button>
               </div>
             </div>

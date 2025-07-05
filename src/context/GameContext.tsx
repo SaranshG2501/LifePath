@@ -50,6 +50,7 @@ interface GameContextType {
   resetGame: () => void;
   completeScenario: (finalMetrics: Record<string, number>) => Promise<void>;
   fetchScenarioHistory: () => Promise<void>;
+  refreshScenarioHistory: () => Promise<void>;
   
   // Game modes and settings
   gameMode: GameMode;
@@ -282,6 +283,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const refreshScenarioHistory = fetchScenarioHistoryCallback;
+
   const startScenario = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId);
     if (!scenario) {
@@ -411,6 +414,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetGame,
     completeScenario,
     fetchScenarioHistory: fetchScenarioHistoryCallback,
+    refreshScenarioHistory,
     
     // Game modes and settings
     gameMode,
