@@ -22,9 +22,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
 }) => {
   if (!history) return null;
 
-  const completedDate = history.completedAt ? 
-    (history.completedAt.toDate ? history.completedAt.toDate() : new Date(history.completedAt)) : 
-    new Date();
+  const completedDate = history.completedAt ? convertTimestampToDate(history.completedAt) : new Date();
   const totalChoices = history.choices?.length || 0;
 
   return (
@@ -231,11 +229,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                   let timestamp: Date;
                   try {
                     if (choice?.timestamp) {
-                      if (choice.timestamp.toDate) {
-                        timestamp = choice.timestamp.toDate();
-                      } else {
-                        timestamp = new Date(choice.timestamp);
-                      }
+                      timestamp = convertTimestampToDate(choice.timestamp);
                     } else {
                       timestamp = new Date();
                     }
