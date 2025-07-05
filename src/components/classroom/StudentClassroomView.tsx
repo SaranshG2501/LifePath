@@ -16,7 +16,8 @@ import {
   Search,
   Wifi,
   Radio,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
@@ -45,6 +46,7 @@ const StudentClassroomView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSessions, setActiveSessions] = useState<Record<string, LiveSession>>({});
   const [joiningSession, setJoiningSession] = useState<string | null>(null);
+  const [removedFromClassrooms, setRemovedFromClassrooms] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (currentUser && userProfile?.role === 'student') {
@@ -52,7 +54,7 @@ const StudentClassroomView = () => {
     }
   }, [currentUser, userProfile]);
 
-  // Set up real-time listeners for each classroom
+  // Set up real-time listeners for each classroom with enhanced removal detection
   useEffect(() => {
     if (classrooms.length === 0) return;
 
@@ -61,6 +63,30 @@ const StudentClassroomView = () => {
     classrooms.forEach(classroom => {
       if (classroom.id) {
         const unsubscribe = onClassroomUpdated(classroom.id, async (updatedClassroom) => {
+          // Check if student is still in the classroom
+          const isStillMember = updatedClassroom.students?.some(student => 
+            student.id === currentUser?.uid || student.userId === currentUser?.uid
+          );
+          
+          if (!isStillMember && !removedFromClassrooms.has(classroom.id!)) {
+            console.log("Student removed from classroom:", classroom.id);
+            
+            // Mark as removed to prevent duplicate notifications
+            setRemovedFromClassrooms(prev => new Set(prev).add(classroom.id!));
+            
+            // Remove from local state
+            setClassrooms(prev => prev.filter(c => c.id !== classroom.id));
+            
+            toast({
+              title: "Removed from Classroom",
+              description: `You have been removed from "${classroom.name}" by your teacher.`,
+              variant: "destructive",
+            });
+            
+            return;
+          }
+          
+          // Update classroom in local state
           setClassrooms(prev => 
             prev.map(c => c.id === updatedClassroom.id ? updatedClassroom : c)
           );
@@ -93,7 +119,7 @@ const StudentClassroomView = () => {
     return () => {
       unsubscribes.forEach(unsubscribe => unsubscribe());
     };
-  }, [classrooms.length]);
+  }, [classrooms.length, currentUser?.uid, removedFromClassrooms, toast]);
 
   const fetchClassrooms = async () => {
     if (!currentUser) return;
@@ -103,6 +129,9 @@ const StudentClassroomView = () => {
       const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
       console.log("Fetched student classrooms:", userClassrooms);
       setClassrooms(userClassrooms);
+      
+      // Reset removed tracking when fetching fresh data
+      setRemovedFromClassrooms(new Set());
     } catch (error) {
       console.error('Error fetching classrooms:', error);
       toast({

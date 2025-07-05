@@ -31,7 +31,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
             <Trophy className="h-6 w-6 text-yellow-500" />
-            {history.scenarioTitle}
+            {history.scenarioTitle || 'Completed Scenario'}
           </DialogTitle>
         </DialogHeader>
 
@@ -66,7 +66,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 <div>
                   <p className="text-sm text-slate-400">Final Score</p>
                   <p className="text-white font-medium">
-                    {Object.values(history.finalMetrics || {}).reduce((a, b) => a + b, 0)}
+                    {history.finalMetrics ? Object.values(history.finalMetrics).reduce((a, b) => a + b, 0) : 'N/A'}
                   </p>
                 </div>
               </CardContent>
@@ -119,7 +119,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                           <span>{icon}</span>
                           <span className="text-sm font-medium capitalize">{key}</span>
                         </div>
-                        <div className="text-2xl font-bold">{value}</div>
+                        <div className="text-2xl font-bold">{value || 0}</div>
                       </div>
                     );
                   })}
@@ -129,7 +129,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
           )}
 
           {/* Choice History with Full Details */}
-          {history.choices && history.choices.length > 0 && (
+          {history.choices && history.choices.length > 0 ? (
             <Card className="bg-black/30 border-slate-600/30">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -141,11 +141,26 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 {history.choices.map((choice, index) => {
                   console.log(`Rendering choice ${index + 1}:`, choice);
                   
-                  // Handle different choice data structures safely
-                  const choiceText = choice.choiceText || `Choice ${index + 1}`;
-                  const sceneTitle = `Decision ${index + 1}`;
-                  const timestamp = choice.timestamp ? convertTimestampToDate(choice.timestamp) : new Date();
-                  const metricChanges = choice.metricChanges || {};
+                  // Safe property access with fallbacks
+                  const choiceText = choice?.choiceText || choice?.text || `Decision ${index + 1}`;
+                  const sceneTitle = choice?.sceneTitle || `Decision ${index + 1}`;
+                  const sceneDescription = choice?.sceneDescription || null;
+                  
+                  // Handle timestamp safely
+                  let timestamp: Date;
+                  try {
+                    if (choice?.timestamp) {
+                      timestamp = convertTimestampToDate(choice.timestamp);
+                    } else {
+                      timestamp = new Date();
+                    }
+                  } catch (error) {
+                    console.warn('Invalid timestamp for choice:', choice?.timestamp);
+                    timestamp = new Date();
+                  }
+                  
+                  // Handle metric changes safely
+                  const metricChanges = choice?.metricChanges || choice?.effects || {};
                   
                   return (
                     <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
@@ -161,6 +176,11 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                       {/* Scene/Question context */}
                       <div className="mb-4">
                         <h4 className="text-white font-semibold text-lg mb-2">{sceneTitle}</h4>
+                        {sceneDescription && (
+                          <p className="text-slate-300 text-sm mb-3 bg-slate-700/30 p-3 rounded">
+                            {sceneDescription}
+                          </p>
+                        )}
                       </div>
                       
                       {/* The actual choice made */}
@@ -177,33 +197,35 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                           <p className="text-sm text-slate-400 mb-3 font-medium">Impact on your life:</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(metricChanges).map(([key, value]) => {
-                              if (!value) return null;
+                              if (!value || value === 0) return null;
                               
                               let color = '';
                               let icon = '';
+                              const numValue = typeof value === 'number' ? value : parseInt(String(value)) || 0;
+                              
                               switch(key) {
                                 case 'health':
-                                  color = value > 0 ? 'text-red-300 bg-red-500/20 border-red-500/30' : 'text-red-500 bg-red-500/10 border-red-500/20';
+                                  color = numValue > 0 ? 'text-red-300 bg-red-500/20 border-red-500/30' : 'text-red-500 bg-red-500/10 border-red-500/20';
                                   icon = '❤️';
                                   break;
                                 case 'money':
-                                  color = value > 0 ? 'text-green-300 bg-green-500/20 border-green-500/30' : 'text-green-500 bg-green-500/10 border-green-500/20';
+                                  color = numValue > 0 ? 'text-green-300 bg-green-500/20 border-green-500/30' : 'text-green-500 bg-green-500/10 border-green-500/20';
                                   icon = '💰';
                                   break;
                                 case 'happiness':
-                                  color = value > 0 ? 'text-yellow-300 bg-yellow-500/20 border-yellow-500/30' : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+                                  color = numValue > 0 ? 'text-yellow-300 bg-yellow-500/20 border-yellow-500/30' : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
                                   icon = '😊';
                                   break;
                                 case 'knowledge':
-                                  color = value > 0 ? 'text-blue-300 bg-blue-500/20 border-blue-500/30' : 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+                                  color = numValue > 0 ? 'text-blue-300 bg-blue-500/20 border-blue-500/30' : 'text-blue-500 bg-blue-500/10 border-blue-500/20';
                                   icon = '📚';
                                   break;
                                 case 'relationships':
-                                  color = value > 0 ? 'text-purple-300 bg-purple-500/20 border-purple-500/30' : 'text-purple-500 bg-purple-500/10 border-purple-500/20';
+                                  color = numValue > 0 ? 'text-purple-300 bg-purple-500/20 border-purple-500/30' : 'text-purple-500 bg-purple-500/10 border-purple-500/20';
                                   icon = '👥';
                                   break;
                                 default:
-                                  color = value > 0 ? 'text-gray-300 bg-gray-500/20 border-gray-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20';
+                                  color = numValue > 0 ? 'text-gray-300 bg-gray-500/20 border-gray-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20';
                                   icon = '⭐';
                               }
                               
@@ -211,7 +233,7 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                                 <span key={key} className={`text-sm px-3 py-2 rounded-full ${color} border flex items-center gap-2`}>
                                   <span>{icon}</span>
                                   <span className="capitalize font-medium">{key}</span>
-                                  <span className="font-bold">{value > 0 ? '+' : ''}{value}</span>
+                                  <span className="font-bold">{numValue > 0 ? '+' : ''}{numValue}</span>
                                 </span>
                               );
                             })}
@@ -221,6 +243,14 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-black/30 border-slate-600/30">
+              <CardContent className="p-8 text-center">
+                <BookOpen className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400">No detailed choice history available for this scenario.</p>
+                <p className="text-slate-500 text-sm mt-2">This might be an older completed scenario.</p>
               </CardContent>
             </Card>
           )}

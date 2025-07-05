@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -24,7 +23,8 @@ import {
   advanceLiveSession,
   endLiveSession,
   getActiveSession,
-  onClassroomUpdated
+  onClassroomUpdated,
+  getUserClassrooms
 } from '@/lib/firebase';
 
 const GamePage = () => {
@@ -40,6 +40,7 @@ const GamePage = () => {
     setGameMode,
     userRole,
     classroomId,
+    setClassroomId,
     mirrorMomentsEnabled,
     toggleMirrorMoments,
     setCurrentScene,
@@ -61,6 +62,46 @@ const GamePage = () => {
       navigate('/');
     }
   }, [isGameActive, navigate]);
+
+  // Enhanced classroom removal detection for students
+  useEffect(() => {
+    if (currentUser && userRole === 'student' && classroomId) {
+      const unsubscribe = onClassroomUpdated(classroomId, async (classroom) => {
+        // Check if student is still in the classroom
+        const isStillMember = classroom.students?.some(student => 
+          student.id === currentUser.uid || student.userId === currentUser.uid
+        );
+        
+        if (!isStillMember) {
+          console.log("Student has been removed from classroom");
+          
+          // Reset classroom context
+          setClassroomId(null);
+          setGameMode('individual');
+          
+          // End any live session participation
+          if (isInLiveSession) {
+            setIsInLiveSession(false);
+            setLiveSession(null);
+            setHasVoted(false);
+          }
+          
+          toast({
+            title: "Removed from Classroom",
+            description: "You have been removed from the classroom by your teacher.",
+            variant: "destructive",
+          });
+          
+          // Navigate back to home if in game
+          if (location.pathname === '/game') {
+            navigate('/');
+          }
+        }
+      });
+
+      return unsubscribe;
+    }
+  }, [currentUser, userRole, classroomId, isInLiveSession, setClassroomId, setGameMode, navigate, toast]);
 
   // Enhanced live session listener
   useEffect(() => {
@@ -252,6 +293,16 @@ const GamePage = () => {
   };
   
   const toggleGameMode = () => {
+    // Prevent guests from switching to classroom mode
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to access classroom mode.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (userRole === 'teacher' && liveSession && liveSession.status === 'active') {
       toast({
         title: "Mode Locked",
@@ -375,6 +426,7 @@ const GamePage = () => {
                 disabled={(!classroomId && gameMode === "individual") || isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')}
               >
                 {(isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')) && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
+                {!currentUser && <Lock className="h-4 w-4 text-orange-400 mr-1" />}
                 {gameMode === "classroom" ? (
                   <>
                     <Users className="h-4 w-4 text-indigo-300" />
