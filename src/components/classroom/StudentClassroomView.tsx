@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,9 +62,9 @@ const StudentClassroomView = () => {
     classrooms.forEach(classroom => {
       if (classroom.id) {
         const unsubscribe = onClassroomUpdated(classroom.id, async (updatedClassroom) => {
-          // Check if student is still in the classroom
+          // Check if student is still in the classroom - using 'id' property instead of 'userId'
           const isStillMember = updatedClassroom.students?.some(student => 
-            student.id === currentUser?.uid || student.userId === currentUser?.uid
+            student.id === currentUser?.uid
           );
           
           if (!isStillMember && !removedFromClassrooms.has(classroom.id!)) {

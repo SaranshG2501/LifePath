@@ -67,9 +67,9 @@ const GamePage = () => {
   useEffect(() => {
     if (currentUser && userRole === 'student' && classroomId) {
       const unsubscribe = onClassroomUpdated(classroomId, async (classroom) => {
-        // Check if student is still in the classroom
+        // Check if student is still in the classroom - using 'id' property instead of 'userId'
         const isStillMember = classroom.students?.some(student => 
-          student.id === currentUser.uid || student.userId === currentUser.uid
+          student.id === currentUser.uid
         );
         
         if (!isStillMember) {

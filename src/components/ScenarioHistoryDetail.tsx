@@ -141,10 +141,10 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 {history.choices.map((choice, index) => {
                   console.log(`Rendering choice ${index + 1}:`, choice);
                   
-                  // Safe property access with fallbacks
-                  const choiceText = choice?.choiceText || choice?.text || `Decision ${index + 1}`;
-                  const sceneTitle = choice?.sceneTitle || `Decision ${index + 1}`;
-                  const sceneDescription = choice?.sceneDescription || null;
+                  // Safe property access with fallbacks - using correct property names
+                  const choiceText = choice?.choiceText || choice?.choice || `Decision ${index + 1}`;
+                  const sceneTitle = choice?.sceneId || choice?.scene || `Decision ${index + 1}`;
+                  const sceneDescription = choice?.description || null;
                   
                   // Handle timestamp safely
                   let timestamp: Date;
@@ -159,8 +159,8 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                     timestamp = new Date();
                   }
                   
-                  // Handle metric changes safely
-                  const metricChanges = choice?.metricChanges || choice?.effects || {};
+                  // Handle metric changes safely - using correct property names
+                  const metricChanges = choice?.metricChanges || {};
                   
                   return (
                     <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
