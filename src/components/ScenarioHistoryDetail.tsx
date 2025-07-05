@@ -141,9 +141,10 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                 {history.choices.map((choice, index) => {
                   console.log(`Rendering choice ${index + 1}:`, choice);
                   
-                  // Safe property access with fallbacks - using only properties that exist
-                  const choiceText = choice?.choiceText || `Decision ${index + 1}`;
+                  // Use the actual choice properties as they exist in the data
+                  const choiceText = choice?.choiceText || choice?.text || `Decision ${index + 1}`;
                   const sceneTitle = choice?.sceneId || `Scene ${index + 1}`;
+                  const sceneDescription = choice?.sceneDescription || choice?.description;
                   
                   // Handle timestamp safely
                   let timestamp: Date;
@@ -158,8 +159,8 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                     timestamp = new Date();
                   }
                   
-                  // Handle metric changes safely - using correct property names
-                  const metricChanges = choice?.metricChanges || {};
+                  // Handle metric changes safely
+                  const metricChanges = choice?.metricChanges || choice?.effects || {};
                   
                   return (
                     <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
@@ -175,6 +176,11 @@ const ScenarioHistoryDetail: React.FC<ScenarioHistoryDetailProps> = ({
                       {/* Scene/Question context */}
                       <div className="mb-4">
                         <h4 className="text-white font-semibold text-lg mb-2">{sceneTitle}</h4>
+                        {sceneDescription && (
+                          <p className="text-slate-300 text-sm mb-3 bg-slate-700/30 p-3 rounded">
+                            {sceneDescription}
+                          </p>
+                        )}
                       </div>
                       
                       {/* The actual choice made */}
