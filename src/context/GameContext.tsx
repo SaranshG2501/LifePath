@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -335,7 +336,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalMetrics: finalMetrics,
     };
 
-    await saveScenarioHistory(scenarioData);
+    // Save to local history instead of calling undefined function
+    setScenarioHistory(prev => [scenarioData, ...prev]);
+    localStorage.setItem('scenarioHistory', JSON.stringify([scenarioData, ...scenarioHistory]));
+    
     resetGame();
   };
 
