@@ -4,15 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle, MessageCircle, Send } from 'lucide-react';
+import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle, MessageCircle, Send, Wifi } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
+import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated, updateLiveSessionData } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 
 interface LiveSessionTrackerProps {
   session: LiveSession;
   onAdvanceScene: (nextSceneId: string) => void;
   onEndSession: () => void;
   isTeacher: boolean;
+}
+
+interface Message {
+  id: string;
+  text: string;
+  timestamp: number;
+  author: string;
 }
 
 const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
@@ -24,8 +32,9 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
   const [choiceStats, setChoiceStats] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
-  const [messages, setMessages] = useState<Array<{id: string, text: string, timestamp: number}>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     if (!session.id) return;
@@ -41,6 +50,25 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     };
   }, [session.id]);
 
+  // Listen for session updates including messages
+  useEffect(() => {
+    if (!session.id) return;
+
+    const unsubscribeSession = onLiveSessionUpdated(session.id, (updatedSession) => {
+      if (updatedSession?.sessionData?.messages) {
+        const sessionMessages = updatedSession.sessionData.messages.map((msg: any, index: number) => ({
+          id: `${index}`,
+          text: msg.text || msg,
+          timestamp: msg.timestamp || Date.now(),
+          author: msg.author || 'Teacher'
+        }));
+        setMessages(sessionMessages);
+      }
+    });
+
+    return unsubscribeSession;
+  }, [session.id]);
+
   useEffect(() => {
     // Calculate choice statistics from live session choices
     console.log("Calculating choice stats from:", session.currentChoices);
@@ -54,20 +82,32 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   }, [session.currentChoices]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !isTeacher || !currentUser) return;
     
-    // Add message to local state immediately for better UX
-    const messageObj = {
-      id: Date.now().toString(),
-      text: newMessage,
-      timestamp: Date.now()
-    };
-    
-    setMessages(prev => [...prev, messageObj]);
-    setNewMessage('');
-    
-    // TODO: Implement Firebase message sending
-    console.log("Sending message:", newMessage);
+    try {
+      const messageObj = {
+        text: newMessage,
+        timestamp: Date.now(),
+        author: 'Teacher'
+      };
+      
+      // Get current messages and add new one
+      const currentMessages = messages || [];
+      const updatedMessages = [...currentMessages, messageObj];
+      
+      // Update session with new messages
+      await updateLiveSessionData(session.id, {
+        messages: updatedMessages
+      });
+      
+      // Update local state immediately for better UX
+      setMessages(updatedMessages);
+      setNewMessage('');
+      
+      console.log("Message sent successfully:", messageObj);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   const totalVotes = Object.values(choiceStats).reduce((sum, count) => sum + count, 0);
@@ -88,6 +128,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                 <div className="absolute h-2 w-2 rounded-full bg-green-400 animate-ping"></div>
                 <div className="relative h-2 w-2 rounded-full bg-green-400"></div>
               </div>
+              <Wifi className="h-3 w-3 text-green-400" />
               Live Session Active
             </CardTitle>
             <CardDescription className="text-white/70 text-xs">
@@ -156,7 +197,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
           <div className="space-y-1 max-h-20 overflow-y-auto mb-2">
             {messages.length > 0 ? messages.slice(-3).map((message) => (
               <div key={message.id} className="text-xs text-white/80 bg-blue-500/10 rounded p-1">
-                <span className="text-blue-400">[Teacher]</span> {message.text}
+                <span className="text-blue-400">[{message.author}]</span> {message.text}
               </div>
             )) : (
               <div className="text-xs text-white/50 text-center py-1">

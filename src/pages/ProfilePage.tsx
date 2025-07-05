@@ -167,6 +167,7 @@ const ProfilePage = () => {
               </div>
               <div className="flex-1">
                 <h2 className="text-sm font-black text-white">Your Epic Adventures</h2>
+                <p className="text-xs text-white/70">Total adventures completed: {scenarioHistory.length}</p>
               </div>
               <Badge className="bg-gradient-to-r from-neon-blue/30 to-neon-purple/30 text-neon-blue border border-neon-blue/50 px-2 py-1 text-xs">
                 <Zap className="h-2 w-2 mr-1" />

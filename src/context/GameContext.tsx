@@ -114,7 +114,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [classroomVotingData, setClassroomVotingData] = useState<any | null>(null);
   const [gameMode, setGameMode] = useState<GameMode>('individual');
   const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistoryItem[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(true);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
   const [revealVotes, setRevealVotes] = useState<boolean>(false);
@@ -136,21 +136,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     history: sceneHistory,
   };
 
-  // Load history from localStorage on mount and when user changes
-  const loadHistory = useCallback(() => {
-    console.log('Loading scenario history for user:', currentUser?.uid);
+  // Get storage key for current user
+  const getStorageKey = useCallback(() => {
+    if (currentUser?.uid) {
+      return `lifepath_history_${currentUser.uid}`;
+    }
+    return 'lifepath_history_guest';
+  }, [currentUser]);
+
+  // Load history from localStorage
+  const loadHistoryFromStorage = useCallback(() => {
+    console.log('Loading history from storage...');
     setIsHistoryLoading(true);
     
     try {
-      const storageKey = currentUser ? `lifepath_history_${currentUser.uid}` : 'lifepath_history_guest';
+      const storageKey = getStorageKey();
       const savedHistory = localStorage.getItem(storageKey);
       
       if (savedHistory) {
         const parsedHistory = JSON.parse(savedHistory);
-        console.log('Loaded history from storage:', parsedHistory);
-        setScenarioHistory(parsedHistory);
+        console.log('Found saved history:', parsedHistory);
+        
+        // Validate and clean up the history data
+        const validHistory = parsedHistory.filter((item: any) => 
+          item.id && item.scenarioId && item.title && item.completedAt
+        );
+        
+        setScenarioHistory(validHistory);
       } else {
-        console.log('No history found, starting fresh');
+        console.log('No saved history found');
         setScenarioHistory([]);
       }
     } catch (error) {
@@ -159,34 +173,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [currentUser]);
+  }, [getStorageKey]);
 
-  // Load history when component mounts or user changes
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
-
-  // Save history to localStorage whenever it changes
-  const saveHistory = useCallback((newHistory: ScenarioHistoryItem[]) => {
+  // Save history to localStorage
+  const saveHistoryToStorage = useCallback((newHistory: ScenarioHistoryItem[]) => {
     try {
-      const storageKey = currentUser ? `lifepath_history_${currentUser.uid}` : 'lifepath_history_guest';
+      const storageKey = getStorageKey();
       localStorage.setItem(storageKey, JSON.stringify(newHistory));
-      console.log('Saved history to storage:', newHistory);
+      console.log('History saved to storage:', newHistory.length, 'items');
     } catch (error) {
       console.error('Error saving history:', error);
     }
-  }, [currentUser]);
+  }, [getStorageKey]);
+
+  // Load history when component mounts or user changes
+  useEffect(() => {
+    loadHistoryFromStorage();
+  }, [loadHistoryFromStorage]);
 
   // Refresh history function
   const refreshHistory = useCallback(() => {
     console.log('Refreshing history...');
-    loadHistory();
+    loadHistoryFromStorage();
     
     toast({
       title: "History Refreshed!",
       description: "Your adventure history has been updated.",
     });
-  }, [loadHistory, toast]);
+  }, [loadHistoryFromStorage, toast]);
 
   const startScenario = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId);
@@ -260,7 +274,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const completeScenario = async (finalMetrics: Record<string, number>) => {
-    if (!currentScenario) return;
+    if (!currentScenario) {
+      console.log('No current scenario to complete');
+      return;
+    }
 
     const newHistoryItem: ScenarioHistoryItem = {
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -278,12 +295,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    console.log('Completing scenario, adding to history:', newHistoryItem);
+
     // Add to history and save
     const updatedHistory = [newHistoryItem, ...scenarioHistory];
     setScenarioHistory(updatedHistory);
-    saveHistory(updatedHistory);
-    
-    console.log('Scenario completed and saved:', newHistoryItem);
+    saveHistoryToStorage(updatedHistory);
     
     toast({
       title: "Scenario Complete!",

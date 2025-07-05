@@ -24,8 +24,7 @@ import {
   advanceLiveSession,
   endLiveSession,
   getActiveSession,
-  onClassroomUpdated,
-  getUserClassrooms
+  onClassroomUpdated
 } from '@/lib/firebase';
 
 const GamePage = () => {
@@ -58,6 +57,7 @@ const GamePage = () => {
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [sessionResult, setSessionResult] = useState<any>(null);
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
+  const [isJoiningSession, setIsJoiningSession] = useState(false);
 
   useEffect(() => {
     if (!isGameActive) {
@@ -65,16 +65,21 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Enhanced session deduplication on mount
+  // Enhanced session detection and joining
   useEffect(() => {
-    if (currentUser && classroomId && userRole === 'student' && !sessionCheckComplete) {
+    if (currentUser && classroomId && userRole === 'student' && !sessionCheckComplete && !isJoiningSession) {
       console.log("Checking for existing live session...");
+      setIsJoiningSession(true);
       
-      const checkActiveSession = async () => {
+      const checkAndJoinActiveSession = async () => {
         try {
           const activeSession = await getActiveSession(classroomId);
           if (activeSession && activeSession.status === 'active') {
             console.log("Found active session, joining:", activeSession.id);
+            
+            // Join the session
+            await joinLiveSession(activeSession.id, currentUser.uid, userProfile?.displayName || 'Student');
+            
             setLiveSession(activeSession);
             setIsInLiveSession(true);
             
@@ -87,23 +92,31 @@ const GamePage = () => {
             if (activeSession.currentChoices?.[currentUser.uid]) {
               setHasVoted(true);
             }
+            
+            toast({
+              title: "Joined Live Session",
+              description: "You have joined the classroom's live session!",
+            });
+          } else {
+            console.log("No active session found");
           }
         } catch (error) {
-          console.error("Error checking for active session:", error);
+          console.error("Error checking/joining active session:", error);
         } finally {
           setSessionCheckComplete(true);
+          setIsJoiningSession(false);
         }
       };
       
-      checkActiveSession();
+      checkAndJoinActiveSession();
     }
-  }, [currentUser, classroomId, userRole, sessionCheckComplete, gameState.currentScene?.id, setCurrentScene]);
+  }, [currentUser, classroomId, userRole, sessionCheckComplete, gameState.currentScene?.id, setCurrentScene, userProfile, toast, isJoiningSession]);
 
   // Enhanced classroom removal detection for students
   useEffect(() => {
     if (currentUser && userRole === 'student' && classroomId) {
       const unsubscribe = onClassroomUpdated(classroomId, async (classroom) => {
-        // Check if student is still in the classroom - using 'id' property instead of 'userId'
+        // Check if student is still in the classroom
         const isStillMember = classroom.students?.some(student => 
           student.id === currentUser.uid
         );
