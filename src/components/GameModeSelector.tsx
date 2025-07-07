@@ -62,7 +62,7 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
               ? 'border-primary bg-primary/10 cursor-pointer hover:shadow-lg' 
               : 'border-white/20 hover:border-primary/50 cursor-pointer hover:shadow-lg'
         }`}
-        onClick={() => handleModeChange('classroom')}
+        onClick={() => !isGuest && handleModeChange('classroom')}
       >
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-white text-sm">

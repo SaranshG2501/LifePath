@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -141,7 +140,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowResults(!showResults)}
-                className="border-blue-500/20 text-blue-400 hover:bg-blue-500/10 text-xs"
+                className="border-purple-500/20 text-purple-400 hover:bg-purple-500/10 text-xs"
               >
                 {showResults ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                 {showResults ? 'Hide' : 'Show'} Results
@@ -194,7 +193,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
             <h4 className="text-xs font-medium text-white">Class Messages</h4>
           </div>
           
-          <div className="space-y-1 max-h-20 overflow-y-auto mb-2">
+          <div className="space-y-1 max-h-20 overflow-y-auto scrollbar-hide">
             {messages.length > 0 ? messages.slice(-3).map((message) => (
               <div key={message.id} className="text-xs text-white/80 bg-blue-500/10 rounded p-1">
                 <span className="text-blue-400">[{message.author}]</span> {message.text}
@@ -218,7 +217,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
               <Button 
                 size="sm" 
                 onClick={sendMessage}
-                className="h-7 px-2 bg-blue-500 hover:bg-blue-600"
+                className="h-7 px-2 bg-purple-500 hover:bg-purple-600"
                 disabled={!newMessage.trim()}
               >
                 <Send className="h-3 w-3" />
@@ -233,7 +232,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
             {Object.entries(choiceStats).map(([choiceId, count]) => (
               <div key={choiceId} className="flex justify-between items-center bg-black/20 rounded p-1">
                 <span className="text-white/80 text-xs">Choice {choiceId}</span>
-                <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
+                <Badge className="bg-purple-500/20 text-purple-300 border-0 text-xs">
                   {count} votes ({participantCount > 0 ? Math.round((count / participantCount) * 100) : 0}%)
                 </Badge>
               </div>
@@ -243,13 +242,13 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
         <div className="space-y-1">
           <h4 className="text-xs font-medium text-white">Active Participants:</h4>
-          <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto scrollbar-hide">
             {participants.length > 0 ? participants.map((participant) => {
               const hasVoted = getParticipantChoice(participant.studentId);
               return (
                 <div key={participant.studentId} className="flex items-center gap-2 bg-black/20 rounded p-1">
                   <Avatar className="h-4 w-4">
-                    <AvatarFallback className="bg-blue-500/20 text-white text-xs">
+                    <AvatarFallback className="bg-purple-500/20 text-white text-xs">
                       {participant.studentName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
