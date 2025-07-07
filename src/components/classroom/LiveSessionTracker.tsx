@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle, MessageCircle, Send, Wifi } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Eye, EyeOff, AlertTriangle, Wifi } from 'lucide-react';
 import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated, sendSessionMessage, SessionMessage } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import SessionStats from './SessionStats';
+import SessionMessaging from './SessionMessaging';
+import VotingResults from './VotingResults';
+import ParticipantsList from './ParticipantsList';
 
 interface LiveSessionTrackerProps {
   session: LiveSession;
@@ -33,7 +34,6 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   const [choiceStats, setChoiceStats] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -81,12 +81,12 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     setChoiceStats(stats);
   }, [session.currentChoices]);
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !isTeacher || !currentUser || !session.id) return;
+  const handleSendMessage = async (messageText: string) => {
+    if (!isTeacher || !currentUser || !session.id) return;
     
     try {
       const messageObj: SessionMessage = {
-        text: newMessage,
+        text: messageText,
         timestamp: Date.now(),
         author: 'Teacher'
       };
@@ -97,12 +97,11 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
       // Update local state immediately for better UX
       const localMessage: Message = {
         id: `${Date.now()}-${Math.random()}`,
-        text: newMessage,
+        text: messageText,
         timestamp: Date.now(),
         author: 'Teacher'
       };
       setMessages(prev => [...prev, localMessage]);
-      setNewMessage('');
       
       console.log("Message sent successfully:", messageObj);
     } catch (error) {
@@ -161,118 +160,29 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-black/20 rounded-lg p-2 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Users className="h-3 w-3 text-blue-400" />
-            </div>
-            <div className="text-sm font-bold text-white">{participantCount}</div>
-            <div className="text-xs text-white/70">Participants</div>
-          </div>
-          
-          <div className="bg-black/20 rounded-lg p-2 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <BarChart3 className="h-3 w-3 text-green-400" />
-            </div>
-            <div className="text-sm font-bold text-white">{Math.round(responseRate)}%</div>
-            <div className="text-xs text-white/70">Response Rate</div>
-          </div>
-          
-          <div className="bg-black/20 rounded-lg p-2 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Clock className="h-3 w-3 text-orange-400" />
-            </div>
-            <div className="text-sm font-bold text-white">{totalVotes}</div>
-            <div className="text-xs text-white/70">Votes Cast</div>
-          </div>
-        </div>
+        <SessionStats 
+          participantCount={participantCount}
+          responseRate={responseRate}
+          totalVotes={totalVotes}
+        />
 
-        {/* Class Messages Section */}
-        <div className="bg-black/20 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageCircle className="h-3 w-3 text-blue-400" />
-            <h4 className="text-xs font-medium text-white">Class Messages</h4>
-          </div>
-          
-          <div className="space-y-1 max-h-20 overflow-y-auto scrollbar-hide">
-            {messages.length > 0 ? messages.slice(-3).map((message) => (
-              <div key={message.id} className="text-xs text-white/80 bg-blue-500/10 rounded p-1">
-                <span className="text-blue-400">[{message.author}]</span> {message.text}
-              </div>
-            )) : (
-              <div className="text-xs text-white/50 text-center py-1">
-                No messages yet
-              </div>
-            )}
-          </div>
-          
-          {isTeacher && (
-            <div className="flex gap-1 mt-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Send message to class..."
-                className="text-xs h-7 bg-black/20 border-white/10 text-white"
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              />
-              <Button 
-                size="sm" 
-                onClick={sendMessage}
-                className="h-7 px-2 bg-purple-500 hover:bg-purple-600"
-                disabled={!newMessage.trim()}
-              >
-                <Send className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <SessionMessaging 
+          messages={messages}
+          isTeacher={isTeacher}
+          onSendMessage={handleSendMessage}
+        />
 
-        {showResults && Object.keys(choiceStats).length > 0 && (
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-white">Current Voting Results:</h4>
-            {Object.entries(choiceStats).map(([choiceId, count]) => (
-              <div key={choiceId} className="flex justify-between items-center bg-black/20 rounded p-1">
-                <span className="text-white/80 text-xs">Choice {choiceId}</span>
-                <Badge className="bg-purple-500/20 text-purple-300 border-0 text-xs">
-                  {count} votes ({participantCount > 0 ? Math.round((count / participantCount) * 100) : 0}%)
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
+        <VotingResults 
+          choiceStats={choiceStats}
+          participantCount={participantCount}
+          showResults={showResults}
+        />
 
-        <div className="space-y-1">
-          <h4 className="text-xs font-medium text-white">Active Participants:</h4>
-          <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto scrollbar-hide">
-            {participants.length > 0 ? participants.map((participant) => {
-              const hasVoted = getParticipantChoice(participant.studentId);
-              return (
-                <div key={participant.studentId} className="flex items-center gap-2 bg-black/20 rounded p-1">
-                  <Avatar className="h-4 w-4">
-                    <AvatarFallback className="bg-purple-500/20 text-white text-xs">
-                      {participant.studentName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-white/80 text-xs truncate flex-1">{participant.studentName}</span>
-                  {showResults && hasVoted && (
-                    <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                      Choice {hasVoted}
-                    </Badge>
-                  )}
-                  {hasVoted ? (
-                    <CheckCircle className="h-3 w-3 text-green-400" />
-                  ) : (
-                    <Loader2 className="h-3 w-3 text-orange-400 animate-spin" />
-                  )}
-                </div>
-              );
-            }) : (
-              <div className="text-white/60 text-xs text-center py-1">
-                Waiting for students to join...
-              </div>
-            )}
-          </div>
-        </div>
+        <ParticipantsList 
+          participants={participants}
+          showResults={showResults}
+          getParticipantChoice={getParticipantChoice}
+        />
       </CardContent>
     </Card>
   );
