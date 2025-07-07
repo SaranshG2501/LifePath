@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle, MessageCircle, Send, Wifi } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
+import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated, sendSessionMessage, SessionMessage } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 interface LiveSessionTrackerProps {
@@ -56,11 +56,11 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
     const unsubscribe = onLiveSessionUpdated(session.id, (updatedSession) => {
       if (updatedSession?.messages) {
-        const sessionMessages: Message[] = updatedSession.messages.map((msg: any, index: number) => ({
+        const sessionMessages: Message[] = updatedSession.messages.map((msg: SessionMessage, index: number) => ({
           id: `${msg.timestamp || Date.now()}-${index}`,
-          text: msg.text || msg,
-          timestamp: msg.timestamp || Date.now(),
-          author: msg.author || 'Teacher'
+          text: msg.text,
+          timestamp: msg.timestamp,
+          author: msg.author
         }));
         setMessages(sessionMessages);
       }
@@ -82,18 +82,26 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   }, [session.currentChoices]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !isTeacher || !currentUser) return;
+    if (!newMessage.trim() || !isTeacher || !currentUser || !session.id) return;
     
     try {
-      const messageObj: Message = {
-        id: `${Date.now()}-${Math.random()}`,
+      const messageObj: SessionMessage = {
         text: newMessage,
         timestamp: Date.now(),
         author: 'Teacher'
       };
       
+      // Send message to Firebase
+      await sendSessionMessage(session.id, messageObj);
+      
       // Update local state immediately for better UX
-      setMessages(prev => [...prev, messageObj]);
+      const localMessage: Message = {
+        id: `${Date.now()}-${Math.random()}`,
+        text: newMessage,
+        timestamp: Date.now(),
+        author: 'Teacher'
+      };
+      setMessages(prev => [...prev, localMessage]);
       setNewMessage('');
       
       console.log("Message sent successfully:", messageObj);
