@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,8 @@ import {
   Brain,
   Smile
 } from 'lucide-react';
-import { ProfileStats } from '@/components/profile/ProfileStats';
-import { HistoryCard } from '@/components/profile/HistoryCard';
+import ProfileStats from '@/components/profile/ProfileStats';
+import HistoryCard from '@/components/profile/HistoryCard';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
