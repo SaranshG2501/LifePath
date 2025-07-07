@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, AlertTriangle, MessageCircle, Send, Wifi } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated, updateLiveSessionData } from '@/lib/firebase';
+import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 interface LiveSessionTrackerProps {
@@ -49,14 +50,14 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     };
   }, [session.id]);
 
-  // Listen for session updates including messages
+  // Listen for session updates
   useEffect(() => {
     if (!session.id) return;
 
-    const unsubscribeSession = onLiveSessionUpdated(session.id, (updatedSession) => {
-      if (updatedSession?.sessionData?.messages) {
-        const sessionMessages = updatedSession.sessionData.messages.map((msg: any, index: number) => ({
-          id: `${index}`,
+    const unsubscribe = onLiveSessionUpdated(session.id, (updatedSession) => {
+      if (updatedSession?.messages) {
+        const sessionMessages: Message[] = updatedSession.messages.map((msg: any, index: number) => ({
+          id: `${msg.timestamp || Date.now()}-${index}`,
           text: msg.text || msg,
           timestamp: msg.timestamp || Date.now(),
           author: msg.author || 'Teacher'
@@ -65,7 +66,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
       }
     });
 
-    return unsubscribeSession;
+    return unsubscribe;
   }, [session.id]);
 
   useEffect(() => {
@@ -84,23 +85,15 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     if (!newMessage.trim() || !isTeacher || !currentUser) return;
     
     try {
-      const messageObj = {
+      const messageObj: Message = {
+        id: `${Date.now()}-${Math.random()}`,
         text: newMessage,
         timestamp: Date.now(),
         author: 'Teacher'
       };
       
-      // Get current messages and add new one
-      const currentMessages = messages || [];
-      const updatedMessages = [...currentMessages, messageObj];
-      
-      // Update session with new messages
-      await updateLiveSessionData(session.id, {
-        messages: updatedMessages
-      });
-      
       // Update local state immediately for better UX
-      setMessages(updatedMessages);
+      setMessages(prev => [...prev, messageObj]);
       setNewMessage('');
       
       console.log("Message sent successfully:", messageObj);
@@ -206,7 +199,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
           </div>
           
           {isTeacher && (
-            <div className="flex gap-1">
+            <div className="flex gap-1 mt-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
