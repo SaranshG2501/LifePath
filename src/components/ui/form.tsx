@@ -130,6 +130,10 @@ const FormDescription = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { formDescriptionId } = useFormField()
 
+  if (!children) {
+    return null
+  }
+
   return (
     <p
       ref={ref}
