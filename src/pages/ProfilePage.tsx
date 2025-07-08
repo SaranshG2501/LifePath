@@ -9,11 +9,59 @@ import { School, Users, LogOut, GraduationCap, Trophy, TrendingUp, Sparkles, Cal
 import { useAuth } from '@/context/AuthContext';
 import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp } from '@/lib/firebase';
 import ProfileStats from '@/components/profile/ProfileStats';
+import ScenarioHistoryTable from '@/components/profile/ScenarioHistoryTable';
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loadingClassrooms, setLoadingClassrooms] = useState(true);
+  
+  // Mock history data - in a real app, this would come from the user's stored data
+  const [scenarioHistory] = useState([
+    {
+      scenarioId: 'scenario-1',
+      scenarioTitle: 'College Decisions',
+      completedAt: new Date('2024-01-15T14:30:00'),
+      choices: [
+        {
+          sceneTitle: 'Choosing Your Major',
+          choiceText: 'Pick a major that interests you most',
+          metricChanges: { knowledge: 15, happiness: 10, money: -5 }
+        },
+        {
+          sceneTitle: 'Study vs Social Life',
+          choiceText: 'Balance both study and social activities',
+          metricChanges: { knowledge: 5, happiness: 10, relationships: 15 }
+        }
+      ],
+      finalMetrics: {
+        health: 85,
+        money: 65,
+        happiness: 90,
+        knowledge: 80,
+        relationships: 75
+      }
+    },
+    {
+      scenarioId: 'scenario-2',
+      scenarioTitle: 'First Job Interview',
+      completedAt: new Date('2024-01-20T10:15:00'),
+      choices: [
+        {
+          sceneTitle: 'Interview Preparation',
+          choiceText: 'Prepare thoroughly and practice common questions',
+          metricChanges: { knowledge: 20, money: 10, happiness: 5 }
+        }
+      ],
+      finalMetrics: {
+        health: 78,
+        money: 85,
+        happiness: 70,
+        knowledge: 95,
+        relationships: 60
+      }
+    }
+  ]);
 
   useEffect(() => {
     if (currentUser && userProfile) {
@@ -129,7 +177,7 @@ const ProfilePage = () => {
         />
 
         {/* Classrooms Section */}
-        <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl">
+        <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl mb-8">
           <CardHeader className="pb-4">
             <CardTitle className="text-white flex items-center gap-3 text-xl">
               <div className="p-2 bg-green-500/20 rounded-lg">
@@ -209,6 +257,9 @@ const ProfilePage = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Scenario History Section */}
+        <ScenarioHistoryTable history={scenarioHistory} />
       </div>
     </div>
   );
