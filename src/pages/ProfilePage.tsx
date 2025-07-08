@@ -7,67 +7,69 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { School, Users, LogOut, GraduationCap, Trophy, TrendingUp, Sparkles, Calendar } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp } from '@/lib/firebase';
+import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp, getUserScenarioHistory } from '@/lib/firebase';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ScenarioHistoryTable from '@/components/profile/ScenarioHistoryTable';
+
+interface HistoryEntry {
+  scenarioId: string;
+  scenarioTitle: string;
+  completedAt: Date;
+  choices: {
+    sceneTitle: string;
+    choiceText: string;
+    metricChanges: Record<string, number>;
+  }[];
+  finalMetrics: {
+    health: number;
+    money: number;
+    happiness: number;
+    knowledge: number;
+    relationships: number;
+  };
+}
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loadingClassrooms, setLoadingClassrooms] = useState(true);
-  
-  // Mock history data - in a real app, this would come from the user's stored data
-  const [scenarioHistory] = useState([
-    {
-      scenarioId: 'scenario-1',
-      scenarioTitle: 'College Decisions',
-      completedAt: new Date('2024-01-15T14:30:00'),
-      choices: [
-        {
-          sceneTitle: 'Choosing Your Major',
-          choiceText: 'Pick a major that interests you most',
-          metricChanges: { knowledge: 15, happiness: 10, money: -5 }
-        },
-        {
-          sceneTitle: 'Study vs Social Life',
-          choiceText: 'Balance both study and social activities',
-          metricChanges: { knowledge: 5, happiness: 10, relationships: 15 }
-        }
-      ],
-      finalMetrics: {
-        health: 85,
-        money: 65,
-        happiness: 90,
-        knowledge: 80,
-        relationships: 75
-      }
-    },
-    {
-      scenarioId: 'scenario-2',
-      scenarioTitle: 'First Job Interview',
-      completedAt: new Date('2024-01-20T10:15:00'),
-      choices: [
-        {
-          sceneTitle: 'Interview Preparation',
-          choiceText: 'Prepare thoroughly and practice common questions',
-          metricChanges: { knowledge: 20, money: 10, happiness: 5 }
-        }
-      ],
-      finalMetrics: {
-        health: 78,
-        money: 85,
-        happiness: 70,
-        knowledge: 95,
-        relationships: 60
-      }
-    }
-  ]);
+  const [scenarioHistory, setScenarioHistory] = useState<HistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {
     if (currentUser && userProfile) {
       fetchClassrooms();
+      fetchScenarioHistory();
     }
   }, [currentUser, userProfile]);
+
+  const fetchScenarioHistory = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoadingHistory(true);
+      const history = await getUserScenarioHistory(currentUser.uid);
+      
+      // Transform Firebase data to component format
+      const transformedHistory: HistoryEntry[] = history.map(entry => ({
+        scenarioId: entry.scenarioId,
+        scenarioTitle: entry.scenarioTitle,
+        completedAt: convertTimestampToDate(entry.completedAt),
+        choices: entry.choices.map(choice => ({
+          sceneTitle: choice.sceneId, // In a real app, you'd map this to actual scene titles
+          choiceText: choice.choiceText,
+          metricChanges: choice.metricChanges || {}
+        })),
+        finalMetrics: entry.finalMetrics
+      }));
+      
+      setScenarioHistory(transformedHistory);
+    } catch (error) {
+      console.error('Error fetching scenario history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const fetchClassrooms = async () => {
     if (!currentUser || !userProfile) return;
@@ -171,7 +173,7 @@ const ProfilePage = () => {
 
         {/* Stats Overview */}
         <ProfileStats 
-          scenarioHistory={[]}
+          scenarioHistory={scenarioHistory}
           userLevel={userProfile?.level || 1}
           userXp={userProfile?.xp || 0}
         />
@@ -259,7 +261,16 @@ const ProfilePage = () => {
         </Card>
 
         {/* Scenario History Section */}
-        <ScenarioHistoryTable history={scenarioHistory} />
+        {loadingHistory ? (
+          <Card className="bg-slate-800/50 border-slate-700/50">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400 mx-auto mb-4"></div>
+              <div className="text-slate-400">Loading your scenario history...</div>
+            </CardContent>
+          </Card>
+        ) : (
+          <ScenarioHistoryTable history={scenarioHistory} />
+        )}
       </div>
     </div>
   );
