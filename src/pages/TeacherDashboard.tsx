@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen } from 'lucide-react';
-import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession } from '@/lib/firebase';
+import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle } from 'lucide-react';
+import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
@@ -26,6 +26,7 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [creatingSession, setCreatingSession] = useState<string | null>(null);
+  const [endingSession, setEndingSession] = useState<string | null>(null);
 
   // Classroom creation state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -190,6 +191,35 @@ const TeacherDashboard = () => {
     }
   };
 
+  const handleEndLiveSession = async (classroom: Classroom) => {
+    if (!currentUser || !classroom.id || !classroom.activeSessionId) return;
+    
+    setEndingSession(classroom.id);
+    try {
+      console.log("Ending live session for classroom:", classroom.id);
+      
+      await endLiveSession(classroom.activeSessionId, classroom.id);
+      
+      // Refresh classrooms to show updated state
+      await loadClassrooms();
+      
+      toast({
+        title: "Session Ended",
+        description: `Live session has been ended. All students have been notified.`,
+      });
+      
+    } catch (error) {
+      console.error('Error ending live session:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to end live session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setEndingSession(null);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
@@ -323,6 +353,53 @@ const TeacherDashboard = () => {
                         <School className="h-4 w-4 mr-1" />
                         Manage
                       </Button>
+                      {classroom.activeSessionId && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                              disabled={endingSession === classroom.id}
+                            >
+                              <StopCircle className="h-4 w-4 mr-1" />
+                              End Session
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-black/90 border border-red-500/20">
+                            <AlertDialogHeader>
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-red-500/20 rounded-full">
+                                  <StopCircle className="h-5 w-5 text-red-400" />
+                                </div>
+                                <AlertDialogTitle className="text-white">End Live Session</AlertDialogTitle>
+                              </div>
+                              <AlertDialogDescription className="text-white/70">
+                                Are you sure you want to end the live session for <strong>"{classroom.name}"</strong>?
+                                <br /><br />
+                                This action will:
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                  <li>End the current scenario session</li>
+                                  <li>Notify all students that the session has ended</li>
+                                  <li>Remove students from the live session</li>
+                                </ul>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleEndLiveSession(classroom)}
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                                disabled={endingSession === classroom.id}
+                              >
+                                {endingSession === classroom.id ? "Ending..." : "End Session"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                 </CardContent>
