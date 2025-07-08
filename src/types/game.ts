@@ -1,4 +1,3 @@
-
 export type Metrics = {
   health: number;
   money: number;
@@ -92,78 +91,29 @@ export interface ScenarioCardProps {
   onClick?: () => void;
 }
 
-export interface ScenarioHistory {
-  scenarioId: string;
-  scenarioTitle: string;
-  startedAt: Date;
-  completedAt: Date;
-  choices: any[];
-  finalMetrics: Record<string, number>;
-}
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  unlocked: boolean;
-}
-
 type GameContextType = {
-  // Game state
   gameState: GameState;
-  currentScenario: Scenario | null;
-  currentScene: Scene | null;
-  sceneHistory: any[];
-  metrics: Metrics;
-  achievements: Achievement[];
-  isGameActive: boolean;
-  
-  // Scenarios
   scenarios: Scenario[];
-  scenarioHistory: ScenarioHistory[];
-  isScenarioHistoryLoading: boolean;
-  
-  // Game controls
-  startScenario: (id: string) => Promise<void>;
-  startNewScenario: (scenarioId: string) => Promise<void>;
+  startScenario: (id: string) => void;
   makeChoice: (choiceId: string) => void;
   resetGame: () => void;
-  completeScenario: (finalMetrics: Record<string, number>) => Promise<void>;
-  fetchScenarioHistory: () => Promise<void>;
-  
-  // Game modes and settings
+  isGameActive: boolean;
   gameMode: GameMode;
   setGameMode: (mode: GameMode) => void;
-  userRole: UserRole | null | undefined;
+  userRole: UserRole;
   setUserRole: (role: UserRole) => void;
-  
-  // Classroom functionality
   classroomId: string | null;
   setClassroomId: (id: string | null) => void;
-  hasJoinedClassroom: boolean;
-  isModeLocked: boolean;
-  
-  // Voting system
+  showMirrorMoment: boolean;
+  setShowMirrorMoment: (show: boolean) => void;
+  currentMirrorQuestion: string | null;
   classroomVotes: Record<string, number>;
   submitVote: (choiceId: string) => void;
   revealVotes: boolean;
   setRevealVotes: (reveal: boolean) => void;
-  
-  // Mirror moments
-  showMirrorMoment: boolean;
-  setShowMirrorMoment: (show: boolean) => void;
-  currentMirrorQuestion: string | null;
-  mirrorMomentsEnabled: boolean;
   toggleMirrorMoments: () => void;
-  
-  // Teacher view
-  isTeacherViewOpen: boolean;
-  setIsTeacherViewOpen: (isOpen: boolean) => void;
-  classroomVotingData: any | null;
-  setClassroomVotingData: (data: any | null) => void;
-  
-  // Scene navigation
+  mirrorMomentsEnabled: boolean;
+  hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
+  isModeLocked: boolean;
 };
-
-export default GameContextType;

@@ -117,13 +117,6 @@ export interface ScenarioChoice {
   metricChanges?: Record<string, number>;
 }
 
-// Session message interface
-export interface SessionMessage {
-  text: string;
-  timestamp: number;
-  author: string;
-}
-
 // Enhanced Live Session with scene tracking and proper lifecycle
 export interface LiveSession {
   id?: string;
@@ -139,7 +132,6 @@ export interface LiveSession {
   endedAt?: Timestamp;
   participants: string[];
   currentChoices?: Record<string, string>;
-  messages?: SessionMessage[];
   resultPayload?: {
     choices: Record<string, any>;
     metrics: Record<string, any>;
@@ -193,7 +185,6 @@ export const createLiveSession = async (
       currentSceneIndex: 0,
       participants: [],
       currentChoices: {},
-      messages: [],
       votes: {},
       createdAt: Timestamp.now(),
       lastUpdated: Timestamp.now()
@@ -248,20 +239,6 @@ export const createLiveSession = async (
     
   } catch (error) {
     console.error("Error creating live session:", error);
-    throw error;
-  }
-};
-
-// Add function to send messages to session
-export const sendSessionMessage = async (sessionId: string, message: SessionMessage) => {
-  try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    await updateDoc(sessionRef, {
-      messages: arrayUnion(message),
-      lastUpdated: Timestamp.now()
-    });
-  } catch (error) {
-    console.error("Error sending session message:", error);
     throw error;
   }
 };

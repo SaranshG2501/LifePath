@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameState } from '@/types/game';
 import { Button } from '@/components/ui/button';
@@ -20,19 +21,14 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
-  console.log("ResultsSummary gameState:", gameState);
-  console.log("ResultsSummary history:", gameState.history);
-  
   // Calculate total metric changes
   const totalChanges = gameState.history.reduce(
     (acc, entry) => {
-      if (entry.metricChanges) {
-        Object.entries(entry.metricChanges).forEach(([key, value]) => {
-          if (value) {
-            acc[key as keyof typeof acc] = (acc[key as keyof typeof acc] || 0) + value;
-          }
-        });
-      }
+      Object.entries(entry.metricChanges).forEach(([key, value]) => {
+        if (value) {
+          acc[key as keyof typeof acc] = (acc[key as keyof typeof acc] || 0) + value;
+        }
+      });
       return acc;
     },
     {} as Record<string, number>
@@ -156,21 +152,20 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
 
   // Evaluate decision-making style
   const getDecisionStyle = () => {
-    const { history } = gameState;
+    const { metrics, history } = gameState;
     
-    if (history.length === 0) {
-      return "Start making some decisions to see your unique decision-making style emerge!";
-    }
-    
-    // Analyze based on metric changes
+    // Count risky vs cautious choices (simplified example)
     const riskyChoices = history.filter(entry => {
-      if (!entry.metricChanges) return false;
-      return Object.values(entry.metricChanges).some(change => change < -10);
+      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      // This is a simplified example - would need actual choice data with risk indicators
+      return choice?.metricChanges.money && choice.metricChanges.money < -5;
     }).length;
     
     const cautiousChoices = history.filter(entry => {
-      if (!entry.metricChanges) return false;
-      return Object.values(entry.metricChanges).every(change => change >= 0);
+      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+      const choice = scene?.choices.find(c => c.id === entry.choiceId);
+      return choice?.metricChanges.money && choice.metricChanges.money > 5;
     }).length;
     
     if (riskyChoices > cautiousChoices) {
@@ -182,58 +177,12 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     }
   };
 
-  // Get the actual choices made with scene context - Fixed to show proper choice text
-  const getChoiceHistory = () => {
-    console.log("Getting choice history from gameState.history:", gameState.history);
-    console.log("Current scenario scenes:", gameState.currentScenario?.scenes);
-    
-    if (!gameState.history || gameState.history.length === 0) {
-      return [];
-    }
-
-    return gameState.history.map((entry, index) => {
-      console.log(`Processing history entry ${index}:`, entry);
-      
-      // Find the scene from the current scenario
-      const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
-      
-      // Get the choice text from the entry itself (since it's the choice object)
-      let choiceText = '';
-      if ('text' in entry && typeof entry.text === 'string') {
-        choiceText = entry.text;
-      } else if (scene && entry.choiceId) {
-        const choice = scene.choices.find(c => c.id === entry.choiceId);
-        choiceText = choice?.text || `Choice ${entry.choiceId}`;
-      } else {
-        choiceText = `Choice ${index + 1}`;
-      }
-      
-      console.log(`Choice ${index + 1}:`, {
-        sceneId: entry.sceneId,
-        choiceId: entry.choiceId,
-        scene: scene?.title,
-        choiceText: choiceText,
-        sceneDescription: scene?.description,
-        metricChanges: entry.metricChanges
-      });
-      
-      return {
-        sceneTitle: scene?.title || `Scene ${index + 1}`,
-        sceneDescription: scene?.description || '',
-        choiceText: choiceText,
-        metricChanges: entry.metricChanges || {},
-        index: index + 1
-      };
-    });
-  };
-
   if (!gameState.currentScenario || !gameState.currentScene) {
     return null;
   }
 
   const achievements = getAchievements();
   const personaltips = getPersonalizedTips();
-  const choiceHistory = getChoiceHistory();
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-scale-in">
@@ -331,69 +280,29 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              Your Choices & Decisions
+              <Sparkles className="h-5 w-5 text-primary" />
+              Your Journey
             </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-              {choiceHistory.length > 0 ? (
-                choiceHistory.map((choice, index) => {
-                  const animationDelay = `${0.3 + index * 0.1}s`;
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className="bg-black/30 backdrop-blur-sm p-5 rounded-lg border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
-                      style={{ animationDelay }}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-full flex items-center justify-center border-2 border-primary/40">
-                          <span className="text-sm font-bold text-white">{choice.index}</span>
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <div className="font-semibold text-white text-lg mb-1">{choice.sceneTitle}</div>
-                            {choice.sceneDescription && (
-                              <div className="text-sm text-white/70 mb-3 leading-relaxed">
-                                {choice.sceneDescription}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-md border border-primary/20">
-                            <div className="text-xs text-primary font-medium mb-1">YOUR CHOICE:</div>
-                            <div className="text-white font-medium leading-relaxed">
-                              {choice.choiceText || `Choice ${choice.index}`}
-                            </div>
-                          </div>
-                          
-                          {Object.keys(choice.metricChanges).length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              <div className="text-xs text-white/60 mr-2">Impact:</div>
-                              {Object.entries(choice.metricChanges).map(([metric, change]) => (
-                                <span 
-                                  key={metric}
-                                  className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                    change > 0 
-                                      ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                                      : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                  }`}
-                                >
-                                  {metric.charAt(0).toUpperCase() + metric.slice(1)}: {change > 0 ? '+' : ''}{change}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              {gameState.history.map((entry, index) => {
+                const scene = gameState.currentScenario?.scenes.find(s => s.id === entry.sceneId);
+                const choice = scene?.choices.find(c => c.id === entry.choiceId);
+                const animationDelay = `${0.3 + index * 0.1}s`;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className="bg-black/30 backdrop-blur-sm p-3 rounded-md border border-white/10 animate-slide-up hover:bg-black/40 transition-all duration-200"
+                    style={{ animationDelay }}
+                  >
+                    <div className="font-medium text-white">{scene?.title}</div>
+                    <div className="text-sm text-white/70 flex items-start gap-2">
+                      <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      {choice?.text}
                     </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8 text-white/60">
-                  <p className="font-medium">No choices recorded for this session</p>
-                  <p className="text-sm mt-1">Your future games will show detailed choice history!</p>
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </CardContent>

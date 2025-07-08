@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
@@ -6,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw, AlertTriangle, Radio } from 'lucide-react';
+import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom, endLiveSession } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom } from '@/lib/firebase';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -25,7 +26,6 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   const [currentClassroom, setCurrentClassroom] = useState(classroom);
   const [activeSession, setActiveSession] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [endingSession, setEndingSession] = useState(false);
   const { toast } = useToast();
   
   // Set up real-time listener for classroom updates
@@ -88,64 +88,6 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       console.error("Error refreshing:", error);
     } finally {
       setRefreshing(false);
-    }
-  };
-  
-  const handleEndLiveSession = async () => {
-    if (!activeSession?.id) return;
-    
-    setEndingSession(true);
-    try {
-      console.log("Attempting to end live session:", activeSession.id);
-      
-      // Simplified end session - just mark as ended
-      const resultPayload = {
-        sessionId: activeSession.id,
-        scenarioTitle: activeSession.scenarioTitle,
-        participants: activeSession.participants || [],
-        choices: activeSession.currentChoices || {},
-        endedAt: new Date().toISOString(),
-        summary: `Live session "${activeSession.scenarioTitle}" ended by teacher`
-      };
-      
-      console.log("Ending session with payload:", resultPayload);
-      
-      try {
-        await endLiveSession(activeSession.id, classroom.id, resultPayload);
-        console.log("Live session ended successfully");
-        
-        // Clear the active session
-        setActiveSession(null);
-        
-        // Refresh classroom data
-        await onRefresh();
-        
-        toast({
-          title: "Session Ended Successfully",
-          description: `Live session "${activeSession.scenarioTitle}" has been ended.`,
-        });
-      } catch (firebaseError) {
-        console.error("Firebase error ending session:", firebaseError);
-        
-        // Fallback: Just clear local state and show success
-        setActiveSession(null);
-        await onRefresh();
-        
-        toast({
-          title: "Session Ended",
-          description: `Live session "${activeSession.scenarioTitle}" has been ended locally.`,
-        });
-      }
-      
-    } catch (error) {
-      console.error("Error ending live session:", error);
-      toast({
-        title: "Error Ending Session",
-        description: "There was an issue ending the session. Please try refreshing and try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setEndingSession(false);
     }
   };
   
@@ -247,100 +189,13 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               
               {activeSession && (
                 <Badge className="bg-blue-500/20 text-blue-300 border-0">
-                  <Radio className="h-3 w-3 mr-1" />
-                  Live Session: {activeSession.scenarioTitle}
+                  Live Session
                 </Badge>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Enhanced Live Session Control Panel with prominent End Session button */}
-      {activeSession && (
-        <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-lg p-6 border border-red-500/30">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-medium text-white flex items-center gap-2 text-lg">
-                <Radio className="h-6 w-6 text-red-400 animate-pulse" />
-                Active Live Session
-              </h3>
-              <p className="text-white/70 text-sm mt-1">
-                "{activeSession.scenarioTitle}" - {activeSession.participants?.length || 0} participants
-              </p>
-            </div>
-            
-            {/* Prominent End Session Button */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive"
-                  size="lg"
-                  disabled={endingSession}
-                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 text-base shadow-lg"
-                >
-                  {endingSession ? (
-                    <>
-                      <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                      Ending Session...
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                      End Live Session
-                    </>
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-black/95 border border-red-500/30 max-w-md">
-                <AlertDialogHeader>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-red-500/20 rounded-full">
-                      <AlertTriangle className="h-6 w-6 text-red-400" />
-                    </div>
-                    <div>
-                      <AlertDialogTitle className="text-white text-lg">End Live Session</AlertDialogTitle>
-                    </div>
-                  </div>
-                  <AlertDialogDescription className="text-white/80 leading-relaxed">
-                    Are you sure you want to end the live session <strong className="text-white">"{activeSession.scenarioTitle}"</strong>?
-                    <br /><br />
-                    <div className="bg-red-900/20 p-3 rounded border border-red-500/20 mt-3">
-                      <strong className="text-red-300">This will:</strong>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                        <li>Disconnect all {activeSession.participants?.length || 0} active participants</li>
-                        <li>Save the current session results</li>
-                        <li>Return students to individual mode</li>
-                        <li><strong>Cannot be undone</strong></li>
-                      </ul>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="mt-6">
-                  <AlertDialogCancel className="bg-transparent border border-white/20 text-white hover:bg-white/10">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleEndLiveSession}
-                    className="bg-red-600 hover:bg-red-700 text-white font-semibold"
-                    disabled={endingSession}
-                  >
-                    {endingSession ? "Ending Session..." : "End Session"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-          
-          <div className="text-sm text-red-200 bg-red-900/30 p-3 rounded border border-red-500/40">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-300" />
-              <strong>Session Active:</strong> Students are currently participating in this live session.
-            </div>
-            <p className="mt-1 text-red-200/80">End the session when ready to conclude the activity and return students to individual mode.</p>
-          </div>
-        </div>
-      )}
       
       <div>
         <div className="flex justify-between items-center mb-3">

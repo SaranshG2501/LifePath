@@ -1,400 +1,467 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
+import { scenarios } from "@/data/scenarios";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { 
+  updateUserProfile, 
+  getUserClassrooms, 
+  saveScenarioHistory, 
+  ScenarioChoice 
+} from "@/lib/firebase";
+import { Timestamp } from "firebase/firestore";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from 'react';
-import {
-  Scenario,
-  Scene,
-  GameState,
-  GameMode,
-  UserRole,
-  Achievement,
-  Metrics,
-} from '@/types/game';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from './AuthContext';
-import { scenarios } from '@/data/scenarios';
-
-// Simple scenario history interface
-interface ScenarioHistoryItem {
-  id: string;
-  scenarioId: string;
-  title: string;
-  completedAt: string;
-  score: number;
-  choices: number;
-  metrics: {
-    health: number;
-    money: number;
-    happiness: number;
-    knowledge: number;
-    relationships: number;
-  };
-}
-
-interface GameContextType {
-  // Game state
+type GameContextType = {
   gameState: GameState;
-  currentScenario: Scenario | null;
-  currentScene: Scene | null;
-  sceneHistory: any[];
-  metrics: Metrics;
-  achievements: Achievement[];
-  isGameActive: boolean;
-  
-  // Scenarios
   scenarios: Scenario[];
-  scenarioHistory: ScenarioHistoryItem[];
-  isHistoryLoading: boolean;
-  
-  // Game controls
-  startScenario: (id: string) => Promise<void>;
-  startNewScenario: (scenarioId: string) => Promise<void>;
+  startScenario: (id: string) => void;
   makeChoice: (choiceId: string) => void;
   resetGame: () => void;
-  completeScenario: (finalMetrics: Record<string, number>) => Promise<void>;
-  refreshHistory: () => void;
-  
-  // Game modes and settings
+  isGameActive: boolean;
   gameMode: GameMode;
   setGameMode: (mode: GameMode) => void;
-  userRole: UserRole | null | undefined;
+  userRole: UserRole;
   setUserRole: (role: UserRole) => void;
-  
-  // Classroom functionality
   classroomId: string | null;
   setClassroomId: (id: string | null) => void;
-  hasJoinedClassroom: boolean;
-  isModeLocked: boolean;
-  
-  // Voting system
+  showMirrorMoment: boolean;
+  setShowMirrorMoment: (show: boolean) => void;
+  currentMirrorQuestion: string | null;
   classroomVotes: Record<string, number>;
   submitVote: (choiceId: string) => void;
   revealVotes: boolean;
   setRevealVotes: (reveal: boolean) => void;
-  
-  // Mirror moments
-  showMirrorMoment: boolean;
-  setShowMirrorMoment: (show: boolean) => void;
-  currentMirrorQuestion: string | null;
-  setCurrentMirrorQuestion: (question: string | null) => void;
-  mirrorMomentsEnabled: boolean;
   toggleMirrorMoments: () => void;
-  
-  // Teacher view
-  isTeacherViewOpen: boolean;
-  setIsTeacherViewOpen: (isOpen: boolean) => void;
-  classroomVotingData: any | null;
-  setClassroomVotingData: (data: any | null) => void;
-  
-  // Scene navigation
+  mirrorMomentsEnabled: boolean;
+  hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
-}
+  isModeLocked: boolean;
+};
+
+const initialMetrics: Metrics = {
+  health: 0,
+  money: 0,
+  happiness: 0,
+  knowledge: 0,
+  relationships: 0
+};
+
+const initialGameState: GameState = {
+  currentScenario: null,
+  currentScene: null,
+  metrics: initialMetrics,
+  history: []
+};
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
-  const [currentScene, setCurrentScene] = useState<Scene | null>(null);
-  const [sceneHistory, setSceneHistory] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<Metrics>({
-    happiness: 50,
-    knowledge: 50,
-    money: 50,
-    health: 50,
-    relationships: 50,
-  });
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+export const GameProvider = ({ children }: { children: React.ReactNode }) => {
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
-  const [isTeacherViewOpen, setIsTeacherViewOpen] = useState<boolean>(false);
-  const [classroomVotingData, setClassroomVotingData] = useState<any | null>(null);
-  const [gameMode, setGameMode] = useState<GameMode>('individual');
-  const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistoryItem[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(true);
+  const [gameMode, setGameMode] = useState<GameMode>("individual");
+  const [userRole, setUserRole] = useState<UserRole>("student");
   const [classroomId, setClassroomId] = useState<string | null>(null);
-  const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
-  const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [showMirrorMoment, setShowMirrorMoment] = useState<boolean>(false);
   const [currentMirrorQuestion, setCurrentMirrorQuestion] = useState<string | null>(null);
+  const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
+  const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
-  
-  const { currentUser, userProfile } = useAuth();
+  const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
+  const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
+  const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
   const { toast } = useToast();
+  const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
-  const userRole = userProfile?.role;
-  const hasJoinedClassroom = Boolean(classroomId);
-  const isModeLocked = false;
-
-  const gameState: GameState = {
-    currentScenario,
-    currentScene,
-    metrics,
-    history: sceneHistory,
-  };
-
-  // Get storage key for current user
-  const getStorageKey = useCallback(() => {
-    if (currentUser?.uid) {
-      return `lifepath_history_${currentUser.uid}`;
-    }
-    return 'lifepath_history_guest';
-  }, [currentUser]);
-
-  // Load history from localStorage
-  const loadHistoryFromStorage = useCallback(() => {
-    console.log('Loading history from storage...');
-    setIsHistoryLoading(true);
-    
-    try {
-      const storageKey = getStorageKey();
-      const savedHistory = localStorage.getItem(storageKey);
-      
-      if (savedHistory) {
-        const parsedHistory = JSON.parse(savedHistory);
-        console.log('Found saved history:', parsedHistory);
-        
-        // Validate and clean up the history data
-        const validHistory = parsedHistory.filter((item: any) => 
-          item.id && item.scenarioId && item.title && item.completedAt
-        );
-        
-        setScenarioHistory(validHistory);
-      } else {
-        console.log('No saved history found');
-        setScenarioHistory([]);
-      }
-    } catch (error) {
-      console.error('Error loading history:', error);
-      setScenarioHistory([]);
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  }, [getStorageKey]);
-
-  // Save history to localStorage
-  const saveHistoryToStorage = useCallback((newHistory: ScenarioHistoryItem[]) => {
-    try {
-      const storageKey = getStorageKey();
-      localStorage.setItem(storageKey, JSON.stringify(newHistory));
-      console.log('History saved to storage:', newHistory.length, 'items');
-    } catch (error) {
-      console.error('Error saving history:', error);
-    }
-  }, [getStorageKey]);
-
-  // Load history when component mounts or user changes
+  // Set user role based on profile
   useEffect(() => {
-    loadHistoryFromStorage();
-  }, [loadHistoryFromStorage]);
+    if (userProfile?.role) {
+      setUserRole(userProfile.role as UserRole);
+    } else {
+      setUserRole("guest");
+    }
+  }, [userProfile]);
 
-  // Refresh history function
-  const refreshHistory = useCallback(() => {
-    console.log('Refreshing history...');
-    loadHistoryFromStorage();
+  // Check if user has joined any classroom
+  useEffect(() => {
+    const checkClassroomStatus = async () => {
+      if (!currentUser || !userProfile) return;
+      
+      try {
+        const userClassrooms = await getUserClassrooms(currentUser.uid, userProfile.role || 'student');
+        setHasJoinedClassroom(userClassrooms.length > 0);
+        
+        // If user has classrooms but no active classroom selected, set the first one
+        if (userClassrooms.length > 0 && !classroomId) {
+          setClassroomId(userClassrooms[0].id);
+        }
+      } catch (error) {
+        console.error("Error checking classroom status:", error);
+      }
+    };
     
-    toast({
-      title: "History Refreshed!",
-      description: "Your adventure history has been updated.",
-    });
-  }, [loadHistoryFromStorage, toast]);
+    checkClassroomStatus();
+  }, [currentUser, userProfile, classroomId, setClassroomId]);
 
-  const startScenario = async (scenarioId: string) => {
-    const scenario = scenarios.find((s) => s.id === scenarioId);
+  // Set game mode to individual if user has no classroom
+  useEffect(() => {
+    if (userRole === 'student' && !hasJoinedClassroom && gameMode === 'classroom') {
+      setGameMode('individual');
+      if (!classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "You need to join a classroom before using classroom mode.",
+        });
+      }
+    }
+  }, [hasJoinedClassroom, gameMode, userRole, classroomId, toast]);
+
+  const startScenario = (id: string) => {
+    const scenario = scenarios.find((s) => s.id === id);
+    
     if (!scenario) {
-      console.error(`Scenario with id ${scenarioId} not found`);
+      toast({
+        title: "Error",
+        description: "Scenario not found",
+        variant: "destructive",
+      });
       return;
     }
 
-    setCurrentScenario(scenario);
-    setCurrentScene(scenario.scenes[0]);
-    setSceneHistory([]);
-    setIsGameActive(true);
-    setMetrics(scenario.initialMetrics);
-  };
+    const firstScene = scenario.scenes.find((s) => s.id === "start");
+    
+    if (!firstScene) {
+      toast({
+        title: "Error",
+        description: "Starting scene not found",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const startNewScenario = async (scenarioId: string) => {
-    await startScenario(scenarioId);
+    // Validate classroom mode
+    if (gameMode === "classroom") {
+      // Students need to be in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Teachers need to have created a classroom
+      if (userRole === "teacher" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please create a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Lock mode when scenario starts
+    setIsModeLocked(true);
+
+    const startingMetrics = { ...scenario.initialMetrics };
+    setScenarioChoices([]);
+
+    setGameState({
+      currentScenario: scenario,
+      currentScene: firstScene,
+      metrics: startingMetrics,
+      history: []
+    });
+    setIsGameActive(true);
+    setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
+
+    if (gameMode === "classroom") {
+      toast({
+        title: "Classroom Mode Active",
+        description: userRole === "teacher" 
+          ? "You're leading this scenario. Students will follow your progress." 
+          : "You're participating in a classroom activity.",
+      });
+    }
   };
 
   const makeChoice = (choiceId: string) => {
-    if (!currentScenario || !currentScene) return;
+    if (!gameState.currentScene || !gameState.currentScenario) return;
 
-    const choice = currentScene.choices.find(c => c.id === choiceId);
-    if (!choice) return;
-
-    setSceneHistory([...sceneHistory, choice]);
-
-    // Update metrics based on the choice
-    setMetrics((prevMetrics) => {
-      const newMetrics = { ...prevMetrics };
-      if (choice.metricChanges) {
-        Object.keys(choice.metricChanges).forEach((metric) => {
-          if (metric in newMetrics) {
-            newMetrics[metric as keyof Metrics] = Math.max(
-              0,
-              Math.min(100, prevMetrics[metric as keyof Metrics] + (choice.metricChanges[metric as keyof Metrics] || 0))
-            );
-          }
-        });
-      }
-      return newMetrics;
-    });
-
-    if (choice.nextSceneId === 'end') {
-      return;
-    }
-
-    const nextScene = currentScenario.scenes.find(
-      (scene) => scene.id === choice.nextSceneId
+    const choice = gameState.currentScene.choices.find(
+      (c) => c.id === choiceId
     );
-
-    if (!nextScene) {
-      console.error(`Next scene with id ${choice.nextSceneId} not found`);
+    
+    if (!choice) {
+      toast({
+        title: "Error",
+        description: "Choice not found",
+        variant: "destructive",
+      });
       return;
     }
 
-    setCurrentScene(nextScene);
+    // If mirror moments are enabled, show reflection question
+    if (mirrorMomentsEnabled && !showMirrorMoment && Math.random() < 0.5) {
+      const mirrorQuestions = [
+        "Pause. Why did you choose that option?",
+        "Would your real self make the same choice?",
+        "How does this choice align with your values?",
+        "What consequences do you think this will have?",
+        "Is this what you would do in real life?"
+      ];
+      setCurrentMirrorQuestion(mirrorQuestions[Math.floor(Math.random() * mirrorQuestions.length)]);
+      setShowMirrorMoment(true);
+      return;
+    }
+
+    // For classroom mode, collect votes instead of immediately proceeding
+    if (gameMode === "classroom" && userRole === "teacher" && !revealVotes) {
+      // In a real app, this would communicate with backend
+      // For demo, we'll simulate votes
+      const newVotes = { ...classroomVotes };
+      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
+      setClassroomVotes(newVotes);
+      setRevealVotes(true);
+      
+      toast({
+        title: "Votes collected",
+        description: "You can now discuss the results with your class.",
+      });
+      
+      return;
+    }
+
+    // Calculate new metrics - create a copy to prevent mutation
+    const newMetrics = { ...gameState.metrics };
+    
+    // Process each metric change
+    if (choice.metricChanges) {
+      Object.entries(choice.metricChanges).forEach(([key, value]) => {
+        const metricKey = key as keyof Metrics;
+        // Check if the key exists in our metrics object
+        if (newMetrics.hasOwnProperty(metricKey) && typeof value === 'number') {
+          // Ensure we stay within 0-100 range
+          newMetrics[metricKey] = Math.max(0, Math.min(100, newMetrics[metricKey] + value));
+        }
+      });
+    }
+
+    console.log("Updated metrics:", newMetrics);
+
+    // Find the next scene
+    const nextScene = gameState.currentScenario.scenes.find(
+      (s) => s.id === choice.nextSceneId
+    );
+    
+    if (!nextScene) {
+      toast({
+        title: "Error",
+        description: "Next scene not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update history
+    const newHistoryEntry = {
+      sceneId: gameState.currentScene.id,
+      choiceId,
+      metricChanges: choice.metricChanges
+    };
+
+    // Save choice to scenario choices for Firestore
+    let newChoice: ScenarioChoice | null = null;
+    if (currentUser) {
+      newChoice = {
+        sceneId: gameState.currentScene.id,
+        choiceId: choice.id,
+        choiceText: choice.text,
+        timestamp: Timestamp.now(),
+        metricChanges: choice.metricChanges
+      };
+      
+      setScenarioChoices(prev => [...prev, newChoice as ScenarioChoice]);
+    }
+
+    const updatedGameState = {
+      ...gameState,
+      currentScene: nextScene,
+      metrics: newMetrics,
+      history: [...gameState.history, newHistoryEntry]
+    };
+
+    setGameState(updatedGameState);
+
+    // If user is logged in, update their metrics in their profile
+    if (currentUser && gameMode === "individual") {
+      updateUserProfile(currentUser.uid, { 
+        metrics: newMetrics
+      }).catch(error => {
+        console.error("Error updating user metrics:", error);
+      });
+    }
+
+    // Check if this is the end of the scenario
+    if ((nextScene.isEndScene || nextScene.isEnding) && currentUser && gameState.currentScenario && newChoice) {
+      const allChoices = [...scenarioChoices, newChoice];
+      
+      // Save completed scenario to Firestore
+      saveScenarioHistory(
+        currentUser.uid,
+        gameState.currentScenario.id,
+        gameState.currentScenario.title,
+        allChoices,
+        newMetrics
+      ).then(() => {
+        console.log("Scenario history saved successfully");
+        toast({
+          title: "Scenario Completed",
+          description: "Your choices have been saved to your profile.",
+        });
+        
+        // Force refresh user profile to update history
+        setTimeout(() => {
+          refreshUserProfile();
+        }, 1000);
+      }).catch(error => {
+        console.error("Error saving scenario history:", error);
+        toast({
+          title: "Save Error",
+          description: "Failed to save your progress. Please check your connection.",
+          variant: "destructive",
+        });
+      });
+    }
+
+    // Reset mirror moment and votes state
+    setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
+    
+    // Removed the metrics changes toast
   };
 
   const resetGame = () => {
+    setGameState(initialGameState);
     setIsGameActive(false);
-    setCurrentScenario(null);
-    setCurrentScene(null);
-    setSceneHistory([]);
-    setMetrics({ happiness: 50, knowledge: 50, money: 50, health: 50, relationships: 50 });
-    setAchievements([]);
-    if (gameMode === 'classroom') {
-      setIsTeacherViewOpen(false);
-      setClassroomVotingData(null);
-    }
-  };
-
-  const completeScenario = async (finalMetrics: Record<string, number>) => {
-    if (!currentScenario) {
-      console.log('No current scenario to complete');
-      return;
-    }
-
-    const newHistoryItem: ScenarioHistoryItem = {
-      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      scenarioId: currentScenario.id,
-      title: currentScenario.title,
-      completedAt: new Date().toISOString(),
-      score: Object.values(finalMetrics).reduce((a, b) => a + b, 0),
-      choices: sceneHistory.length,
-      metrics: {
-        health: finalMetrics.health || 0,
-        money: finalMetrics.money || 0,
-        happiness: finalMetrics.happiness || 0,
-        knowledge: finalMetrics.knowledge || 0,
-        relationships: finalMetrics.relationships || 0,
-      }
-    };
-
-    console.log('Completing scenario, adding to history:', newHistoryItem);
-
-    // Add to history and save
-    const updatedHistory = [newHistoryItem, ...scenarioHistory];
-    setScenarioHistory(updatedHistory);
-    saveHistoryToStorage(updatedHistory);
-    
-    toast({
-      title: "Scenario Complete!",
-      description: "Your progress has been saved to your history.",
-    });
-    
-    resetGame();
+    setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
+    setScenarioChoices([]);
+    setIsModeLocked(false); // Unlock mode when game resets
   };
 
   const submitVote = (choiceId: string) => {
-    setClassroomVotes(prev => ({
-      ...prev,
-      [choiceId]: (prev[choiceId] || 0) + 1
-    }));
+    if (gameMode === "classroom" && gameState.currentScene) {
+      // Validate student is in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before voting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const newVotes = { ...classroomVotes };
+      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
+      setClassroomVotes(newVotes);
+      
+      toast({
+        title: "Vote submitted",
+        description: "Waiting for other students to vote.",
+      });
+    }
   };
 
   const toggleMirrorMoments = () => {
     setMirrorMomentsEnabled(!mirrorMomentsEnabled);
+    toast({
+      title: `Mirror Moments ${!mirrorMomentsEnabled ? 'Enabled' : 'Disabled'}`,
+      description: !mirrorMomentsEnabled 
+        ? "You'll now receive reflection prompts during gameplay." 
+        : "You won't receive reflection prompts during gameplay.",
+    });
   };
 
-  const setCurrentSceneById = (sceneId: string) => {
-    if (!currentScenario) return;
-    const scene = currentScenario.scenes.find(s => s.id === sceneId);
+  // Add setCurrentScene function
+  const setCurrentScene = (sceneId: string) => {
+    if (!gameState.currentScenario) return;
+    
+    const scene = gameState.currentScenario.scenes.find(s => s.id === sceneId);
     if (scene) {
-      setCurrentScene(scene);
+      setGameState(prev => ({
+        ...prev,
+        currentScene: scene
+      }));
     }
   };
 
-  const value: GameContextType = {
-    // Game state
-    gameState,
-    currentScenario,
-    currentScene,
-    sceneHistory,
-    metrics,
-    achievements,
-    isGameActive,
+  const setGameModeWithLock = (mode: GameMode) => {
+    if (isModeLocked) {
+      toast({
+        title: "Mode Locked",
+        description: "Cannot change mode while a scenario is active.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Scenarios
-    scenarios,
-    scenarioHistory,
-    isHistoryLoading,
+    // Prevent guests from accessing classroom mode
+    if (mode === "classroom" && userRole === "guest") {
+      toast({
+        title: "Login Required",
+        description: "Please sign up or login to use classroom mode.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Game controls
-    startScenario,
-    startNewScenario,
-    makeChoice,
-    resetGame,
-    completeScenario,
-    refreshHistory,
-    
-    // Game modes and settings
-    gameMode,
-    setGameMode,
-    userRole,
-    setUserRole: () => {},
-    
-    // Classroom functionality
-    classroomId,
-    setClassroomId,
-    hasJoinedClassroom,
-    isModeLocked,
-    
-    // Voting system
-    classroomVotes,
-    submitVote,
-    revealVotes,
-    setRevealVotes,
-    
-    // Mirror moments
-    showMirrorMoment,
-    setShowMirrorMoment,
-    currentMirrorQuestion,
-    setCurrentMirrorQuestion,
-    mirrorMomentsEnabled,
-    toggleMirrorMoments,
-    
-    // Teacher view
-    isTeacherViewOpen,
-    setIsTeacherViewOpen,
-    classroomVotingData,
-    setClassroomVotingData,
-    
-    // Scene navigation
-    setCurrentScene: setCurrentSceneById,
+    setGameMode(mode);
   };
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  return (
+    <GameContext.Provider
+      value={{
+        gameState,
+        scenarios,
+        startScenario,
+        makeChoice,
+        resetGame,
+        isGameActive,
+        gameMode,
+        setGameMode: setGameModeWithLock,
+        userRole,
+        setUserRole,
+        classroomId,
+        setClassroomId,
+        showMirrorMoment,
+        setShowMirrorMoment,
+        currentMirrorQuestion,
+        classroomVotes,
+        submitVote,
+        revealVotes,
+        setRevealVotes,
+        toggleMirrorMoments,
+        mirrorMomentsEnabled,
+        hasJoinedClassroom,
+        setCurrentScene,
+        isModeLocked
+      }}
+    >
+      {children}
+    </GameContext.Provider>
+  );
 };
 
-export const useGameContext = (): GameContextType => {
+export const useGameContext = () => {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGameContext must be used within a GameProvider');
+  if (context === undefined) {
+    throw new Error("useGameContext must be used within a GameProvider");
   }
   return context;
 };

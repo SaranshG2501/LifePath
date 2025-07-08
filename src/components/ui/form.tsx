@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -104,7 +105,7 @@ FormLabel.displayName = "FormLabel"
 const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
->(({ children, ...props }, ref) => {
+>(({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
   return (
@@ -118,9 +119,7 @@ const FormControl = React.forwardRef<
       }
       aria-invalid={!!error}
       {...props}
-    >
-      {children}
-    </Slot>
+    />
   )
 })
 FormControl.displayName = "FormControl"
@@ -128,7 +127,7 @@ FormControl.displayName = "FormControl"
 const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => {
+>(({ className, children, ...props }, ref) => {
   const { formDescriptionId } = useFormField()
 
   return (
@@ -137,7 +136,9 @@ const FormDescription = React.forwardRef<
       id={formDescriptionId}
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
-    />
+    >
+      {children}
+    </p>
   )
 })
 FormDescription.displayName = "FormDescription"

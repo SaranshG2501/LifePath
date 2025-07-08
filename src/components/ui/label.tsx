@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -12,7 +11,7 @@ const labelVariants = cva(
 // Define the props type for the Label component
 type LabelProps = React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
   VariantProps<typeof labelVariants> & {
-    children?: React.ReactNode; // Make children optional
+    children: React.ReactNode; // Ensure children is included
     className?: string; // Ensure className is optional
   };
 
@@ -30,6 +29,6 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
 );
 
 // Set the display name for debugging
-Label.displayName = "Label";
+Label.displayName = "Label"; // You can also use LabelPrimitive.Root.displayName if needed
 
 export { Label };

@@ -1,137 +1,197 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Users, BookOpen, Star, Zap, Crown, Sparkles } from 'lucide-react';
 import { Scenario } from '@/types/game';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Play, Sparkles, CalendarClock, Image, Users, Clock, Star } from 'lucide-react';
 
 interface ScenarioCardProps {
   scenario: Scenario;
-  onStartScenario: (id: string) => void;
-  disabled?: boolean;
+  onStart: (id: string) => void;
+  onClick?: () => void;
+  isTeacherDashboard?: boolean;
 }
 
-const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onStartScenario, disabled = false }) => {
-  const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'financial literacy':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'social skills':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'ethics':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'personal growth':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+const ScenarioCard: React.FC<ScenarioCardProps> = ({ 
+  scenario, 
+  onStart, 
+  onClick, 
+  isTeacherDashboard = false 
+}) => {
+  // Add specific images for different scenarios
+  const getScenarioImage = () => {
+    switch(scenario.id) {
+      case "climate-council":
+        return "https://images.unsplash.com/photo-1518495973542-4542c06a5843";
+      case "college-choice":
+        return "https://images.unsplash.com/photo-1523050854058-8df90110c9f1";
+      case "first-job":
+        return "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40";
+      case "financial-emergency":
+        return "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e";
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        return scenario.thumbnail;
     }
   };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'financial literacy':
-        return '💰';
-      case 'social skills':
-        return '👥';
-      case 'ethics':
-        return '⚖️';
-      case 'personal growth':
-        return '🌱';
-      default:
-        return '📚';
-    }
-  };
-
-  const getScenarioImage = (scenarioId: string) => {
-    // Map scenario IDs to appropriate images
-    const imageMap: Record<string, string> = {
-      'college-decision': 'photo-1649972904349-6e44c42644a7',
-      'first-job': 'photo-1488590528505-98d2b5aba04b',
-      'financial-literacy': 'photo-1518770660439-4636190af475',
-      'relationship-conflict': 'photo-1461749280684-dccba630e2f6',
-      'peer-pressure': 'photo-1486312338219-ce68d2c6f44d',
-    };
-    
-    const imageId = imageMap[scenarioId] || 'photo-1649972904349-6e44c42644a7';
-    return `https://images.unsplash.com/${imageId}?auto=format&fit=crop&w=400&h=200&q=80`;
-  };
-
+  
+  const scenarioImage = getScenarioImage();
+  const estimatedDuration = Math.ceil(scenario.scenes.length * 2); // Estimate 2 minutes per scene
+  
   return (
-    <Card className="teen-card h-full flex flex-col transition-all duration-300 hover:scale-105 hover:shadow-xl border-2 border-purple-500/30 hover:border-purple-500/50 bg-gradient-to-br from-slate-800/90 to-slate-700/90 backdrop-blur-sm shadow-lg hover:shadow-purple-500/20 rounded-2xl overflow-hidden group">
-      
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-purple-500/20 to-transparent rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      
-      {/* Scenario Image */}
-      <div className="relative h-32 overflow-hidden">
-        <img 
-          src={getScenarioImage(scenario.id)}
-          alt={scenario.title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-800/80 to-transparent"></div>
-        <div className="absolute top-2 right-2">
-          <div className="flex items-center gap-1">
-            <Crown className="h-3 w-3 text-yellow-400 animate-pulse" />
-            <Sparkles className="h-3 w-3 text-pink-400 animate-pulse" />
+    <Card className={`overflow-hidden h-full flex flex-col transition-all duration-300 shadow-lg hover:shadow-2xl ${
+      isTeacherDashboard 
+        ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-slate-600/30 hover:border-indigo-400/50 hover:scale-[1.02]' 
+        : 'bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md hover:border-indigo-300/30'
+    }`}>
+      <div className="relative h-48 overflow-hidden group">
+        {scenarioImage ? (
+          <img 
+            src={scenarioImage} 
+            alt={scenario.title} 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center">
+            <Image className="h-16 w-16 text-white/30" />
           </div>
-        </div>
-      </div>
-      
-      <CardHeader className="pb-3 relative z-10">        
-        <div className="flex items-center gap-2 mb-2">
-          <div className="p-2 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-xl border-2 border-purple-500/50 shadow-lg">
-            <BookOpen className="h-4 w-4 text-purple-400" />
-          </div>
-          <Badge className={`px-2 py-1 border text-xs font-bold rounded-lg ${getCategoryColor(scenario.category)}`}>
-            {getCategoryIcon(scenario.category)} {scenario.category.toUpperCase()}
-          </Badge>
-        </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
         
-        <CardTitle className="text-white font-black text-sm mb-2 group-hover:text-purple-400 transition-colors duration-300">
-          {scenario.title}
-        </CardTitle>
-        
-        <CardDescription className="text-white/70 text-xs leading-relaxed font-medium">
-          {scenario.description}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="flex-1 flex flex-col justify-between pt-0 relative z-10">
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1 text-purple-400">
-              <Users className="h-3 w-3" />
-              <span className="font-medium">{scenario.ageGroup}</span>
-            </div>
-            <div className="flex items-center gap-1 text-pink-400">
-              <BookOpen className="h-3 w-3" />
-              <span className="font-medium">{scenario.scenes?.length || 0} scenes</span>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-1">
-            <Badge 
-              variant="outline" 
-              className="text-xs px-2 py-0 bg-purple-500/20 text-purple-400 border-purple-500/40 font-medium"
-            >
+        {/* Fixed positioning and spacing for badges */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="flex flex-wrap gap-2 justify-start">
+            <Badge variant="outline" className={`${
+              isTeacherDashboard 
+                ? 'bg-indigo-600/80 text-white border-indigo-400/50' 
+                : 'bg-indigo-500/40 text-white border-none'
+            } backdrop-blur-sm flex items-center gap-1`}>
+              <Sparkles className="h-3 w-3" />
               {scenario.category}
+            </Badge>
+            <Badge variant="outline" className={`${
+              isTeacherDashboard 
+                ? 'bg-emerald-600/80 text-white border-emerald-400/50' 
+                : 'bg-black/60 text-white border-none'
+            } backdrop-blur-sm flex items-center gap-1`}>
+              <Clock className="h-3 w-3" />
+              ~{estimatedDuration}min
             </Badge>
           </div>
         </div>
+        
+        {/* Fixed positioning for age group badge */}
+        <div className="absolute top-4 right-4">
+          <Badge variant="outline" className={`${
+            isTeacherDashboard 
+              ? 'bg-orange-600/80 text-white border-orange-400/50' 
+              : 'bg-black/60 text-white border-none'
+          } backdrop-blur-sm flex items-center gap-1`}>
+            <CalendarClock className="h-3 w-3" />
+            Ages {scenario.ageGroup}
+          </Badge>
+        </div>
 
-        <Button
-          onClick={() => onStartScenario(scenario.id)}
-          disabled={disabled}
-          className="w-full bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-600 hover:to-pink-600 text-white border-2 border-purple-500/60 hover:border-purple-500 font-bold text-xs py-2 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 backdrop-blur-sm group-hover:shadow-xl"
-        >
-          <Zap className="h-4 w-4 mr-2 animate-pulse" />
-          Start Epic Quest
-          <Star className="h-4 w-4 ml-2 animate-bounce-light" />
-        </Button>
+        {isTeacherDashboard && (
+          <div className="absolute top-4 left-4">
+            <Badge className="bg-purple-600/80 text-white border-purple-400/50 backdrop-blur-sm flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              Classroom Ready
+            </Badge>
+          </div>
+        )}
+      </div>
+      
+      <CardHeader className="pb-3 space-y-3 flex-shrink-0">
+        <CardTitle className={`text-xl leading-tight ${
+          isTeacherDashboard ? 'text-slate-100' : 'text-white'
+        }`}>
+          {scenario.title}
+        </CardTitle>
+        <CardDescription className={`line-clamp-3 text-sm leading-relaxed ${
+          isTeacherDashboard ? 'text-slate-300' : 'text-white/70'
+        }`}>
+          {scenario.description}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="pb-4 pt-0 flex-1 space-y-4">
+        {/* Metrics badges with better spacing */}
+        <div className="flex gap-2 flex-wrap">
+          {Object.entries(scenario.initialMetrics).map(([key, value]) => {
+            if (value === 0) return null;
+            
+            let bgColor = "";
+            let icon = "";
+            switch(key) {
+              case "health": 
+                bgColor = isTeacherDashboard ? "bg-red-600/20 text-red-300 border-red-500/30" : "bg-red-500/20 text-red-300"; 
+                icon = "❤️";
+                break;
+              case "money": 
+                bgColor = isTeacherDashboard ? "bg-green-600/20 text-green-300 border-green-500/30" : "bg-green-500/20 text-green-300"; 
+                icon = "💰";
+                break;
+              case "happiness": 
+                bgColor = isTeacherDashboard ? "bg-yellow-600/20 text-yellow-300 border-yellow-500/30" : "bg-yellow-500/20 text-yellow-300"; 
+                icon = "😊";
+                break;
+              case "knowledge": 
+                bgColor = isTeacherDashboard ? "bg-blue-600/20 text-blue-300 border-blue-500/30" : "bg-blue-500/20 text-blue-300"; 
+                icon = "📚";
+                break;
+              case "relationships": 
+                bgColor = isTeacherDashboard ? "bg-purple-600/20 text-purple-300 border-purple-500/30" : "bg-purple-500/20 text-purple-300"; 
+                icon = "👥";
+                break;
+              default: 
+                bgColor = isTeacherDashboard ? "bg-slate-600/20 text-slate-300 border-slate-500/30" : "bg-white/10 text-white/80";
+                icon = "⭐";
+            }
+            return (
+              <span 
+                key={key} 
+                className={`text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1 ${bgColor} ${
+                  isTeacherDashboard ? 'border' : ''
+                }`}
+              >
+                <span>{icon}</span>
+                <span className="capitalize">{key}</span>
+                <span className="text-xs opacity-80">+{value}</span>
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Teacher dashboard specific info */}
+        {isTeacherDashboard && (
+          <div className="pt-3 border-t border-slate-600/30">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400 flex items-center gap-1">
+                <Star className="h-3 w-3" />
+                {scenario.scenes.length} scenes
+              </span>
+              <span className="text-slate-400">
+                Interactive learning
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
+      
+      <CardFooter className="pt-3 flex-shrink-0">
+        <Button 
+          className={`w-full transition-all duration-300 ${
+            isTeacherDashboard 
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5' 
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg'
+          }`}
+          onClick={() => onStart(scenario.id)}
+        >
+          <Play className="w-4 h-4 mr-2" /> 
+          {isTeacherDashboard ? 'Start Live Session' : 'Start Adventure'}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

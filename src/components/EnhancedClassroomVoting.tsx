@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Users, BarChart, ArrowRight, Clock, CheckCircle, Wifi, HelpCircle } from 'lucide-react';
+import { Users, BarChart, ArrowRight, Clock, CheckCircle, Wifi } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { Scene, Choice } from '@/types/game';
@@ -168,18 +167,6 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
             </Badge>
           )}
         </div>
-        
-        {/* Always show the scenario question/description in classroom mode */}
-        <div className="text-center mb-4">
-          <div className="text-lg text-white/90 leading-relaxed bg-gradient-to-r from-primary/10 to-secondary/10 p-6 rounded-lg border border-primary/20">
-            <div className="font-bold text-primary mb-3 text-xl flex items-center justify-center gap-2">
-              <HelpCircle className="h-5 w-5" />
-              Scenario Question:
-            </div>
-            <div className="text-lg font-medium">{scene.description}</div>
-          </div>
-        </div>
-        
         <CardDescription className="text-center text-white/80">
           {userRole === 'teacher' 
             ? 'Review class votes and advance the scenario' 
