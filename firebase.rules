@@ -32,7 +32,7 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId);
       
-      // Allow updating classrooms field when joining
+      // Allow updating classrooms field when joining/leaving
       allow update: if isAuthenticated() && 
                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classrooms']);
     }

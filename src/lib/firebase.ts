@@ -993,13 +993,11 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
     console.log(`[REMOVE_STUDENT] Starting removal: student=${studentId}, classroom=${classroomId}`);
     
     const result = await runTransaction(db, async (transaction) => {
-      // READ PHASE - All reads must happen first
+      // READ PHASE - Only read classroom document (not user document to avoid permission issues)
       const classroomRef = doc(db, 'classrooms', classroomId);
-      const userRef = doc(db, 'users', studentId);
       
-      console.log(`[REMOVE_STUDENT] Reading classroom and user documents...`);
+      console.log(`[REMOVE_STUDENT] Reading classroom document...`);
       const classroomDoc = await transaction.get(classroomRef);
-      const userDoc = await transaction.get(userRef);
       
       if (!classroomDoc.exists()) {
         console.error(`[REMOVE_STUDENT] Classroom ${classroomId} not found`);
@@ -1061,17 +1059,8 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
         });
       }
       
-      // Update student's profile
-      if (userDoc.exists()) {
-        console.log(`[REMOVE_STUDENT] Updating user profile...`);
-        const userData = userDoc.data();
-        const userClassrooms = userData.classrooms || [];
-        const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
-        
-        transaction.update(userRef, {
-          classrooms: updatedClassrooms
-        });
-      }
+      // Note: We don't update the student's profile here to avoid permission issues
+      // The student will clean up their own classrooms array when they next access the app
       
       console.log(`[REMOVE_STUDENT] Transaction completed successfully`);
       return true;
