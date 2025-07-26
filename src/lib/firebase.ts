@@ -992,7 +992,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   try {
     console.log(`Removing student ${studentId} from classroom ${classroomId}`);
     
-    await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
       // READ PHASE - All reads must happen first
       const classroomRef = doc(db, 'classrooms', classroomId);
       const userRef = doc(db, 'users', studentId);

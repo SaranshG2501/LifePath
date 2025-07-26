@@ -77,10 +77,16 @@ const GlobalSessionNotification: React.FC = () => {
 
     setIsJoining(true);
     try {
-      setClassroomId(classroomId!);
+      console.log("Student accepting live session:", notification.sessionId);
+      
+      // Set game context first
+      setClassroomId(notification.classroomId);
       setGameMode("classroom");
       
+      // Join the live session
       await joinLiveSession(notification.sessionId, currentUser.uid, userProfile.displayName || 'Student');
+      
+      // Start the scenario
       startScenario(notification.sessionId);
       
       toast({
@@ -88,6 +94,7 @@ const GlobalSessionNotification: React.FC = () => {
         description: `Successfully connected to "${notification.scenarioTitle}"`,
       });
       
+      // Clear notification and navigate
       setNotification(null);
       navigate('/game');
     } catch (error) {

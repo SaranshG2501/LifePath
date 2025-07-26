@@ -116,15 +116,18 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
     try {
-      await removeStudentFromClassroom(currentClassroom.id, studentId);
+      console.log("Teacher removing student:", studentId, "from classroom:", currentClassroom.id);
+      const result = await removeStudentFromClassroom(currentClassroom.id, studentId);
       
-      toast({
-        title: "Student removed",
-        description: `${studentName} has been removed from your classroom.`,
-      });
-      
-      // Refresh the classroom data
-      onRefresh();
+      if (result) {
+        toast({
+          title: "Student removed",
+          description: `${studentName} has been removed from your classroom.`,
+        });
+        
+        // Refresh the classroom data
+        onRefresh();
+      }
     } catch (error) {
       console.error("Error removing student:", error);
       toast({
