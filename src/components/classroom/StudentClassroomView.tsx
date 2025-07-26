@@ -16,7 +16,10 @@ import {
   Search,
   Wifi,
   Radio,
-  Loader2
+  Loader2,
+  LogOut,
+  MessageSquare,
+  SendHorizontal
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGameContext } from '@/context/GameContext';
@@ -28,7 +31,12 @@ import {
   getActiveSession,
   LiveSession,
   joinLiveSession,
-  onClassroomUpdated
+  onClassroomUpdated,
+  leaveClassroom,
+  sendClassroomMessage,
+  getClassroomMessages,
+  onClassroomMessagesUpdated,
+  ClassroomMessage
 } from '@/lib/firebase';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,6 +53,11 @@ const StudentClassroomView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSessions, setActiveSessions] = useState<Record<string, LiveSession>>({});
   const [joiningSession, setJoiningSession] = useState<string | null>(null);
+  const [leavingClassroom, setLeavingClassroom] = useState<string | null>(null);
+  const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
+  const [classroomMessages, setClassroomMessages] = useState<Record<string, ClassroomMessage[]>>({});
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     if (currentUser && userProfile?.role === 'student') {
@@ -94,6 +107,38 @@ const StudentClassroomView = () => {
       unsubscribes.forEach(unsubscribe => unsubscribe());
     };
   }, [classrooms.length]);
+
+  // Set up message listeners for selected classroom
+  useEffect(() => {
+    if (!selectedClassroom?.id) return;
+
+    console.log("Setting up message listener for classroom:", selectedClassroom.id);
+    
+    // Load initial messages
+    const loadMessages = async () => {
+      try {
+        const messages = await getClassroomMessages(selectedClassroom.id!);
+        setClassroomMessages(prev => ({
+          ...prev,
+          [selectedClassroom.id!]: messages
+        }));
+      } catch (error) {
+        console.error("Error loading messages:", error);
+      }
+    };
+
+    loadMessages();
+
+    // Set up real-time listener
+    const unsubscribe = onClassroomMessagesUpdated(selectedClassroom.id, (messages) => {
+      setClassroomMessages(prev => ({
+        ...prev,
+        [selectedClassroom.id!]: messages
+      }));
+    });
+
+    return () => unsubscribe();
+  }, [selectedClassroom?.id]);
 
   const fetchClassrooms = async () => {
     if (!currentUser) return;
@@ -207,6 +252,63 @@ const StudentClassroomView = () => {
       });
     } finally {
       setJoiningSession(null);
+    }
+  };
+
+  const handleLeaveClassroom = async (classroom: Classroom) => {
+    if (!currentUser || !classroom.id) return;
+
+    setLeavingClassroom(classroom.id);
+    try {
+      await leaveClassroom(classroom.id, currentUser.uid);
+      
+      toast({
+        title: "Left Classroom",
+        description: `You have left "${classroom.name}" successfully.`,
+      });
+      
+      // Refresh classrooms list
+      await fetchClassrooms();
+    } catch (error) {
+      console.error("Error leaving classroom:", error);
+      toast({
+        title: "Error",
+        description: "Failed to leave classroom. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLeavingClassroom(null);
+    }
+  };
+
+  const handleSendMessage = async (classroomId: string) => {
+    if (!newMessage.trim() || !currentUser || !userProfile) return;
+
+    setSendingMessage(true);
+    try {
+      await sendClassroomMessage(
+        classroomId,
+        currentUser.uid,
+        userProfile.displayName || userProfile.username || 'Student',
+        'student',
+        newMessage.trim()
+      );
+      
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent to the class.",
+      });
+      
+      setNewMessage('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -342,36 +444,68 @@ const StudentClassroomView = () => {
                           </div>
                         </div>
                         
-                        {activeSession ? (
-                          <Button 
-                            size="sm"
-                            onClick={() => handleJoinLiveSession(classroom, activeSession)}
-                            disabled={isJoining}
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            {isJoining ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                Joining...
-                              </>
-                            ) : (
-                              <>
-                                <Radio className="h-4 w-4 mr-1" />
-                                Join Live Session
-                              </>
-                            )}
-                          </Button>
-                        ) : (
+                        <div className="flex items-center gap-2">
                           <Button 
                             variant="outline" 
                             size="sm"
-                            disabled
-                            className="border-white/20 bg-black/20 text-white/50"
+                            onClick={() => setSelectedClassroom(classroom)}
+                            className="border-white/20 bg-black/20 text-white hover:bg-white/10"
                           >
-                            <Play className="h-4 w-4 mr-1" />
-                            No Active Session
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            Messages
                           </Button>
-                        )}
+                          
+                          {activeSession ? (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleJoinLiveSession(classroom, activeSession)}
+                              disabled={isJoining}
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                            >
+                              {isJoining ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  Joining...
+                                </>
+                              ) : (
+                                <>
+                                  <Radio className="h-4 w-4 mr-1" />
+                                  Join Live
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled
+                              className="border-white/20 bg-black/20 text-white/50"
+                            >
+                              <Play className="h-4 w-4 mr-1" />
+                              No Session
+                            </Button>
+                          )}
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleLeaveClassroom(classroom)}
+                            disabled={leavingClassroom === classroom.id}
+                            className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                          >
+                            {leavingClassroom === classroom.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Leaving...
+                              </>
+                            ) : (
+                              <>
+                                <LogOut className="h-4 w-4 mr-1" />
+                                Leave
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                       
                       {activeSession && (
@@ -407,6 +541,78 @@ const StudentClassroomView = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Messages Modal */}
+      {selectedClassroom && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-black/90 border-white/10 w-full max-w-lg max-h-[80vh] flex flex-col">
+            <CardHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  {selectedClassroom.name} - Messages
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setSelectedClassroom(null)}
+                  className="text-white hover:bg-white/10"
+                >
+                  ×
+                </Button>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="flex-1 flex flex-col min-h-0">
+              {/* Messages List */}
+              <div className="flex-1 overflow-y-auto mb-4 space-y-3 max-h-[300px]">
+                {classroomMessages[selectedClassroom.id!]?.map((msg, index) => (
+                  <div key={msg.id || index} className="bg-black/20 rounded-md p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-blue-300 font-medium">
+                        {msg.senderRole === 'teacher' ? '👨‍🏫 ' : '👨‍🎓 '}{msg.senderName}
+                      </span>
+                      <span className="text-xs text-white/50">
+                        {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Just now'}
+                      </span>
+                    </div>
+                    <div className="text-white">{msg.text}</div>
+                  </div>
+                )) || (
+                  <div className="text-center py-8 text-white/70">
+                    No messages yet. Start the conversation!
+                  </div>
+                )}
+              </div>
+              
+              {/* Send Message */}
+              <div className="flex-shrink-0">
+                <div className="relative">
+                  <Input
+                    placeholder="Type your message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="pr-10 bg-black/20 border-white/20 text-white"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !sendingMessage) {
+                        handleSendMessage(selectedClassroom.id!);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="absolute right-1 top-1 h-7 bg-primary/20 hover:bg-primary/30 text-white"
+                    onClick={() => handleSendMessage(selectedClassroom.id!)}
+                    disabled={sendingMessage || !newMessage.trim()}
+                  >
+                    {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

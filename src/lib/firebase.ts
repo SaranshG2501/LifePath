@@ -1072,6 +1072,161 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
   }
 };
 
+// Student leave classroom function (self-removal)
+export const leaveClassroom = async (classroomId: string, studentId: string) => {
+  try {
+    console.log(`Student ${studentId} leaving classroom ${classroomId}`);
+    
+    await runTransaction(db, async (transaction) => {
+      // READ PHASE
+      const classroomRef = doc(db, 'classrooms', classroomId);
+      const userRef = doc(db, 'users', studentId);
+      
+      const classroomDoc = await transaction.get(classroomRef);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!classroomDoc.exists()) {
+        throw new Error("Classroom not found");
+      }
+      
+      const classroomData = classroomDoc.data() as Classroom;
+      let sessionRef = null;
+      let sessionDoc = null;
+      
+      // Check for active session
+      if (classroomData.activeSessionId) {
+        sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
+        sessionDoc = await transaction.get(sessionRef);
+      }
+      
+      // WRITE PHASE
+      // Remove student from classroom
+      const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
+      const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
+      
+      transaction.update(classroomRef, {
+        students: updatedStudents,
+        members: updatedMembers
+      });
+      
+      // Remove from active session if exists
+      if (sessionRef && sessionDoc && sessionDoc.exists()) {
+        const sessionData = sessionDoc.data() as LiveSession;
+        const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
+        
+        transaction.update(sessionRef, {
+          participants: updatedParticipants,
+          lastUpdated: Timestamp.now()
+        });
+      }
+      
+      // Update student's profile
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userClassrooms = userData.classrooms || [];
+        const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
+        
+        transaction.update(userRef, {
+          classrooms: updatedClassrooms
+        });
+      }
+    });
+    
+    console.log("Student successfully left classroom");
+    return true;
+  } catch (error) {
+    console.error("Error leaving classroom:", error);
+    throw error;
+  }
+};
+
+// Message interface
+export interface ClassroomMessage {
+  id?: string;
+  text: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'teacher' | 'student';
+  timestamp: Timestamp;
+  classroomId: string;
+}
+
+// Send message to classroom
+export const sendClassroomMessage = async (
+  classroomId: string, 
+  senderId: string, 
+  senderName: string, 
+  senderRole: 'teacher' | 'student', 
+  messageText: string
+): Promise<ClassroomMessage> => {
+  try {
+    console.log(`Sending message to classroom ${classroomId}`);
+    
+    const messageData: ClassroomMessage = {
+      text: messageText,
+      senderId,
+      senderName,
+      senderRole,
+      timestamp: Timestamp.now(),
+      classroomId
+    };
+    
+    // Add message to messages collection
+    const messagesCollection = collection(db, 'classroomMessages');
+    const messageDoc = await addDoc(messagesCollection, messageData);
+    
+    return { ...messageData, id: messageDoc.id };
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
+};
+
+// Get classroom messages
+export const getClassroomMessages = async (classroomId: string): Promise<ClassroomMessage[]> => {
+  try {
+    const messagesQuery = query(
+      collection(db, 'classroomMessages'),
+      where('classroomId', '==', classroomId),
+      orderBy('timestamp', 'desc')
+    );
+    
+    const snapshot = await getDocs(messagesQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as ClassroomMessage));
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    return [];
+  }
+};
+
+// Real-time listener for classroom messages
+export const onClassroomMessagesUpdated = (
+  classroomId: string, 
+  callback: (messages: ClassroomMessage[]) => void
+): (() => void) => {
+  try {
+    const messagesQuery = query(
+      collection(db, 'classroomMessages'),
+      where('classroomId', '==', classroomId),
+      orderBy('timestamp', 'desc')
+    );
+    
+    return onSnapshot(messagesQuery, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ClassroomMessage));
+      callback(messages);
+    });
+  } catch (error) {
+    console.error("Error setting up messages listener:", error);
+    return () => {};
+  }
+}
+
 // Fixed atomic join classroom with proper validation
 export const joinClassroom = async (classroomId: string, studentId: string, studentName: string) => {
   try {

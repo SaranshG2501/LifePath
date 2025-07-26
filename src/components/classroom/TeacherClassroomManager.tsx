@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
+import { Copy, CheckCircle, Users, UserPlus, Trash, X, MessageSquare, SendHorizontal, RefreshCw, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom } from '@/lib/firebase';
+import { onClassroomUpdated, getActiveSession, ClassroomStudent, convertTimestampToDate, removeStudentFromClassroom, sendClassroomMessage, getClassroomMessages, onClassroomMessagesUpdated, ClassroomMessage } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 
 interface TeacherClassroomManagerProps {
   classroom: any;
@@ -22,11 +23,13 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ClassroomMessage[]>([]);
   const [currentClassroom, setCurrentClassroom] = useState(classroom);
   const [activeSession, setActiveSession] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const { toast } = useToast();
+  const { currentUser, userProfile } = useAuth();
   
   // Set up real-time listener for classroom updates
   useEffect(() => {
@@ -58,12 +61,32 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     checkActiveSession();
   }, [classroom?.id]);
   
-  // Initialize messages from classroom if available
+  // Set up real-time listener for classroom messages
   useEffect(() => {
-    if (currentClassroom && currentClassroom.messages) {
-      setMessages(currentClassroom.messages);
-    }
-  }, [currentClassroom]);
+    if (!classroom?.id) return;
+    
+    console.log("Setting up messages listener for classroom:", classroom.id);
+    
+    // Load initial messages
+    const loadMessages = async () => {
+      try {
+        const initialMessages = await getClassroomMessages(classroom.id);
+        setMessages(initialMessages);
+      } catch (error) {
+        console.error("Error loading initial messages:", error);
+      }
+    };
+    
+    loadMessages();
+    
+    // Set up real-time listener
+    const unsubscribe = onClassroomMessagesUpdated(classroom.id, (updatedMessages) => {
+      console.log("Messages updated in real-time:", updatedMessages);
+      setMessages(updatedMessages);
+    });
+    
+    return () => unsubscribe();
+  }, [classroom?.id]);
   
   const handleCopyCode = () => {
     navigator.clipboard.writeText(currentClassroom.classCode);
@@ -112,7 +135,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     }
   };
   
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) {
       toast({
         title: "Empty message",
@@ -122,20 +145,41 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       return;
     }
     
-    const newMessage = {
-      text: message,
-      sentAt: new Date(),
-      sender: 'teacher'
-    };
+    if (!currentUser || !userProfile) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to send messages.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    setMessages([newMessage, ...messages]);
-    
-    toast({
-      title: "Message sent",
-      description: "Your message has been sent to all students.",
-    });
-    
-    setMessage('');
+    setSendingMessage(true);
+    try {
+      await sendClassroomMessage(
+        currentClassroom.id,
+        currentUser.uid,
+        userProfile.displayName || userProfile.username || 'Teacher',
+        'teacher',
+        message.trim()
+      );
+      
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent to all students.",
+      });
+      
+      setMessage('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMessage(false);
+    }
   };
   
   const studentsList = currentClassroom?.students || [];
@@ -301,8 +345,9 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               size="sm" 
               className="absolute right-1 top-1 h-7 bg-primary/20 hover:bg-primary/30 text-white"
               onClick={handleSendMessage}
+              disabled={sendingMessage || !message.trim()}
             >
-              <SendHorizontal className="h-4 w-4" />
+              {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
             </Button>
           </div>
           
@@ -310,11 +355,16 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
             {messages && messages.length > 0 ? (
               <div className="space-y-3">
                 {messages.map((msg, index) => (
-                  <div key={index} className="bg-black/20 rounded-md p-3">
-                    <div className="text-white">{msg.text}</div>
-                    <div className="text-xs text-white/50 mt-1">
-                      {msg.sentAt ? new Date(msg.sentAt).toLocaleString() : 'Just now'}
+                  <div key={msg.id || index} className="bg-black/20 rounded-md p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-blue-300 font-medium">
+                        {msg.senderRole === 'teacher' ? '👨‍🏫 ' : '👨‍🎓 '}{msg.senderName}
+                      </span>
+                      <span className="text-xs text-white/50">
+                        {msg.timestamp ? convertTimestampToDate(msg.timestamp).toLocaleString() : 'Just now'}
+                      </span>
                     </div>
+                    <div className="text-white">{msg.text}</div>
                   </div>
                 ))}
               </div>
