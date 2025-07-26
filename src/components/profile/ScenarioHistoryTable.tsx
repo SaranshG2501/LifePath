@@ -5,30 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Calendar, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 
-interface HistoryEntry {
-  scenarioId: string;
-  scenarioTitle: string;
-  completedAt: Date;
-  choices: {
-    sceneTitle: string;
-    choiceText: string;
-    metricChanges: Record<string, number>;
-  }[];
-  finalMetrics: {
-    health: number;
-    money: number;
-    happiness: number;
-    knowledge: number;
-    relationships: number;
-  };
-}
+import { ScenarioHistory, convertTimestampToDate, Timestamp } from '@/lib/firebase';
 
 interface ScenarioHistoryTableProps {
-  history: HistoryEntry[];
+  history: ScenarioHistory[];
 }
 
 const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) => {
-  const formatDate = (date: Date) => {
+  const formatDate = (dateValue: Date | Timestamp) => {
+    const date = dateValue instanceof Date ? dateValue : convertTimestampToDate(dateValue);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -110,7 +95,7 @@ const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) 
                       <div className="flex flex-col">
                         <span>{formatDate(entry.completedAt)}</span>
                         <span className="text-xs text-slate-500">
-                          {Math.ceil((Date.now() - entry.completedAt.getTime()) / (1000 * 60 * 60 * 24))} days ago
+                          {Math.ceil((Date.now() - (entry.completedAt instanceof Date ? entry.completedAt : convertTimestampToDate(entry.completedAt)).getTime()) / (1000 * 60 * 60 * 24))} days ago
                         </span>
                       </div>
                     </div>
@@ -120,7 +105,7 @@ const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) 
                       {entry.choices.map((choice, choiceIndex) => (
                         <div key={choiceIndex} className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30">
                           <div className="text-slate-300 text-sm font-medium mb-1">
-                            Decision #{choiceIndex + 1}: {choice.sceneTitle}
+                            Decision #{choiceIndex + 1}: {choice.sceneId}
                           </div>
                           <div className="text-slate-400 text-sm mb-3 italic">
                             "{choice.choiceText}"

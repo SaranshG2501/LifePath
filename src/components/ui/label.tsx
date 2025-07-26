@@ -11,7 +11,7 @@ const labelVariants = cva(
 // Define the props type for the Label component
 type LabelProps = React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
   VariantProps<typeof labelVariants> & {
-    children: React.ReactNode; // Ensure children is included
+    children?: React.ReactNode; // Make children optional
     className?: string; // Ensure className is optional
   };
 

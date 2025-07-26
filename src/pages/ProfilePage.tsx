@@ -7,33 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { School, Users, LogOut, GraduationCap, Trophy, TrendingUp, Sparkles, Calendar } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp, getUserScenarioHistory } from '@/lib/firebase';
+import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp, ScenarioHistory, db } from '@/lib/firebase';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ScenarioHistoryTable from '@/components/profile/ScenarioHistoryTable';
 
-interface HistoryEntry {
-  scenarioId: string;
-  scenarioTitle: string;
-  completedAt: Date;
-  choices: {
-    sceneTitle: string;
-    choiceText: string;
-    metricChanges: Record<string, number>;
-  }[];
-  finalMetrics: {
-    health: number;
-    money: number;
-    happiness: number;
-    knowledge: number;
-    relationships: number;
-  };
-}
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loadingClassrooms, setLoadingClassrooms] = useState(true);
-  const [scenarioHistory, setScenarioHistory] = useState<HistoryEntry[]>([]);
+  const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {
@@ -48,22 +31,14 @@ const ProfilePage = () => {
     
     try {
       setLoadingHistory(true);
-      const history = await getUserScenarioHistory(currentUser.uid);
+      const { getDoc, doc } = await import('firebase/firestore');
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
       
-      // Transform Firebase data to component format
-      const transformedHistory: HistoryEntry[] = history.map(entry => ({
-        scenarioId: entry.scenarioId,
-        scenarioTitle: entry.scenarioTitle,
-        completedAt: convertTimestampToDate(entry.completedAt),
-        choices: entry.choices.map(choice => ({
-          sceneTitle: choice.sceneId, // In a real app, you'd map this to actual scene titles
-          choiceText: choice.choiceText,
-          metricChanges: choice.metricChanges || {}
-        })),
-        finalMetrics: entry.finalMetrics
-      }));
-      
-      setScenarioHistory(transformedHistory);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const history = userData.history || [];
+        setScenarioHistory(history);
+      }
     } catch (error) {
       console.error('Error fetching scenario history:', error);
     } finally {
