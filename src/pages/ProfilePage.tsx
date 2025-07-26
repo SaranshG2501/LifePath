@@ -84,60 +84,60 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-[#1A1F2C] to-purple-900">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 sm:mb-10">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2 sm:mb-3">
               My Profile
             </h1>
-            <p className="text-slate-300 text-lg">Track your learning journey and celebrate your achievements</p>
+            <p className="text-slate-300 text-sm sm:text-base lg:text-lg px-2 sm:px-0">Track your learning journey and celebrate your achievements</p>
           </div>
           <Button 
             onClick={handleLogout}
             variant="outline" 
-            className="border-red-500/40 bg-red-900/30 text-red-300 hover:bg-red-800/40 hover:border-red-400/60 transition-all duration-200 px-6 py-3"
+            className="border-red-500/40 bg-red-900/30 text-red-300 hover:bg-red-800/40 hover:border-red-400/60 transition-all duration-200 px-4 py-2 sm:px-6 sm:py-3 w-full sm:w-auto"
           >
-            <LogOut className="h-5 w-5 mr-2" />
+            <LogOut className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Logout
           </Button>
         </div>
 
         {/* User Profile Card */}
         {userProfile && (
-          <Card className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-lg mb-8 shadow-2xl overflow-hidden">
+          <Card className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-lg mb-6 sm:mb-8 shadow-2xl overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-            <CardHeader className="relative pb-6">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
+            <CardHeader className="relative pb-4 sm:pb-6 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                 <div className="relative">
-                  <Avatar className="h-24 w-24 border-4 border-gradient-to-r from-blue-500/50 to-purple-500/50 shadow-2xl">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white text-2xl font-bold">
+                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-gradient-to-r from-blue-500/50 to-purple-500/50 shadow-2xl">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white text-xl sm:text-2xl font-bold">
                       {userProfile.username?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-2">
-                    <Sparkles className="h-4 w-4 text-white" />
+                  <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-1.5 sm:p-2">
+                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                   </div>
                 </div>
                 
                 <div className="flex-1 text-center sm:text-left">
-                  <div className="text-white font-bold text-3xl mb-2">{userProfile.username}</div>
-                  <div className="text-slate-300 text-lg mb-4">{userProfile.email}</div>
+                  <div className="text-white font-bold text-2xl sm:text-3xl mb-1 sm:mb-2 break-words">{userProfile.username}</div>
+                  <div className="text-slate-300 text-base sm:text-lg mb-3 sm:mb-4 break-all">{userProfile.email}</div>
                   
-                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
-                    <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-200 border-blue-400/30 px-4 py-2 text-sm font-medium">
-                      <GraduationCap className="h-4 w-4 mr-2" />
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 sm:gap-4">
+                    <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-200 border-blue-400/30 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium">
+                      <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       {userProfile.role}
                     </Badge>
                     
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full px-4 py-2 border border-yellow-400/30">
-                      <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-yellow-200 font-semibold">Level {userProfile.level || 1}</span>
+                    <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 border border-yellow-400/30">
+                      <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+                      <span className="text-yellow-200 font-semibold text-xs sm:text-sm">Level {userProfile.level || 1}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 bg-slate-700/50 rounded-full px-4 py-2 border border-slate-600/50">
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                      <span className="text-slate-300 font-medium">{userProfile.xp || 0} XP</span>
+                    <div className="flex items-center gap-1 sm:gap-2 bg-slate-700/50 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 border border-slate-600/50">
+                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
+                      <span className="text-slate-300 font-medium text-xs sm:text-sm">{userProfile.xp || 0} XP</span>
                     </div>
                   </div>
                 </div>
@@ -154,58 +154,58 @@ const ProfilePage = () => {
         />
 
         {/* Classrooms Section */}
-        <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl mb-8">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-white flex items-center gap-3 text-xl">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <School className="h-6 w-6 text-green-400" />
+        <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl mb-6 sm:mb-8">
+          <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+            <CardTitle className="text-white flex items-center gap-2 sm:gap-3 text-lg sm:text-xl">
+              <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
+                <School className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
               </div>
-              My Classrooms
-              <Badge className="ml-2 bg-green-500/20 text-green-300 border-green-500/30">
+              <span className="break-words">My Classrooms</span>
+              <Badge className="ml-1 sm:ml-2 bg-green-500/20 text-green-300 border-green-500/30 text-xs sm:text-sm">
                 {classrooms.length}
               </Badge>
             </CardTitle>
-            <CardDescription className="text-slate-400 text-base">
+            <CardDescription className="text-slate-400 text-sm sm:text-base">
               {userProfile?.role === 'student' 
                 ? "Classrooms you've joined and are actively participating in"
                 : "Classrooms you've created and are managing"
               }
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {loadingClassrooms ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400 mx-auto mb-4"></div>
+              <div className="text-center py-8 sm:py-12">
+                <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-blue-400 mx-auto mb-3 sm:mb-4"></div>
                 <div className="text-slate-400">Loading your classrooms...</div>
               </div>
             ) : classrooms.length > 0 ? (
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              <div className="space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto pr-1 sm:pr-2">
                 {classrooms.map((classroom) => (
-                  <div key={classroom.id} className="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-xl p-5 border border-slate-600/40 hover:border-slate-500/60 transition-all duration-200 group">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-300 transition-colors">
+                  <div key={classroom.id} className="bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-lg sm:rounded-xl p-4 sm:p-5 border border-slate-600/40 hover:border-slate-500/60 transition-all duration-200 group">
+                    <div className="flex flex-col sm:flex-row justify-between items-start mb-3 sm:mb-4 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-semibold text-base sm:text-lg mb-1 group-hover:text-blue-300 transition-colors break-words">
                           {classroom.name}
                         </h3>
                         {classroom.description && (
-                          <p className="text-slate-300 text-sm line-clamp-2 mb-2">{classroom.description}</p>
+                          <p className="text-slate-300 text-xs sm:text-sm line-clamp-2 mb-2 break-words">{classroom.description}</p>
                         )}
                       </div>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30 ml-3">
+                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30 ml-0 sm:ml-3 text-xs shrink-0">
                         Active
                       </Badge>
                     </div>
                     
-                    <Separator className="bg-slate-600/50 my-3" />
+                    <Separator className="bg-slate-600/50 my-2 sm:my-3" />
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-blue-300">
-                        <Users className="h-4 w-4" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                      <div className="flex items-center gap-1 sm:gap-2 text-blue-300">
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                         <span className="font-medium">{classroom.students?.length || 0} students</span>
                       </div>
-                      <div className="flex items-center gap-2 text-purple-300">
-                        <Calendar className="h-4 w-4" />
-                        <span>
+                      <div className="flex items-center gap-1 sm:gap-2 text-purple-300">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                        <span className="truncate">
                           {classroom.createdAt ? formatDate(classroom.createdAt) : 'Recently'}
                         </span>
                       </div>

@@ -62,59 +62,59 @@ const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) 
           Your completed scenarios with all choices and their impact on your metrics
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
+      <CardContent className="p-3 sm:p-6">
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
           <Table>
             <TableHeader>
               <TableRow className="border-slate-700/50 hover:bg-slate-700/30">
-                <TableHead className="text-slate-300">Scenario</TableHead>
-                <TableHead className="text-slate-300">Completed</TableHead>
-                <TableHead className="text-slate-300">All Choices & Decisions</TableHead>
-                <TableHead className="text-slate-300">Final Metrics</TableHead>
+                <TableHead className="text-slate-300 text-xs sm:text-sm p-2 sm:p-4">Scenario</TableHead>
+                <TableHead className="text-slate-300 text-xs sm:text-sm p-2 sm:p-4 hidden sm:table-cell">Completed</TableHead>
+                <TableHead className="text-slate-300 text-xs sm:text-sm p-2 sm:p-4">Choices & Impact</TableHead>
+                <TableHead className="text-slate-300 text-xs sm:text-sm p-2 sm:p-4 hidden lg:table-cell">Final Metrics</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {history.map((entry, index) => (
                 <TableRow key={index} className="border-slate-700/50 hover:bg-slate-700/20">
-                  <TableCell>
-                    <div className="space-y-2">
-                      <div className="text-white font-medium text-lg">{entry.scenarioTitle}</div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
-                          {entry.choices.length} decisions made
+                  <TableCell className="p-2 sm:p-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <div className="text-white font-medium text-sm sm:text-lg break-words">{entry.scenarioTitle}</div>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs w-fit">
+                          {entry.choices.length} decisions
                         </Badge>
-                        <Badge className="bg-purple-500/20 text-purple-300 border-0 text-xs">
+                        <Badge className="bg-purple-500/20 text-purple-300 border-0 text-xs w-fit">
                           ID: {entry.scenarioId}
                         </Badge>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-slate-300 text-sm">
-                      <Calendar className="h-4 w-4" />
+                  <TableCell className="p-2 sm:p-4 hidden sm:table-cell">
+                    <div className="flex items-center gap-1 sm:gap-2 text-slate-300 text-xs sm:text-sm">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                       <div className="flex flex-col">
-                        <span>{formatDate(entry.completedAt)}</span>
+                        <span className="break-words">{formatDate(entry.completedAt)}</span>
                         <span className="text-xs text-slate-500">
                           {Math.ceil((Date.now() - (entry.completedAt instanceof Date ? entry.completedAt : convertTimestampToDate(entry.completedAt)).getTime()) / (1000 * 60 * 60 * 24))} days ago
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="space-y-3 max-w-md">
+                  <TableCell className="p-2 sm:p-4">
+                    <div className="space-y-2 sm:space-y-3 max-w-xs sm:max-w-md">
                       {entry.choices.map((choice, choiceIndex) => (
-                        <div key={choiceIndex} className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30">
-                          <div className="text-slate-300 text-sm font-medium mb-1">
-                            Decision #{choiceIndex + 1}: {choice.sceneId}
+                        <div key={choiceIndex} className="bg-slate-700/30 rounded-lg p-2 sm:p-3 border border-slate-600/30">
+                          <div className="text-slate-300 text-xs sm:text-sm font-medium mb-1">
+                            #{choiceIndex + 1}: {choice.sceneId}
                           </div>
-                          <div className="text-slate-400 text-sm mb-3 italic">
+                          <div className="text-slate-400 text-xs sm:text-sm mb-2 italic break-words">
                             "{choice.choiceText}"
                           </div>
                           
                           {Object.keys(choice.metricChanges).length > 0 ? (
                             <div className="space-y-1">
                               <div className="text-xs text-slate-500 mb-1">Impact:</div>
-                              <div className="flex gap-2 flex-wrap">
+                              <div className="flex gap-1 flex-wrap">
                                 {Object.entries(choice.metricChanges).map(([metric, change]) => (
                                   <Badge 
                                     key={metric} 
@@ -127,20 +127,22 @@ const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) 
                                     }`}
                                   >
                                     {getMetricChangeIcon(change)}
-                                    {formatMetricName(metric)}: {change > 0 ? '+' : ''}{change}
+                                    <span className="hidden sm:inline">{formatMetricName(metric)}:</span>
+                                    <span className="sm:hidden">{metric.slice(0,3)}:</span>
+                                    {change > 0 ? '+' : ''}{change}
                                   </Badge>
                                 ))}
                               </div>
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-500">No metric changes</div>
+                            <div className="text-xs text-slate-500">No changes</div>
                           )}
                         </div>
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                  <TableCell className="p-2 sm:p-4 hidden lg:table-cell">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm">
                       <div className={`flex items-center gap-1 ${getMetricColor(entry.finalMetrics.health)}`}>
                         <span className="text-slate-400">Health:</span>
                         <span className="font-medium">{entry.finalMetrics.health}</span>
@@ -150,15 +152,15 @@ const ScenarioHistoryTable: React.FC<ScenarioHistoryTableProps> = ({ history }) 
                         <span className="font-medium">{entry.finalMetrics.money}</span>
                       </div>
                       <div className={`flex items-center gap-1 ${getMetricColor(entry.finalMetrics.happiness)}`}>
-                        <span className="text-slate-400">Happiness:</span>
+                        <span className="text-slate-400">Happy:</span>
                         <span className="font-medium">{entry.finalMetrics.happiness}</span>
                       </div>
                       <div className={`flex items-center gap-1 ${getMetricColor(entry.finalMetrics.knowledge)}`}>
-                        <span className="text-slate-400">Knowledge:</span>
+                        <span className="text-slate-400">Know:</span>
                         <span className="font-medium">{entry.finalMetrics.knowledge}</span>
                       </div>
-                      <div className={`flex items-center gap-1 ${getMetricColor(entry.finalMetrics.relationships)} col-span-2`}>
-                        <span className="text-slate-400">Relationships:</span>
+                      <div className={`flex items-center gap-1 ${getMetricColor(entry.finalMetrics.relationships)} col-span-1 sm:col-span-2`}>
+                        <span className="text-slate-400">Relations:</span>
                         <span className="font-medium">{entry.finalMetrics.relationships}</span>
                       </div>
                     </div>
