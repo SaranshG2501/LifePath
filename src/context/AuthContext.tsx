@@ -97,6 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUserProfile = async (): Promise<void> => {
     if (currentUser) {
       try {
+        // Process any cleanup notifications first
+        const { processCleanupNotifications } = await import('@/lib/firebase');
+        await processCleanupNotifications(currentUser.uid);
+        
         const profileData = await getUserProfile(currentUser.uid);
         setUserProfile(profileData);
       } catch (error) {
@@ -109,6 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       const { user } = await loginUser(email, password);
+      
+      // Process any cleanup notifications first
+      const { processCleanupNotifications } = await import('@/lib/firebase');
+      await processCleanupNotifications(user.uid);
+      
       const profileData = await getUserProfile(user.uid);
       setUserProfile(profileData);
       toast({

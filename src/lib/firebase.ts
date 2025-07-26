@@ -546,6 +546,75 @@ export const getStudentNotifications = async (studentId: string) => {
   }
 };
 
+// Process cleanup notifications for removed students
+export const processCleanupNotifications = async (studentId: string) => {
+  try {
+    console.log(`[CLEANUP] Processing cleanup notifications for student: ${studentId}`);
+    
+    // Get all unread cleanup notifications for this student
+    const q = query(
+      collection(db, 'notifications'),
+      where('studentId', '==', studentId),
+      where('type', '==', 'classroom_removal'),
+      where('actionRequired', '==', 'cleanup_profile'),
+      where('read', '==', false)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log(`[CLEANUP] No cleanup notifications found for student ${studentId}`);
+      return;
+    }
+    
+    console.log(`[CLEANUP] Found ${snapshot.docs.length} cleanup notifications`);
+    
+    // Get the student's current profile
+    const userRef = doc(db, 'users', studentId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      console.warn(`[CLEANUP] Student profile not found: ${studentId}`);
+      return;
+    }
+    
+    const userData = userDoc.data();
+    const userClassrooms = userData.classrooms || [];
+    
+    // Process each notification
+    const batch = writeBatch(db);
+    const classroomsToRemove = new Set<string>();
+    
+    snapshot.docs.forEach(notificationDoc => {
+      const notificationData = notificationDoc.data();
+      const classroomId = notificationData.classroomId;
+      
+      if (classroomId && userClassrooms.includes(classroomId)) {
+        classroomsToRemove.add(classroomId);
+      }
+      
+      // Mark notification as read
+      batch.update(notificationDoc.ref, { read: true });
+    });
+    
+    // Update student's classrooms array if needed
+    if (classroomsToRemove.size > 0) {
+      console.log(`[CLEANUP] Removing ${classroomsToRemove.size} classrooms from student profile`);
+      const updatedClassrooms = userClassrooms.filter((id: string) => !classroomsToRemove.has(id));
+      
+      batch.update(userRef, {
+        classrooms: updatedClassrooms
+      });
+    }
+    
+    await batch.commit();
+    console.log(`[CLEANUP] Cleanup completed for student ${studentId}`);
+    
+  } catch (error) {
+    console.error(`[CLEANUP] Error processing cleanup notifications:`, error);
+  }
+};
+
 // Listen to notifications with real-time updates
 export const onNotificationsUpdated = (studentId: string, callback: (notifications: SessionNotification[]) => void) => {
   const q = query(
@@ -1059,9 +1128,6 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
         });
       }
       
-      // Note: We don't update the student's profile here to avoid permission issues
-      // The student will clean up their own classrooms array when they next access the app
-      
       console.log(`[REMOVE_STUDENT] Transaction completed successfully`);
       return true;
     });
@@ -1085,6 +1151,25 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       }
     } catch (cleanupError) {
       console.warn(`[REMOVE_STUDENT] Cleanup warning (non-critical):`, cleanupError);
+    }
+
+    // Create a notification for the student to clean up their profile when they next log in
+    try {
+      console.log(`[REMOVE_STUDENT] Creating cleanup notification for student...`);
+      const notificationRef = doc(collection(db, 'notifications'));
+      await setDoc(notificationRef, {
+        studentId: studentId,
+        classroomId: classroomId,
+        type: 'classroom_removal',
+        title: 'Classroom Access Removed',
+        message: `You have been removed from a classroom.`,
+        timestamp: Timestamp.now(),
+        read: false,
+        actionRequired: 'cleanup_profile'
+      });
+      console.log(`[REMOVE_STUDENT] Cleanup notification created`);
+    } catch (notificationError) {
+      console.warn(`[REMOVE_STUDENT] Failed to create notification (non-critical):`, notificationError);
     }
     
     console.log(`[REMOVE_STUDENT] Student removal completed successfully`);

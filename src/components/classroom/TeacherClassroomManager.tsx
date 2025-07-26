@@ -127,7 +127,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         console.log(`[TEACHER_UI] Successfully removed student: ${studentName}`);
         toast({
           title: "Student removed",
-          description: `${studentName} has been removed from your classroom.`,
+          description: `${studentName} has been removed from your classroom and will be notified on their next login.`,
         });
         
         // Refresh the classroom data

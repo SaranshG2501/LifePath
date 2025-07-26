@@ -74,6 +74,22 @@ const StudentClassroomView = () => {
     classrooms.forEach(classroom => {
       if (classroom.id) {
         const unsubscribe = onClassroomUpdated(classroom.id, async (updatedClassroom) => {
+          // Check if student is still in the classroom
+          const isStillMember = updatedClassroom.members?.includes(currentUser?.uid || '') || 
+                               updatedClassroom.students?.some(student => student.id === currentUser?.uid);
+          
+          if (!isStillMember && currentUser?.uid) {
+            // Student was removed from classroom, refresh the classroom list
+            console.log(`Student removed from classroom ${updatedClassroom.id}, refreshing list`);
+            await fetchClassrooms();
+            toast({
+              title: "Classroom Access Removed",
+              description: `You have been removed from "${updatedClassroom.name}".`,
+              variant: "destructive",
+            });
+            return;
+          }
+          
           setClassrooms(prev => 
             prev.map(c => c.id === updatedClassroom.id ? updatedClassroom : c)
           );
