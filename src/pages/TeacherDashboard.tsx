@@ -238,15 +238,15 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
           <p className="text-white/70">Manage your classrooms and scenarios</p>
         </div>
         <Button 
           onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Classroom
@@ -263,7 +263,7 @@ const TeacherDashboard = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="bg-black/20 border-white/10 animate-pulse">
                 <CardHeader>
@@ -278,7 +278,7 @@ const TeacherDashboard = () => {
             ))}
           </div>
         ) : classrooms.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {classrooms.map((classroom) => (
               <Card key={classroom.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
                 <CardHeader>

@@ -54,38 +54,38 @@ const HomePage = () => {
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <section className="text-center mb-16 animate-fade-in">
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12">
+        <section className="text-center mb-12 sm:mb-16 animate-fade-in">
           <div className="max-w-3xl mx-auto">
-            <div className="inline-flex justify-center items-center p-3 bg-blue-500/10 rounded-full mb-6 shadow-lg shadow-blue-500/20">
-              <BookOpen className="h-8 w-8 text-blue-400" />
+            <div className="inline-flex justify-center items-center p-2 sm:p-3 bg-blue-500/10 rounded-full mb-4 sm:mb-6 shadow-lg shadow-blue-500/20">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 md:mb-6 text-white">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 text-white">
               <span className="bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">LifePath</span>
             </h1>
             
-            <p className="text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>
-            <p className="text-lg text-white/70 mb-8 max-w-xl mx-auto">
+            <p className="text-lg sm:text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>
+            <p className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 max-w-xl mx-auto px-2">
               Navigate realistic scenarios and shape your future through thoughtful choices
             </p>
             
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
-                  <User size={16} className="text-white" />
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-2">
+              {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-3 sm:px-4">
+                  <User size={14} className="sm:w-4 sm:h-4 text-white" />
                   Sign Up / Login
-                </Button> : <Button onClick={() => navigate('/profile')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
-                  <User size={16} className="text-white" />
+                </Button> : <Button onClick={() => navigate('/profile')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-3 sm:px-4">
+                  <User size={14} className="sm:w-4 sm:h-4 text-white" />
                   My Profile
                 </Button>}
               
-              <Button onClick={() => navigate('/about')} variant="outline" className="flex items-center gap-2 border-white/20 bg-black/20 text-white hover:bg-black/40">
-                <Info size={16} className="text-blue-300" />
+              <Button onClick={() => navigate('/about')} variant="outline" className="flex items-center gap-2 border-white/20 bg-black/20 text-white hover:bg-black/40 text-sm sm:text-base px-3 sm:px-4">
+                <Info size={14} className="sm:w-4 sm:h-4 text-blue-300" />
                 Learn More
               </Button>
             </div>
             
-            <div className="flex flex-wrap justify-center items-center gap-3">
+            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 px-2">
               {gameMode === "classroom" ? <Badge className="py-1.5 px-3 bg-blue-500/20 text-white border-0 rounded-full flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-blue-300" />
                   Classroom Mode
@@ -110,14 +110,14 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="mb-16 animate-fade-in" style={{
+        <section className="mb-12 sm:mb-16 animate-fade-in" style={{
         animationDelay: "0.3s"
       }}>
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center flex items-center justify-center text-white">
-            <Sparkles className="h-6 w-6 text-blue-300 mr-2" />
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-center flex items-center justify-center text-white px-2">
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-300 mr-2" />
             Choose Your Scenario
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {scenarios.map((scenario, index) => <div key={scenario.id} className="animate-fade-in" style={{
             animationDelay: `${0.1 * (index + 1)}s`
           }}>
@@ -126,14 +126,14 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-8 mb-16 animate-fade-in" style={{
+        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-4 sm:p-6 lg:p-8 mb-12 sm:mb-16 animate-fade-in" style={{
         animationDelay: "0.5s"
       }}>
-          <h2 className="text-2xl font-bold mb-6 flex items-center text-white">
-            <Sparkles className="h-5 w-5 text-blue-300 mr-2" />
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center text-white">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-300 mr-2" />
             Why LifePath Is Different
           </h2>
-          <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-3'} gap-6`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-black/40 border border-white/10 p-5 rounded-lg hover:border-blue-300/30 transition-all hover:shadow-md">
               <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
                 <Brain className="text-blue-300" />
