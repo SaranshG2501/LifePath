@@ -46,21 +46,26 @@ service cloud.firestore {
       allow create: if isAuthenticated() && 
                      request.resource.data.teacherId == request.auth.uid;
       
-      // Update access - ENHANCED for student removal
+      // Update access - FIXED for student removal
       allow update: if isAuthenticated() && 
                      (isTeacher(resource.data) ||  // Teacher can update anything including student removal
-                      // Student can join by adding themselves to members/students arrays
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students', 'lastUpdated']) &&
-                       request.resource.data.members.hasAll(resource.data.get('members', [])) &&
-                       request.resource.data.members.size() <= resource.data.get('members', []).size() + 1) ||
+                      // Student can join by adding themselves to members/students arrays  
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students']) &&
+                       request.resource.data.get('members', []).hasAll(resource.data.get('members', [])) &&
+                       request.resource.data.get('members', []).size() <= resource.data.get('members', []).size() + 1) ||
                       // Student can remove themselves from classroom (leave)
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students', 'lastUpdated']) &&
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students']) &&
                        resource.data.get('members', []).hasAll(request.resource.data.get('members', [])) &&
                        resource.data.get('members', []).size() == request.resource.data.get('members', []).size() + 1 &&
                        !(request.auth.uid in request.resource.data.get('members', [])) &&
                        (request.auth.uid in resource.data.get('members', []))) ||
                       // System updates for sessions and classroom metadata
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId', 'activeScenario', 'currentScene', 'lastActivity', 'lastUpdated']));
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId', 'activeScenario', 'currentScene', 'lastActivity']) ||
+                      // Allow lastUpdated field to be modified
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastUpdated']) ||
+                      // Combined updates with lastUpdated
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeSessionId', 'activeScenario', 'currentScene', 'lastActivity', 'lastUpdated']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'students', 'lastUpdated']));
                       
       // Delete access - only teachers
       allow delete: if isAuthenticated() && isTeacher(resource.data);

@@ -987,45 +987,71 @@ export const advanceClassroomScene = async (classroomId: string, nextSceneId: st
   });
 };
 
-// Fixed atomic student removal with proper transaction ordering
+// Enhanced student removal with better error handling
 export const removeStudentFromClassroom = async (classroomId: string, studentId: string) => {
   try {
-    console.log(`Removing student ${studentId} from classroom ${classroomId}`);
+    console.log(`[REMOVE_STUDENT] Starting removal: student=${studentId}, classroom=${classroomId}`);
     
     const result = await runTransaction(db, async (transaction) => {
       // READ PHASE - All reads must happen first
       const classroomRef = doc(db, 'classrooms', classroomId);
       const userRef = doc(db, 'users', studentId);
       
+      console.log(`[REMOVE_STUDENT] Reading classroom and user documents...`);
       const classroomDoc = await transaction.get(classroomRef);
       const userDoc = await transaction.get(userRef);
       
       if (!classroomDoc.exists()) {
-        throw new Error("Classroom not found");
+        console.error(`[REMOVE_STUDENT] Classroom ${classroomId} not found`);
+        throw new Error(`Classroom not found: ${classroomId}`);
       }
       
       const classroomData = classroomDoc.data() as Classroom;
+      console.log(`[REMOVE_STUDENT] Current classroom data:`, {
+        studentsCount: classroomData.students?.length || 0,
+        membersCount: classroomData.members?.length || 0,
+        teacherId: classroomData.teacherId
+      });
+      
+      // Check if student is actually in the classroom
+      const isStudentInClass = classroomData.students?.some(student => student.id === studentId);
+      const isMemberInClass = classroomData.members?.includes(studentId);
+      
+      if (!isStudentInClass && !isMemberInClass) {
+        console.warn(`[REMOVE_STUDENT] Student ${studentId} not found in classroom ${classroomId}`);
+        throw new Error(`Student not found in classroom`);
+      }
+      
+      console.log(`[REMOVE_STUDENT] Student found in classroom - isStudent: ${isStudentInClass}, isMember: ${isMemberInClass}`);
+      
       let sessionRef = null;
       let sessionDoc = null;
       
       // Check for active session
       if (classroomData.activeSessionId) {
+        console.log(`[REMOVE_STUDENT] Checking active session: ${classroomData.activeSessionId}`);
         sessionRef = doc(db, 'sessions', classroomData.activeSessionId);
         sessionDoc = await transaction.get(sessionRef);
       }
       
       // WRITE PHASE - All writes happen after reads
-      // Remove student from classroom
+      console.log(`[REMOVE_STUDENT] Starting write operations...`);
+      
+      // Remove student from classroom arrays
       const updatedStudents = classroomData.students?.filter(student => student.id !== studentId) || [];
       const updatedMembers = classroomData.members?.filter(id => id !== studentId) || [];
       
+      console.log(`[REMOVE_STUDENT] Updating classroom - students: ${classroomData.students?.length} -> ${updatedStudents.length}, members: ${classroomData.members?.length} -> ${updatedMembers.length}`);
+      
       transaction.update(classroomRef, {
         students: updatedStudents,
-        members: updatedMembers
+        members: updatedMembers,
+        lastUpdated: Timestamp.now()
       });
       
       // Remove from active session if exists
       if (sessionRef && sessionDoc && sessionDoc.exists()) {
+        console.log(`[REMOVE_STUDENT] Removing from active session...`);
         const sessionData = sessionDoc.data() as LiveSession;
         const updatedParticipants = sessionData.participants.filter(id => id !== studentId);
         
@@ -1037,6 +1063,7 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
       
       // Update student's profile
       if (userDoc.exists()) {
+        console.log(`[REMOVE_STUDENT] Updating user profile...`);
         const userData = userDoc.data();
         const userClassrooms = userData.classrooms || [];
         const updatedClassrooms = userClassrooms.filter((id: string) => id !== classroomId);
@@ -1045,29 +1072,47 @@ export const removeStudentFromClassroom = async (classroomId: string, studentId:
           classrooms: updatedClassrooms
         });
       }
+      
+      console.log(`[REMOVE_STUDENT] Transaction completed successfully`);
+      return true;
     });
     
     // Clean up participant records outside of transaction
     try {
+      console.log(`[REMOVE_STUDENT] Cleaning up participant records...`);
       const participantQuery = query(
         collection(db, 'sessionParticipants'),
         where('studentId', '==', studentId)
       );
       const participantSnapshot = await getDocs(participantQuery);
       
-      const batch = writeBatch(db);
-      participantSnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { isActive: false });
-      });
-      await batch.commit();
-    } catch (error) {
-      console.log("No participant records to clean up:", error);
+      if (!participantSnapshot.empty) {
+        const batch = writeBatch(db);
+        participantSnapshot.docs.forEach(doc => {
+          batch.update(doc.ref, { isActive: false });
+        });
+        await batch.commit();
+        console.log(`[REMOVE_STUDENT] Cleaned up ${participantSnapshot.docs.length} participant records`);
+      }
+    } catch (cleanupError) {
+      console.warn(`[REMOVE_STUDENT] Cleanup warning (non-critical):`, cleanupError);
     }
     
-    console.log("Student removal completed successfully");
+    console.log(`[REMOVE_STUDENT] Student removal completed successfully`);
     return true;
   } catch (error) {
-    console.error("Error removing student from classroom:", error);
+    console.error(`[REMOVE_STUDENT] Error removing student:`, error);
+    
+    // Enhanced error messages
+    if (error instanceof Error) {
+      if (error.message.includes('permission')) {
+        throw new Error(`Permission denied: You may not have the rights to remove this student. Please check if you're the classroom teacher.`);
+      } else if (error.message.includes('not found')) {
+        throw new Error(`Student or classroom not found. They may have already been removed.`);
+      } else {
+        throw new Error(`Failed to remove student: ${error.message}`);
+      }
+    }
     throw error;
   }
 };

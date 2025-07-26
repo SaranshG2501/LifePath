@@ -116,10 +116,15 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
     try {
-      console.log("Teacher removing student:", studentId, "from classroom:", currentClassroom.id);
+      console.log(`[TEACHER_UI] Attempting to remove student: ${studentName} (${studentId})`);
+      console.log(`[TEACHER_UI] Current classroom:`, currentClassroom.id);
+      console.log(`[TEACHER_UI] Current user:`, currentUser?.uid);
+      console.log(`[TEACHER_UI] Is teacher:`, currentClassroom.teacherId === currentUser?.uid);
+      
       const result = await removeStudentFromClassroom(currentClassroom.id, studentId);
       
       if (result) {
+        console.log(`[TEACHER_UI] Successfully removed student: ${studentName}`);
         toast({
           title: "Student removed",
           description: `${studentName} has been removed from your classroom.`,
@@ -129,10 +134,23 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         onRefresh();
       }
     } catch (error) {
-      console.error("Error removing student:", error);
+      console.error(`[TEACHER_UI] Error removing student:`, error);
+      
+      let errorMessage = "Failed to remove student. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Permission denied')) {
+          errorMessage = "You don't have permission to remove this student. Please ensure you're the classroom teacher.";
+        } else if (error.message.includes('not found')) {
+          errorMessage = "Student not found in this classroom. They may have already been removed.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to remove student. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
