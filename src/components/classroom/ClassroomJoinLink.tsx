@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -180,18 +179,35 @@ const ClassroomJoinLink: React.FC = () => {
         await refreshUserProfile();
       }
 
-      setClassroomId(joinedClassroom.id);
-      setGameMode("classroom");
-      setUserHasClassrooms(true);
+      // Force re-check of user classrooms after successful join
+      setTimeout(async () => {
+        try {
+          const updatedClassrooms = await getUserClassrooms(currentUser.uid, userProfile?.role || 'student');
+          console.log("Updated classrooms after join:", updatedClassrooms);
+          setUserHasClassrooms(updatedClassrooms.length > 0);
+          
+          if (updatedClassrooms.length > 0) {
+            setClassroomId(updatedClassrooms[0].id);
+            setGameMode("classroom");
+          }
+        } catch (error) {
+          console.error("Error refreshing classrooms after join:", error);
+        }
+      }, 1000);
 
       toast({
         title: "Success!",
-        description: `You have joined ${joinedClassroom.name}!`,
+        description: `You have joined ${joinedClassroom.name}! Redirecting...`,
       });
 
       setIsJoinModalOpen(false);
       setClassCode("");
-      navigate("/profile");
+      
+      // Navigate after a short delay to ensure state updates
+      setTimeout(() => {
+        navigate("/profile");
+      }, 1500);
+      
     } catch (error) {
       console.error("Error joining classroom:", error);
       setJoinError(error instanceof Error ? error.message : "Failed to join classroom");
