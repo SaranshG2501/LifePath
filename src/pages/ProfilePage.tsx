@@ -37,7 +37,15 @@ const ProfilePage = () => {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const history = userData.history || [];
-        setScenarioHistory(history);
+        
+        // Sort history by completion date (most recent first)
+        const sortedHistory = history.sort((a: ScenarioHistory, b: ScenarioHistory) => {
+          const dateA = a.completedAt instanceof Date ? a.completedAt : convertTimestampToDate(a.completedAt);
+          const dateB = b.completedAt instanceof Date ? b.completedAt : convertTimestampToDate(b.completedAt);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setScenarioHistory(sortedHistory);
       }
     } catch (error) {
       console.error('Error fetching scenario history:', error);

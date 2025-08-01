@@ -40,6 +40,8 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
       console.log("Classroom updated in real-time:", updatedClassroom);
       setCurrentClassroom(updatedClassroom);
+      // Also trigger parent refresh to update the classroom list
+      onRefresh();
     });
     
     return () => unsubscribe();
@@ -130,8 +132,10 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
           description: `${studentName} has been removed from your classroom and will be notified on their next login.`,
         });
         
-        // Refresh the classroom data
-        onRefresh();
+        // Refresh the classroom data immediately to show updated student count
+        setTimeout(() => {
+          onRefresh();
+        }, 500);
       }
     } catch (error) {
       console.error(`[TEACHER_UI] Error removing student:`, error);
