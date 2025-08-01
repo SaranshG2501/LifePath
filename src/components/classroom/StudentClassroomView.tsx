@@ -41,7 +41,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const StudentClassroomView = () => {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, refreshUserProfile } = useAuth();
   const { setClassroomId, setGameMode, startScenario, setCurrentScene } = useGameContext();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -59,11 +59,11 @@ const StudentClassroomView = () => {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     if (currentUser && userProfile?.role === 'student') {
       fetchClassrooms();
     }
-  }, [currentUser, userProfile]);
+  }, [currentUser, userProfile?.classrooms]); // Also trigger when user's classrooms change
 
   // Set up real-time listeners for each classroom
   useEffect(() => {
@@ -74,11 +74,12 @@ const StudentClassroomView = () => {
     classrooms.forEach(classroom => {
       if (classroom.id) {
         const unsubscribe = onClassroomUpdated(classroom.id, async (updatedClassroom) => {
-          // Check if student is still in the classroom
-          const isStillMember = updatedClassroom.members?.includes(currentUser?.uid || '') || 
-                               updatedClassroom.students?.some(student => student.id === currentUser?.uid);
+          // Check if student is still in the classroom (both in classroom data and user profile)
+          const isStillMemberInClassroom = updatedClassroom.members?.includes(currentUser?.uid || '') || 
+                                          updatedClassroom.students?.some(student => student.id === currentUser?.uid);
+          const isStillMemberInProfile = userProfile?.classrooms?.includes(classroom.id!) || false;
           
-          if (!isStillMember && currentUser?.uid) {
+          if ((!isStillMemberInClassroom || !isStillMemberInProfile) && currentUser?.uid) {
             // Student was removed from classroom, refresh the classroom list
             console.log(`Student removed from classroom ${updatedClassroom.id}, refreshing list`);
             await fetchClassrooms();
@@ -157,13 +158,25 @@ const StudentClassroomView = () => {
   }, [selectedClassroom?.id]);
 
   const fetchClassrooms = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !userProfile) return;
     
     try {
       setLoading(true);
+      
+      // First check user's profile classrooms for consistency
+      const profileClassrooms = userProfile.classrooms || [];
+      console.log("User profile classrooms:", profileClassrooms);
+      
       const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
       console.log("Fetched student classrooms:", userClassrooms);
-      setClassrooms(userClassrooms);
+      
+      // Filter classrooms to only show ones that exist in both user profile and database
+      const validClassrooms = userClassrooms.filter(classroom => 
+        classroom.id && profileClassrooms.includes(classroom.id)
+      );
+      
+      console.log("Valid classrooms after filtering:", validClassrooms);
+      setClassrooms(validClassrooms);
     } catch (error) {
       console.error('Error fetching classrooms:', error);
       toast({
@@ -283,7 +296,8 @@ const StudentClassroomView = () => {
         description: `You have left "${classroom.name}" successfully.`,
       });
       
-      // Refresh classrooms list
+      // Refresh user profile first to ensure consistency, then fetch classrooms
+      await refreshUserProfile();
       await fetchClassrooms();
     } catch (error) {
       console.error("Error leaving classroom:", error);
