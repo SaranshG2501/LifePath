@@ -347,7 +347,7 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3"
                 onClick={handleToggleMirrorMoments}
-                disabled={userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || classroomId)}
+                disabled={userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || !!classroomId)}
               >
                 {(userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || classroomId)) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
                 {mirrorMomentsEnabled ? (
