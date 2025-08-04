@@ -322,14 +322,13 @@ const GamePage = () => {
   }
 
   // Debug logging
-  console.log("GamePage render check:", { 
-    isInLiveSession, 
-    hasLiveSession: !!liveSession, 
-    userRole, 
-    shouldShowTracker: isInLiveSession && liveSession && userRole === 'teacher',
-    hasCurrentScene: !!gameState.currentScene,
-    currentSceneTitle: gameState.currentScene?.title
-  });
+  console.log("=== GamePage DEBUG ===");
+  console.log("isInLiveSession:", isInLiveSession);
+  console.log("liveSession exists:", !!liveSession);
+  console.log("liveSession:", liveSession);
+  console.log("userRole:", userRole);
+  console.log("shouldShowTracker:", isInLiveSession && liveSession && userRole === 'teacher');
+  console.log("======================");
 
   return (
     <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in">

@@ -73,15 +73,15 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   };
 
   // Debug logging
-  console.log("LiveSessionTracker render:", {
-    isTeacher,
-    hasCurrentScene: !!currentScene,
-    currentSceneTitle: currentScene?.title,
-    sessionId: session.id,
-    sessionStatus: session.status,
-    sessionScenarioId: session.scenarioId,
-    sessionCurrentSceneId: session.currentSceneId
-  });
+  console.log("=== LiveSessionTracker DEBUG ===");
+  console.log("isTeacher:", isTeacher);
+  console.log("currentScene exists:", !!currentScene);
+  console.log("currentScene:", currentScene);
+  console.log("session.scenarioId:", session.scenarioId);
+  console.log("session.currentSceneId:", session.currentSceneId);
+  console.log("scenarios available:", scenarios.length);
+  console.log("found scenario:", scenarios.find(s => s.id === session.scenarioId));
+  console.log("================================");
 
   return (
     <div className="space-y-4">
