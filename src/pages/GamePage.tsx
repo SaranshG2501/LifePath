@@ -321,6 +321,16 @@ const GamePage = () => {
     );
   }
 
+  // Debug logging
+  console.log("GamePage render check:", { 
+    isInLiveSession, 
+    hasLiveSession: !!liveSession, 
+    userRole, 
+    shouldShowTracker: isInLiveSession && liveSession && userRole === 'teacher',
+    hasCurrentScene: !!gameState.currentScene,
+    currentSceneTitle: gameState.currentScene?.title
+  });
+
   return (
     <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in">
       {/* Header with scenario title, mode and metrics */}

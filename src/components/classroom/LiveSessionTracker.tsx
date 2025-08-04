@@ -59,6 +59,15 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     return session.currentChoices?.[participantId];
   };
 
+  // Debug logging
+  console.log("LiveSessionTracker render:", {
+    isTeacher,
+    hasCurrentScene: !!gameState.currentScene,
+    currentSceneTitle: gameState.currentScene?.title,
+    sessionId: session.id,
+    sessionStatus: session.status
+  });
+
   return (
     <div className="space-y-4">
       {/* Current Scene Question for Teacher */}
