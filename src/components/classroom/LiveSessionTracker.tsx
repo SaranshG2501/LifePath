@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, BookOpen } from 'lucide-react';
 import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
 import { useGameContext } from '@/context/GameContext';
+import { scenarios } from '@/data/scenarios';
 
 interface LiveSessionTrackerProps {
   session: LiveSession;
@@ -24,6 +25,18 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   const [choiceStats, setChoiceStats] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
   const { gameState } = useGameContext();
+
+  // Get the current scene from session data, not from gameState
+  const getCurrentScene = () => {
+    if (!session.scenarioId || !session.currentSceneId) return null;
+    
+    const scenario = scenarios.find(s => s.id === session.scenarioId);
+    if (!scenario) return null;
+    
+    return scenario.scenes.find(scene => scene.id === session.currentSceneId) || null;
+  };
+
+  const currentScene = getCurrentScene();
 
   useEffect(() => {
     if (!session.id) return;
@@ -62,16 +75,18 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   // Debug logging
   console.log("LiveSessionTracker render:", {
     isTeacher,
-    hasCurrentScene: !!gameState.currentScene,
-    currentSceneTitle: gameState.currentScene?.title,
+    hasCurrentScene: !!currentScene,
+    currentSceneTitle: currentScene?.title,
     sessionId: session.id,
-    sessionStatus: session.status
+    sessionStatus: session.status,
+    sessionScenarioId: session.scenarioId,
+    sessionCurrentSceneId: session.currentSceneId
   });
 
   return (
     <div className="space-y-4">
       {/* Current Scene Question for Teacher */}
-      {isTeacher && gameState.currentScene && (
+      {isTeacher && currentScene && (
         <Card className="bg-black/30 border-green-500/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
@@ -82,14 +97,14 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
           <CardContent>
             <div className="space-y-3">
               <div className="bg-black/20 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-white mb-2">{gameState.currentScene.title}</h3>
-                <p className="text-white/80 leading-relaxed">{gameState.currentScene.description}</p>
+                <h3 className="text-lg font-medium text-white mb-2">{currentScene.title}</h3>
+                <p className="text-white/80 leading-relaxed">{currentScene.description}</p>
               </div>
               
-              {gameState.currentScene.choices && gameState.currentScene.choices.length > 0 && (
+              {currentScene.choices && currentScene.choices.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-white/70">Available Choices:</h4>
-                  {gameState.currentScene.choices.map((choice, index) => (
+                  {currentScene.choices.map((choice, index) => (
                     <div key={choice.id} className="bg-black/20 rounded p-3 border border-white/10">
                       <span className="text-white/90 text-sm">
                         <strong>Choice {index + 1}:</strong> {choice.text}
