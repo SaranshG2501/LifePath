@@ -396,14 +396,14 @@ const GamePage = () => {
         </div>
       </div>
 
-      {/* Live Session Tracker for Teachers */}
-      {isInLiveSession && liveSession && userRole === 'teacher' && (
+      {/* Live Session Tracker for Teachers and Students */}
+      {isInLiveSession && liveSession && (
         <div className="mb-4 sm:mb-6">
           <LiveSessionTracker
             session={liveSession}
             onAdvanceScene={handleAdvanceScene}
             onEndSession={handleEndLiveSession}
-            isTeacher={true}
+            isTeacher={userRole === 'teacher'}
           />
         </div>
       )}
