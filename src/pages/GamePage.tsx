@@ -397,6 +397,16 @@ const GamePage = () => {
       </div>
 
       {/* Live Session Tracker for Teachers and Students */}
+      {(() => {
+        console.log("=== GAME PAGE LIVE SESSION CHECK ===");
+        console.log("isInLiveSession:", isInLiveSession);
+        console.log("liveSession exists:", !!liveSession);
+        console.log("liveSession data:", liveSession);
+        console.log("userRole:", userRole);
+        console.log("Should show LiveSessionTracker:", !!(isInLiveSession && liveSession));
+        console.log("=====================================");
+        return null;
+      })()}
       {isInLiveSession && liveSession && (
         <div className="mb-4 sm:mb-6">
           <LiveSessionTracker
