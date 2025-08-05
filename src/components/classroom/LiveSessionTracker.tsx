@@ -102,13 +102,13 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Current Scene Question for Teacher */}
-      {isTeacher && currentScene && (
+      {/* Current Scene Question - visible to both teachers and students */}
+      {currentScene && (
         <Card className="bg-black/30 border-green-500/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-green-400" />
-              Current Scene Question
+              {isTeacher ? 'Current Scene Question' : 'Live Question'}
             </CardTitle>
           </CardHeader>
           <CardContent>
