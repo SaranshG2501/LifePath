@@ -273,11 +273,11 @@ const GamePage = () => {
   };
 
   const handleToggleMirrorMoments = () => {
-    // Prevent students from changing mirror mode during classroom sessions
-    if (userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || !!classroomId)) {
+    // Prevent students from changing mirror mode during live sessions
+    if (userRole === 'student' && gameMode === 'classroom' && isInLiveSession) {
       toast({
         title: "Permission Denied",
-        description: "Only teachers can change mirror moments settings during classroom sessions.",
+        description: "Only teachers can change mirror moments settings during live sessions.",
         variant: "destructive",
       });
       return;
@@ -356,9 +356,9 @@ const GamePage = () => {
                 size="sm"
                 className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3"
                 onClick={handleToggleMirrorMoments}
-                disabled={userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || !!classroomId)}
+                disabled={userRole === 'student' && gameMode === 'classroom' && isInLiveSession}
               >
-                {(userRole === 'student' && gameMode === 'classroom' && (isInLiveSession || !!classroomId)) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
+                {(userRole === 'student' && gameMode === 'classroom' && isInLiveSession) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
                 {mirrorMomentsEnabled ? (
                   <ToggleRight className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-300" />
                 ) : (

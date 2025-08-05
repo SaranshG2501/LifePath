@@ -173,7 +173,7 @@ export const createLiveSession = async (
   console.log("Creating live session:", { classroomId, scenarioId, teacherId });
   
   try {
-    // Create the session document
+    // Create the session document with proper initial scene
     const sessionData = {
       classroomId,
       scenarioId,
@@ -181,11 +181,12 @@ export const createLiveSession = async (
       teacherName,
       scenarioTitle,
       status: 'active' as const,
-      currentSceneId: '',
+      currentSceneId: 'start', // Initialize with start scene
       currentSceneIndex: 0,
       participants: [],
       currentChoices: {},
       votes: {},
+      startedAt: Timestamp.now(),
       createdAt: Timestamp.now(),
       lastUpdated: Timestamp.now()
     };

@@ -28,12 +28,29 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
   // Get the current scene from session data, not from gameState
   const getCurrentScene = () => {
-    if (!session.scenarioId || !session.currentSceneId) return null;
+    console.log("getCurrentScene - session data:", {
+      scenarioId: session.scenarioId,
+      currentSceneId: session.currentSceneId,
+      availableScenarios: scenarios.map(s => s.id)
+    });
+    
+    if (!session.scenarioId || !session.currentSceneId) {
+      console.log("Missing scenarioId or currentSceneId");
+      return null;
+    }
     
     const scenario = scenarios.find(s => s.id === session.scenarioId);
-    if (!scenario) return null;
+    console.log("Found scenario:", scenario?.title);
     
-    return scenario.scenes.find(scene => scene.id === session.currentSceneId) || null;
+    if (!scenario) {
+      console.log("No scenario found for ID:", session.scenarioId);
+      return null;
+    }
+    
+    const scene = scenario.scenes.find(scene => scene.id === session.currentSceneId);
+    console.log("Found scene:", scene?.title);
+    
+    return scene || null;
   };
 
   const currentScene = getCurrentScene();
