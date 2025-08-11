@@ -321,14 +321,6 @@ const GamePage = () => {
     );
   }
 
-  // Debug logging
-  console.log("=== GamePage DEBUG ===");
-  console.log("isInLiveSession:", isInLiveSession);
-  console.log("liveSession exists:", !!liveSession);
-  console.log("liveSession:", liveSession);
-  console.log("userRole:", userRole);
-  console.log("shouldShowTracker:", isInLiveSession && liveSession && userRole === 'teacher');
-  console.log("======================");
 
   return (
     <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in">
@@ -397,16 +389,6 @@ const GamePage = () => {
       </div>
 
       {/* Live Session Tracker for Teachers and Students */}
-      {(() => {
-        console.log("=== GAME PAGE LIVE SESSION CHECK ===");
-        console.log("isInLiveSession:", isInLiveSession);
-        console.log("liveSession exists:", !!liveSession);
-        console.log("liveSession data:", liveSession);
-        console.log("userRole:", userRole);
-        console.log("Should show LiveSessionTracker:", !!(isInLiveSession && liveSession));
-        console.log("=====================================");
-        return null;
-      })()}
       {isInLiveSession && liveSession && (
         <div className="mb-4 sm:mb-6">
           <LiveSessionTracker

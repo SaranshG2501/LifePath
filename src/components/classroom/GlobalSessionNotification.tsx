@@ -84,10 +84,12 @@ const GlobalSessionNotification: React.FC = () => {
       setGameMode("classroom");
       
       // Join the live session
-      await joinLiveSession(notification.sessionId, currentUser.uid, userProfile.displayName || 'Student');
+      const sessionData = await joinLiveSession(notification.sessionId, currentUser.uid, userProfile.displayName || 'Student');
       
-      // Start the scenario
-      startScenario(notification.sessionId);
+      // Start the scenario with the correct scenario ID
+      if (sessionData?.scenarioId) {
+        startScenario(sessionData.scenarioId);
+      }
       
       toast({
         title: "🎯 Joined Live Session!",

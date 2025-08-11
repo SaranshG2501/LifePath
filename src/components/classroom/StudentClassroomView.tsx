@@ -257,10 +257,10 @@ useEffect(() => {
         startScenario(sessionData.scenarioId);
         
         // Sync to current scene if teacher has progressed
-        if (sessionData.currentSceneId) {
+        if (sessionData.currentSceneId && sessionData.currentSceneId !== 'start') {
           setTimeout(() => {
             setCurrentScene(sessionData.currentSceneId);
-          }, 500);
+          }, 200);
         }
         
         toast({
