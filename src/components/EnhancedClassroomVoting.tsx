@@ -40,7 +40,6 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         const activeSession = await getActiveSession(classroomId);
         if (activeSession) {
           setLiveSession(activeSession);
-          console.log("Found active live session:", activeSession);
         }
       } catch (error) {
         console.error("Error checking live session:", error);
@@ -64,7 +63,6 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         // Sync scene changes from teacher to students
         if (userRole === 'student' && updatedSession.currentSceneId && 
             updatedSession.currentSceneId !== scene.id) {
-          console.log("Syncing to teacher's scene:", updatedSession.currentSceneId);
           setCurrentScene(updatedSession.currentSceneId);
         }
         
@@ -108,7 +106,6 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
       try {
         if (currentUser && classroomId) {
           if (liveSession?.id) {
-            console.log("Submitting vote to live session:", choiceId);
             await submitLiveChoice(liveSession.id, currentUser.uid, choiceId);
           }
           setHasVoted(true);

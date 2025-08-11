@@ -243,7 +243,7 @@ useEffect(() => {
 
     setJoiningSession(session.id!);
     try {
-      console.log("Joining live session smoothly:", session.id);
+      
       
       // Set classroom context first
       setClassroomId(classroom.id!);
@@ -260,7 +260,7 @@ useEffect(() => {
         if (sessionData.currentSceneId && sessionData.currentSceneId !== 'start') {
           setTimeout(() => {
             setCurrentScene(sessionData.currentSceneId);
-          }, 200);
+          }, 100);
         }
         
         toast({

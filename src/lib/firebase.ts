@@ -170,8 +170,6 @@ export const createLiveSession = async (
   teacherName: string,
   scenarioTitle: string
 ): Promise<string> => {
-  console.log("Creating live session:", { classroomId, scenarioId, teacherId });
-  
   try {
     // Create the session document with proper initial scene
     const sessionData = {
@@ -192,7 +190,6 @@ export const createLiveSession = async (
     };
     
     const sessionRef = await addDoc(collection(db, 'sessions'), sessionData);
-    console.log("Session created with ID:", sessionRef.id);
     
     // Update classroom with active session
     const classroomRef = doc(db, 'classrooms', classroomId);
@@ -201,7 +198,6 @@ export const createLiveSession = async (
       activeScenario: scenarioTitle,
       lastActivity: Timestamp.now()
     });
-    console.log("Classroom updated with active session");
     
     // Get classroom data to send notifications
     const classroomSnap = await getDoc(classroomRef);
@@ -210,8 +206,6 @@ export const createLiveSession = async (
       
       // Send notifications to students
       if (classroomData.students && classroomData.students.length > 0) {
-        console.log("Sending notifications to students:", classroomData.students.length);
-        
         const notificationPromises = classroomData.students.map(async (student) => {
           try {
             const notificationData: SessionNotification = {
@@ -226,7 +220,6 @@ export const createLiveSession = async (
             };
             
             await addDoc(collection(db, 'notifications'), notificationData);
-            console.log(`Notification sent to student ${student.id}`);
           } catch (error) {
             console.error(`Error sending notification to student ${student.id}:`, error);
           }
@@ -247,7 +240,6 @@ export const createLiveSession = async (
 // Enhanced session ending with atomic cleanup
 export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
-    console.log("Ending live session:", sessionId);
     
     await runTransaction(db, async (transaction) => {
       const sessionRef = doc(db, 'sessions', sessionId);
@@ -304,7 +296,6 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
     );
     
     await Promise.all(cleanupPromises);
-    console.log("Session cleanup completed");
   } catch (error) {
     console.error("Error ending live session:", error);
     throw error;
@@ -314,7 +305,6 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
 // Enhanced scene advancement with atomic operations
 export const advanceLiveSession = async (sessionId: string, nextSceneId: string, nextSceneIndex?: number) => {
   try {
-    console.log("Advancing session to scene:", nextSceneId, "index:", nextSceneIndex);
     
     await runTransaction(db, async (transaction) => {
       const sessionRef = doc(db, 'sessions', sessionId);
@@ -341,8 +331,6 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
       
       transaction.update(sessionRef, updateData);
     });
-    
-    console.log("Scene advanced successfully");
   } catch (error) {
     console.error("Error advancing live session:", error);
     throw error;
@@ -352,7 +340,6 @@ export const advanceLiveSession = async (sessionId: string, nextSceneId: string,
 // Enhanced join session with validation
 export const joinLiveSession = async (sessionId: string, studentId: string, studentName: string) => {
   try {
-    console.log("Student attempting to join session:", sessionId);
     
     const result = await runTransaction(db, async (transaction) => {
       const sessionRef = doc(db, 'sessions', sessionId);
@@ -397,7 +384,7 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
         read: true
       });
     } catch (error) {
-      console.log("No notification to update:", error);
+      // Notification may not exist or may have different ID format
     }
 
     return { id: sessionId, ...result };
@@ -410,7 +397,6 @@ export const joinLiveSession = async (sessionId: string, studentId: string, stud
 // Enhanced choice submission with vote tracking
 export const submitLiveChoice = async (sessionId: string, studentId: string, choiceId: string, questionId?: string) => {
   try {
-    console.log("Submitting choice for session:", sessionId, "choice:", choiceId);
     
     await runTransaction(db, async (transaction) => {
       const sessionRef = doc(db, 'sessions', sessionId);
@@ -441,8 +427,6 @@ export const submitLiveChoice = async (sessionId: string, studentId: string, cho
         lastActivity: Timestamp.now()
       });
     });
-
-    console.log("Choice submitted successfully");
   } catch (error) {
     console.error("Error submitting live choice:", error);
     throw error;

@@ -28,28 +28,16 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
   // Get the current scene from session data, not from gameState
   const getCurrentScene = () => {
-    console.log("getCurrentScene - session data:", {
-      scenarioId: session.scenarioId,
-      currentSceneId: session.currentSceneId,
-      availableScenarios: scenarios.map(s => s.id)
-    });
-    
     if (!session.scenarioId || !session.currentSceneId) {
-      console.log("Missing scenarioId or currentSceneId");
       return null;
     }
     
     const scenario = scenarios.find(s => s.id === session.scenarioId);
-    console.log("Found scenario:", scenario?.title);
-    
     if (!scenario) {
-      console.log("No scenario found for ID:", session.scenarioId);
       return null;
     }
     
     const scene = scenario.scenes.find(scene => scene.id === session.currentSceneId);
-    console.log("Found scene:", scene?.title);
-    
     return scene || null;
   };
 
@@ -58,9 +46,7 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
   useEffect(() => {
     if (!session.id) return;
 
-    console.log("Setting up participants listener for session:", session.id);
     const unsubscribeParticipants = onSessionParticipantsUpdated(session.id, (updatedParticipants) => {
-      console.log("Participants updated:", updatedParticipants);
       setParticipants(updatedParticipants);
     });
     
@@ -71,7 +57,6 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
   useEffect(() => {
     // Calculate choice statistics from live session choices
-    console.log("Calculating choice stats from:", session.currentChoices);
     const stats: Record<string, number> = {};
     if (session.currentChoices) {
       Object.values(session.currentChoices).forEach(choice => {
@@ -89,16 +74,6 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
     return session.currentChoices?.[participantId];
   };
 
-  // Debug logging
-  console.log("=== LiveSessionTracker DEBUG ===");
-  console.log("isTeacher:", isTeacher);
-  console.log("currentScene exists:", !!currentScene);
-  console.log("currentScene:", currentScene);
-  console.log("session.scenarioId:", session.scenarioId);
-  console.log("session.currentSceneId:", session.currentSceneId);
-  console.log("scenarios available:", scenarios.length);
-  console.log("found scenario:", scenarios.find(s => s.id === session.scenarioId));
-  console.log("================================");
 
   return (
     <div className="space-y-4">
