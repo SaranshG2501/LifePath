@@ -36,6 +36,7 @@ type GameContextType = {
   hasJoinedClassroom: boolean;
   setCurrentScene: (sceneId: string) => void;
   isModeLocked: boolean;
+  syncMirrorMomentsFromSession: (enabled: boolean) => void;
 };
 
 const initialMetrics: Metrics = {
@@ -388,6 +389,11 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
+  // Add function to sync mirror moments from live session
+  const syncMirrorMomentsFromSession = (enabled: boolean) => {
+    setMirrorMomentsEnabled(enabled);
+  };
+
   // Add setCurrentScene function
   const setCurrentScene = (sceneId: string) => {
     if (!gameState.currentScenario) return;
@@ -450,7 +456,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         mirrorMomentsEnabled,
         hasJoinedClassroom,
         setCurrentScene,
-        isModeLocked
+        isModeLocked,
+        syncMirrorMomentsFromSession
       }}
     >
       {children}

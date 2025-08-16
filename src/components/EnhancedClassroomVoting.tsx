@@ -21,7 +21,8 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
     userRole,
     makeChoice,
     setCurrentScene,
-    gameState
+    gameState,
+    syncMirrorMomentsFromSession
   } = useGameContext();
   
   const { currentUser } = useAuth();
@@ -64,6 +65,11 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         if (userRole === 'student' && updatedSession.currentSceneId && 
             updatedSession.currentSceneId !== scene.id) {
           setCurrentScene(updatedSession.currentSceneId);
+        }
+
+        // Sync mirror moments setting for students
+        if (userRole === 'student' && updatedSession.mirrorMomentsEnabled !== undefined) {
+          syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
         }
         
         // Convert live session choices to votes format

@@ -138,6 +138,7 @@ export interface LiveSession {
     summary: string;
   };
   lastUpdated?: Timestamp;
+  mirrorMomentsEnabled?: boolean;
 }
 
 export interface SessionParticipant {
@@ -168,7 +169,8 @@ export const createLiveSession = async (
   scenarioId: string, 
   teacherId: string, 
   teacherName: string,
-  scenarioTitle: string
+  scenarioTitle: string,
+  mirrorMomentsEnabled: boolean = false
 ): Promise<string> => {
   try {
     // Create the session document with proper initial scene
@@ -184,6 +186,7 @@ export const createLiveSession = async (
       participants: [],
       currentChoices: {},
       votes: {},
+      mirrorMomentsEnabled,
       startedAt: Timestamp.now(),
       createdAt: Timestamp.now(),
       lastUpdated: Timestamp.now()

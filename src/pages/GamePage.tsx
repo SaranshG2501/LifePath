@@ -41,7 +41,8 @@ const GamePage = () => {
     mirrorMomentsEnabled,
     toggleMirrorMoments,
     setCurrentScene,
-    startScenario
+    startScenario,
+    syncMirrorMomentsFromSession
   } = useGameContext();
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -100,6 +101,11 @@ const GamePage = () => {
             title: "Scene Updated",
             description: "Your teacher has advanced to the next scene.",
           });
+        }
+
+        // Sync mirror moments setting for students
+        if (userRole === 'student' && updatedSession.mirrorMomentsEnabled !== undefined) {
+          syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
         }
         
         // Check if current user has voted
@@ -274,7 +280,7 @@ const GamePage = () => {
 
   const handleToggleMirrorMoments = () => {
     // Prevent students from changing mirror mode during live sessions
-    if (userRole === 'student' && gameMode === 'classroom' && isInLiveSession) {
+    if (userRole === 'student' && isInLiveSession) {
       toast({
         title: "Permission Denied",
         description: "Only teachers can change mirror moments settings during live sessions.",

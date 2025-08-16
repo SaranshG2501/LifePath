@@ -14,6 +14,7 @@ import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, Book
 import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import LiveSessionStartDialog from '@/components/classroom/LiveSessionStartDialog';
 
 const TeacherDashboard = () => {
   const { scenarios, startScenario, setGameMode } = useGameContext();
@@ -33,6 +34,17 @@ const TeacherDashboard = () => {
   const [classNameInput, setClassNameInput] = useState('');
   const [classDescriptionInput, setClassDescriptionInput] = useState('');
   const [isCreatingClassroom, setIsCreatingClassroom] = useState(false);
+
+  // Live session start dialog state
+  const [sessionStartDialog, setSessionStartDialog] = useState<{
+    isOpen: boolean;
+    classroom: Classroom | null;
+    scenario: any;
+  }>({
+    isOpen: false,
+    classroom: null,
+    scenario: null
+  });
 
   useEffect(() => {
     if (currentUser) {
@@ -151,19 +163,20 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handleStartLiveSession = async (classroom: Classroom, scenario: any) => {
+  const handleStartLiveSession = async (classroom: Classroom, scenario: any, mirrorMomentsEnabled: boolean) => {
     if (!currentUser || !classroom.id) return;
     
     setCreatingSession(classroom.id);
     try {
-      console.log("Starting live session for classroom:", classroom.id);
+      console.log("Starting live session for classroom:", classroom.id, "Mirror moments:", mirrorMomentsEnabled);
       
       await createLiveSession(
         classroom.id,
         scenario.id,
         currentUser.uid,
         currentUser.displayName || 'Teacher',
-        scenario.title
+        scenario.title,
+        mirrorMomentsEnabled
       );
       
       // Refresh classrooms to show updated state
@@ -499,25 +512,29 @@ const TeacherDashboard = () => {
                     <Play className="h-4 w-4 mr-2" />
                     Solo Play
                   </Button>
-                  {selectedClassroom && (
-                    <Button 
-                      onClick={() => handleStartLiveSession(selectedClassroom, scenario)}
-                      disabled={creatingSession === selectedClassroom.id}
-                      className="flex-1 bg-green-500 hover:bg-green-600"
-                    >
-                      {creatingSession === selectedClassroom.id ? (
-                        <>
-                          <Clock className="h-4 w-4 mr-2 animate-spin" />
-                          Starting...
-                        </>
-                      ) : (
-                        <>
-                          <Users className="h-4 w-4 mr-2" />
-                          Live Session
-                        </>
-                      )}
-                    </Button>
-                  )}
+                   {selectedClassroom && (
+                     <Button 
+                       onClick={() => setSessionStartDialog({
+                         isOpen: true,
+                         classroom: selectedClassroom,
+                         scenario
+                       })}
+                       disabled={creatingSession === selectedClassroom.id}
+                       className="flex-1 bg-green-500 hover:bg-green-600"
+                     >
+                       {creatingSession === selectedClassroom.id ? (
+                         <>
+                           <Clock className="h-4 w-4 mr-2 animate-spin" />
+                           Starting...
+                         </>
+                       ) : (
+                         <>
+                           <Users className="h-4 w-4 mr-2" />
+                           Live Session
+                         </>
+                       )}
+                     </Button>
+                   )}
                 </div>
               </CardContent>
             </Card>
@@ -586,6 +603,21 @@ const TeacherDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Live Session Start Dialog */}
+      <LiveSessionStartDialog
+        isOpen={sessionStartDialog.isOpen}
+        onClose={() => setSessionStartDialog({ isOpen: false, classroom: null, scenario: null })}
+        onStart={(mirrorMomentsEnabled) => {
+          if (sessionStartDialog.classroom && sessionStartDialog.scenario) {
+            handleStartLiveSession(sessionStartDialog.classroom, sessionStartDialog.scenario, mirrorMomentsEnabled);
+            setSessionStartDialog({ isOpen: false, classroom: null, scenario: null });
+          }
+        }}
+        scenarioTitle={sessionStartDialog.scenario?.title || ''}
+        classroomName={sessionStartDialog.classroom?.name || ''}
+        isStarting={creatingSession === sessionStartDialog.classroom?.id}
+      />
     </div>
   );
 };
