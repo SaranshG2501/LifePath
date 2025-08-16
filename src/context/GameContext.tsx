@@ -251,7 +251,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
-    console.log("Updated metrics:", newMetrics);
+    // Removed debug log for cleaner console
 
     // Find the next scene
     const nextScene = gameState.currentScenario.scenes.find(
@@ -318,7 +318,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         allChoices,
         newMetrics
       ).then(() => {
-        console.log("Scenario history saved successfully");
+        // Scenario history saved successfully
         toast({
           title: "Scenario Completed",
           description: "Your choices have been saved to your profile.",
@@ -411,7 +411,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     if (isModeLocked) {
       toast({
         title: "Mode Locked",
-        description: "Cannot change mode while a scenario is active.",
+        description: "Cannot change mode while a live session is active.",
         variant: "destructive",
       });
       return;

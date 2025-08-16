@@ -140,8 +140,8 @@ const ClassroomJoinLink: React.FC = () => {
     try {
       setIsLoading(true);
       setJoinError('');
-      console.log("Attempting to join classroom with code:", normalizedCode);
-
+      // Attempting to join classroom
+      
       // First get the classroom by code
       const classroom = await getClassroomByCode(normalizedCode);
       if (!classroom || !classroom.id) {
@@ -153,13 +153,10 @@ const ClassroomJoinLink: React.FC = () => {
         });
         return;
       }
-      console.log("Classroom found:", classroom);
 
       // Determine the display name for the student
       const displayName = userProfile?.displayName || 
                          (currentUser.email ? currentUser.email.split("@")[0] : "Student");
-      
-      console.log("Joining as:", displayName);
       
       // Join the classroom with our improved function
       const joinedClassroom = await joinClassroom(
@@ -168,7 +165,7 @@ const ClassroomJoinLink: React.FC = () => {
         displayName
       );
       
-      console.log("Join classroom result:", joinedClassroom);
+      // Join classroom result processed
 
       if (!joinedClassroom || !joinedClassroom.id) {
         throw new Error("Failed to join classroom - no valid response received");
@@ -183,7 +180,7 @@ const ClassroomJoinLink: React.FC = () => {
       setTimeout(async () => {
         try {
           const updatedClassrooms = await getUserClassrooms(currentUser.uid, userProfile?.role || 'student');
-          console.log("Updated classrooms after join:", updatedClassrooms);
+          // Updated classrooms after join
           setUserHasClassrooms(updatedClassrooms.length > 0);
           
           if (updatedClassrooms.length > 0) {

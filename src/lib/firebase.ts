@@ -481,8 +481,6 @@ export const getActiveSession = async (classroomId: string) => {
 // Cleanup orphaned sessions utility function
 export const cleanupOrphanedSessions = async () => {
   try {
-    console.log("Starting orphaned session cleanup...");
-    
     // Get all active sessions
     const sessionsQuery = query(
       collection(db, 'sessions'),
@@ -498,7 +496,6 @@ export const cleanupOrphanedSessions = async () => {
       
       if (!classroomDoc.exists() || 
           classroomDoc.data().activeSessionId !== sessionDoc.id) {
-        console.log("Found orphaned session:", sessionDoc.id);
         
         // End the orphaned session
         await updateDoc(sessionDoc.ref, {
@@ -510,7 +507,6 @@ export const cleanupOrphanedSessions = async () => {
     });
     
     await Promise.all(cleanupPromises);
-    console.log("Orphaned session cleanup completed");
   } catch (error) {
     console.error("Error during orphaned session cleanup:", error);
   }

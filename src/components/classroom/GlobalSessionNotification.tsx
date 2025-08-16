@@ -77,7 +77,7 @@ const GlobalSessionNotification: React.FC = () => {
 
     setIsJoining(true);
     try {
-      console.log("Student accepting live session:", notification.sessionId);
+      // Student accepting live session
       
       // Set game context first
       setClassroomId(notification.classroomId);

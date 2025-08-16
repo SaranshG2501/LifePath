@@ -81,7 +81,7 @@ useEffect(() => {
           
           if ((!isStillMemberInClassroom || !isStillMemberInProfile) && currentUser?.uid) {
             // Student was removed from classroom, refresh the classroom list
-            console.log(`Student removed from classroom ${updatedClassroom.id}, refreshing list`);
+            // Student removed from classroom, refreshing list
             await fetchClassrooms();
             toast({
               title: "Classroom Access Removed",
@@ -129,7 +129,7 @@ useEffect(() => {
   useEffect(() => {
     if (!selectedClassroom?.id) return;
 
-    console.log("Setting up message listener for classroom:", selectedClassroom.id);
+    // Setting up message listener for classroom
     
     // Load initial messages
     const loadMessages = async () => {
@@ -165,17 +165,13 @@ useEffect(() => {
       
       // First check user's profile classrooms for consistency
       const profileClassrooms = userProfile.classrooms || [];
-      console.log("User profile classrooms:", profileClassrooms);
       
       const userClassrooms = await getUserClassrooms(currentUser.uid, 'student');
-      console.log("Fetched student classrooms:", userClassrooms);
       
       // Filter classrooms to only show ones that exist in both user profile and database
       const validClassrooms = userClassrooms.filter(classroom => 
         classroom.id && profileClassrooms.includes(classroom.id)
       );
-      
-      console.log("Valid classrooms after filtering:", validClassrooms);
       setClassrooms(validClassrooms);
     } catch (error) {
       console.error('Error fetching classrooms:', error);

@@ -35,10 +35,9 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   useEffect(() => {
     if (!classroom?.id) return;
     
-    console.log("Setting up classroom listener for:", classroom.id);
+    // Setting up classroom listener for real-time updates
     
     const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
-      console.log("Classroom updated in real-time:", updatedClassroom);
       setCurrentClassroom(updatedClassroom);
       // Also trigger parent refresh to update the classroom list
       onRefresh();
@@ -67,7 +66,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   useEffect(() => {
     if (!classroom?.id) return;
     
-    console.log("Setting up messages listener for classroom:", classroom.id);
+    // Setting up messages listener for real-time updates
     
     // Load initial messages
     const loadMessages = async () => {
@@ -83,7 +82,6 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     
     // Set up real-time listener
     const unsubscribe = onClassroomMessagesUpdated(classroom.id, (updatedMessages) => {
-      console.log("Messages updated in real-time:", updatedMessages);
       setMessages(updatedMessages);
     });
     
@@ -118,15 +116,12 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
     try {
-      console.log(`[TEACHER_UI] Attempting to remove student: ${studentName} (${studentId})`);
-      console.log(`[TEACHER_UI] Current classroom:`, currentClassroom.id);
-      console.log(`[TEACHER_UI] Current user:`, currentUser?.uid);
-      console.log(`[TEACHER_UI] Is teacher:`, currentClassroom.teacherId === currentUser?.uid);
+      // Attempting to remove student
       
       const result = await removeStudentFromClassroom(currentClassroom.id, studentId);
       
       if (result) {
-        console.log(`[TEACHER_UI] Successfully removed student: ${studentName}`);
+        // Student successfully removed
         toast({
           title: "Student removed",
           description: `${studentName} has been removed from your classroom and will be notified on their next login.`,
@@ -138,7 +133,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         }, 500);
       }
     } catch (error) {
-      console.error(`[TEACHER_UI] Error removing student:`, error);
+      console.error("Error removing student:", error);
       
       let errorMessage = "Failed to remove student. Please try again.";
       
@@ -208,7 +203,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   };
   
   const studentsList = currentClassroom?.students || [];
-  console.log("Current students list:", studentsList);
+  // Students list prepared for rendering
   
   return (
     <div className="space-y-6">

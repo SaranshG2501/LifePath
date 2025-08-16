@@ -64,15 +64,12 @@ const GamePage = () => {
   // Enhanced live session listener
   useEffect(() => {
     if (liveSession?.id && isInLiveSession) {
-      console.log("Setting up live session listener for:", liveSession.id);
       
       const unsubscribe = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
-        console.log("Live session updated:", updatedSession);
         setLiveSession(updatedSession);
         
         // Immediate session end handling
         if (updatedSession.status === 'ended') {
-          console.log("Session ended immediately");
           setIsInLiveSession(false);
           setHasVoted(false);
           
@@ -93,7 +90,6 @@ const GamePage = () => {
         if (userRole === 'student' && 
             updatedSession.currentSceneId && 
             gameState.currentScene?.id !== updatedSession.currentSceneId) {
-          console.log("Syncing student to teacher's scene:", updatedSession.currentSceneId);
           setCurrentScene(updatedSession.currentSceneId);
           setHasVoted(false);
           
@@ -124,7 +120,6 @@ const GamePage = () => {
   const handleLiveChoice = async (choiceId: string) => {
     if (liveSession?.id && currentUser && !hasVoted) {
       try {
-        console.log("Submitting live choice:", choiceId);
         setHasVoted(true);
         
         await submitLiveChoice(liveSession.id, currentUser.uid, choiceId, gameState.currentScene?.id);
@@ -149,7 +144,6 @@ const GamePage = () => {
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id) {
       try {
-        console.log("Advancing scene:", nextSceneId);
         
         let nextSceneIndex;
         if (gameState.currentScenario) {
