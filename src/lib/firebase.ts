@@ -153,12 +153,13 @@ export interface SessionParticipant {
 
 export interface SessionNotification {
   id?: string;
-  type: 'live_session_started';
+  type: 'live_session_started' | 'session_ended';
   sessionId: string;
   classroomId: string;
   teacherName: string;
   scenarioTitle: string;
   studentId: string;
+  message?: string;
   createdAt: Timestamp;
   read: boolean;
 }
@@ -244,14 +245,20 @@ export const createLiveSession = async (
 export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
     
+    // Get session and classroom data first to notify students
+    const sessionDoc = await getDoc(doc(db, 'sessions', sessionId));
+    const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
+    
+    if (!sessionDoc.exists()) {
+      throw new Error("Session not found");
+    }
+    
+    const sessionData = sessionDoc.data() as LiveSession;
+    const classroomData = classroomDoc.exists() ? classroomDoc.data() : null;
+    
     await runTransaction(db, async (transaction) => {
       const sessionRef = doc(db, 'sessions', sessionId);
       const classroomRef = doc(db, 'classrooms', classroomId);
-      
-      const sessionDoc = await transaction.get(sessionRef);
-      if (!sessionDoc.exists()) {
-        throw new Error("Session not found");
-      }
       
       // End the session with result payload
       const updateData: any = {
@@ -275,7 +282,36 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
       });
     });
     
-    // Clean up participants and notifications (outside transaction)
+    // Send session ended notifications to all students
+    if (classroomData && classroomData.students && classroomData.students.length > 0) {
+      try {
+        const endSessionNotifications = classroomData.students.map(async (student: any) => {
+          try {
+            const notificationData = {
+              studentId: student.id,
+              classroomId: classroomId,
+              sessionId: sessionId,
+              type: 'session_ended',
+              teacherName: sessionData.teacherName || 'Teacher',
+              scenarioTitle: sessionData.scenarioTitle || 'Scenario',
+              message: `The live session "${sessionData.scenarioTitle}" has been ended by the teacher.`,
+              read: false,
+              createdAt: Timestamp.now()
+            };
+            
+            await addDoc(collection(db, 'notifications'), notificationData);
+          } catch (error) {
+            console.error(`Error sending session ended notification to student ${student.id}:`, error);
+          }
+        });
+        
+        await Promise.all(endSessionNotifications);
+      } catch (error) {
+        console.error("Error sending session ended notifications:", error);
+      }
+    }
+    
+    // Clean up participants and old notifications (outside transaction)
     const participantsQuery = query(
       collection(db, 'sessionParticipants'),
       where('sessionId', '==', sessionId)
@@ -288,14 +324,15 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
       )
     ];
     
-    // Clean up notifications
-    const notificationsQuery = query(
+    // Clean up old session start notifications only (keep session ended notifications)
+    const oldNotificationsQuery = query(
       collection(db, 'notifications'),
-      where('sessionId', '==', sessionId)
+      where('sessionId', '==', sessionId),
+      where('type', '==', 'session_started')
     );
-    const notificationsSnapshot = await getDocs(notificationsQuery);
+    const oldNotificationsSnapshot = await getDocs(oldNotificationsQuery);
     cleanupPromises.push(
-      ...notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+      ...oldNotificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
     );
     
     await Promise.all(cleanupPromises);
