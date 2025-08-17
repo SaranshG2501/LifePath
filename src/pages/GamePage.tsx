@@ -346,7 +346,9 @@ const GamePage = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3"
+                className={`flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3 ${
+                  (userRole === 'student' && gameMode === 'classroom' && isInLiveSession) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 onClick={handleToggleMirrorMoments}
                 disabled={userRole === 'student' && gameMode === 'classroom' && isInLiveSession}
               >
