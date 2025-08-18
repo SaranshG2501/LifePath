@@ -158,18 +158,20 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section id="classroom-section" className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-8 mb-16 animate-fade-in" style={{
+        <section id="classroom-section" className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-4 sm:p-6 lg:p-8 mb-12 sm:mb-16 animate-fade-in" style={{
         animationDelay: "0.6s"
       }}>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold flex items-center text-white">
-              <Users className="h-5 w-5 text-blue-300 mr-2" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center text-white">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-300 mr-2" />
               Classroom Features
             </h2>
-            <Button onClick={handleJoinClassroom} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
-              <LogIn className="mr-2 h-4 w-4" />
-              Join Classroom
-            </Button>
+            {!isMobile && (
+              <Button onClick={handleJoinClassroom} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base">
+                <LogIn className="mr-2 h-4 w-4" />
+                Join Classroom
+              </Button>
+            )}
           </div>
           
           {/* Always show the StudentClassroomView for students when logged in */}
@@ -177,60 +179,76 @@ const HomePage = () => {
               <StudentClassroomView />
             </div>}
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
-              <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-                <MessageSquare className="text-blue-300" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">
+            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all">
+              <div className="p-2 sm:p-3 bg-blue-500/10 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-3 sm:mb-4">
+                <MessageSquare className="text-blue-300 h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h3 className="font-bold text-lg mb-2 text-white">Discussion Mode</h3>
-              <p className="text-white/70">Teachers can lead discussions and collect anonymous votes on decisions.</p>
+              <h3 className="font-bold text-base sm:text-lg mb-2 text-white">Discussion Mode</h3>
+              <p className="text-white/70 text-sm sm:text-base">Teachers can lead discussions and collect anonymous votes on decisions.</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
-              <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-                <BarChart className="text-blue-300" />
+            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all">
+              <div className="p-2 sm:p-3 bg-blue-500/10 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-3 sm:mb-4">
+                <BarChart className="text-blue-300 h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h3 className="font-bold text-lg mb-2 text-white">Assessment</h3>
-              <p className="text-white/70">Track student progress and decision-making patterns across scenarios.</p>
+              <h3 className="font-bold text-base sm:text-lg mb-2 text-white">Assessment</h3>
+              <p className="text-white/70 text-sm sm:text-base">Track student progress and decision-making patterns across scenarios.</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
-              <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-                <Award className="text-blue-300" />
+            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all sm:col-span-2 lg:col-span-1">
+              <div className="p-2 sm:p-3 bg-blue-500/10 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-3 sm:mb-4">
+                <Award className="text-blue-300 h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h3 className="font-bold text-lg mb-2 text-white">Gamification</h3>
-              <p className="text-white/70">Students earn XP and badges based on their decision patterns.</p>
+              <h3 className="font-bold text-base sm:text-lg mb-2 text-white">Gamification</h3>
+              <p className="text-white/70 text-sm sm:text-base">Students earn XP and badges based on their decision patterns.</p>
             </div>
           </div>
-          <div className="mt-6 text-center">
-            {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
+          <div className="mt-4 sm:mt-6 text-center flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            {!userRole || userRole === 'guest' ? (
+              <Button onClick={() => navigate('/auth')} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base w-full sm:w-auto">
                 Sign Up to Access Classroom Features
-              </Button> : userRole === 'teacher' ? <Button onClick={() => {
-            setGameMode("classroom");
-            navigate('/teacher');
-          }} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
+              </Button>
+            ) : userRole === 'teacher' ? (
+              <Button onClick={() => {
+                setGameMode("classroom");
+                navigate('/teacher');
+              }} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base w-full sm:w-auto">
                 <School className="h-4 w-4 mr-2" />
                 Create Your Classroom
-              </Button> : <Button onClick={() => setGameMode("classroom")} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
-                <Play className="h-4 w-4 mr-2" />
-                Join a Classroom
-              </Button>}
+              </Button>
+            ) : (
+              <>
+                <Button onClick={() => setGameMode("classroom")} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base w-full sm:w-auto">
+                  <Play className="h-4 w-4 mr-2" />
+                  Join a Classroom
+                </Button>
+                {isMobile && (
+                  <Button onClick={handleJoinClassroom} className="bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/20 transition-all text-sm w-full">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Join Classroom Now
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-8 animate-fade-in" style={{
+        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-4 sm:p-6 lg:p-8 animate-fade-in" style={{
         animationDelay: "0.7s"
       }}>
-          <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div className="md:w-1/2">
-              <h2 className="text-2xl font-bold mb-4 text-white">For Parents & Educators</h2>
-              <p className="text-white/70 mb-6 font-normal \n">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center text-center lg:text-left">
+            <div className="lg:w-2/3">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">For Parents & Educators</h2>
+              <p className="text-white/70 mb-4 sm:mb-6 font-normal text-sm sm:text-base">
                 LifePath helps young people develop critical thinking and decision-making skills through realistic scenarios. Students can experiment with choices and see their consequences in a safe environment.
               </p>
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all" asChild>
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base w-full sm:w-auto" asChild>
                 <a href="/about">Learn More</a>
               </Button>
             </div>
-            <div className="md:w-1/2 flex justify-center">
-              
+            <div className="lg:w-1/3 flex justify-center">
+              <div className="p-4 bg-blue-500/10 rounded-full">
+                <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 text-blue-300" />
+              </div>
             </div>
           </div>
         </section>
