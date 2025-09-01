@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import GlobalSessionNotification from '@/components/classroom/GlobalSessionNotification';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import HeroSection from '@/components/home/HeroSection';
 import ScenariosSection from '@/components/home/ScenariosSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
@@ -12,10 +13,13 @@ const HomePage = () => {
   const { currentUser } = useAuth();
   return (
     <>
+      {/* Animated Background */}
+      <AnimatedBackground />
+      
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
-      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12">
+      <div className="relative container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12">
         <HeroSection />
         <ScenariosSection />
         <FeaturesSection />

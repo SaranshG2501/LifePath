@@ -89,6 +89,37 @@ export default {
         'shimmer': {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        'wiggle': {
+          '0%, 100%': { transform: 'rotate(-3deg)' },
+          '50%': { transform: 'rotate(3deg)' },
+        },
+        'tilt': {
+          '0%, 100%': { transform: 'rotate(0deg) scale(1)' },
+          '25%': { transform: 'rotate(1deg) scale(1.02)' },
+          '75%': { transform: 'rotate(-1deg) scale(0.98)' },
+        },
+        'bounce-in': {
+          '0%': { transform: 'scale(0.3)', opacity: '0' },
+          '50%': { transform: 'scale(1.05)', opacity: '0.8' },
+          '70%': { transform: 'scale(0.9)', opacity: '0.9' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'slide-in-left': {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        'slide-in-right': {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        'fade-in-up': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'zoom-in': {
+          '0%': { transform: 'scale(0.8)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         }
       },
       animation: {
@@ -100,7 +131,14 @@ export default {
         'rotate-glow': 'rotate-glow 10s linear infinite',
         'hover-bounce': 'hover-bounce 2s ease-in-out infinite',
         'background-pulse': 'background-pulse 5s ease infinite',
-        'shimmer': 'shimmer 3s infinite linear'
+        'shimmer': 'shimmer 3s infinite linear',
+        'wiggle': 'wiggle 1s ease-in-out infinite',
+        'tilt': 'tilt 2s ease-in-out infinite',
+        'bounce-in': 'bounce-in 0.6s ease-out',
+        'slide-in-left': 'slide-in-left 0.6s ease-out',
+        'slide-in-right': 'slide-in-right 0.6s ease-out', 
+        'fade-in-up': 'fade-in-up 0.6s ease-out',
+        'zoom-in': 'zoom-in 0.5s ease-out'
       }
     },
   },

@@ -58,24 +58,25 @@ const ClassroomFeaturesSection = () => {
   ];
 
   return (
-    <section id="classroom-section" className="mb-12 sm:mb-16 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-lg shadow-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
+    <section id="classroom-section" className="mb-12 sm:mb-16 animate-fade-in-up" style={{ animationDelay: "0.9s" }}>
+      <Card className="group bg-gradient-to-br from-muted/60 to-background/60 border-primary/20 backdrop-blur-lg shadow-2xl overflow-hidden hover:shadow-primary/30 transition-all duration-500">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 animate-gradient-shift"></div>
         
         <CardHeader className="relative pb-4 sm:pb-6 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 animate-text-reveal">
             <CardTitle className="text-2xl sm:text-3xl font-bold flex items-center text-white">
-              <div className="p-2 sm:p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full mr-3 shadow-lg">
-                <Users className="h-6 w-6 sm:h-7 sm:w-7 text-blue-300" />
+              <div className="p-2 sm:p-3 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full mr-3 shadow-lg animate-pulse-glow group-hover:animate-wiggle">
+                <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
               </div>
               Classroom Features
             </CardTitle>
             {!isMobile && (
               <Button 
                 onClick={handleJoinClassroom} 
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 rounded-full transform hover:scale-105"
+                className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 rounded-full transform hover:scale-105 animate-bounce-in"
+                style={{ animationDelay: '0.3s' }}
               >
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="mr-2 h-4 w-4 group-hover:animate-wiggle" />
                 Join Classroom
               </Button>
             )}
@@ -83,7 +84,7 @@ const ClassroomFeaturesSection = () => {
           
           {/* Always show the StudentClassroomView for students when logged in */}
           {currentUser && userRole === 'student' && (
-            <div className="mb-8">
+            <div className="mb-8 animate-slide-in-left" style={{ animationDelay: '0.4s' }}>
               <StudentClassroomView />
             </div>
           )}
@@ -91,16 +92,17 @@ const ClassroomFeaturesSection = () => {
 
         <CardContent className="relative p-4 sm:p-6 pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {features.map((feature) => (
+            {features.map((feature, index) => (
               <Card 
                 key={feature.title}
-                className={`bg-gradient-to-br ${feature.gradient} border-white/20 backdrop-blur-sm hover:border-white/30 transition-all duration-300 hover:scale-105 group shadow-lg`}
+                className={`group bg-gradient-to-br ${feature.gradient} border-white/20 backdrop-blur-sm hover:border-white/30 transition-all duration-300 hover:scale-105 hover:animate-tilt shadow-lg animate-card-reveal`}
+                style={{ animationDelay: `${0.1 * (index + 1) + 1.1}s` }}
               >
                 <CardContent className="p-5 sm:p-6">
-                  <div className={`p-3 bg-gradient-to-br ${feature.gradient} rounded-full w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
-                    <feature.icon className={`${feature.iconColor} h-6 w-6 sm:h-7 sm:w-7`} />
+                  <div className={`p-3 bg-gradient-to-br ${feature.gradient} rounded-full w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:animate-pulse-glow`}>
+                    <feature.icon className={`${feature.iconColor} h-6 w-6 sm:h-7 sm:w-7 group-hover:animate-wiggle`} />
                   </div>
-                  <h3 className="font-bold text-lg sm:text-xl mb-3 text-white group-hover:text-blue-100 transition-colors">
+                  <h3 className="font-bold text-lg sm:text-xl mb-3 text-white group-hover:text-primary transition-colors">
                     {feature.title}
                   </h3>
                   <p className="text-white/80 text-sm sm:text-base leading-relaxed group-hover:text-white/90 transition-colors">
@@ -111,11 +113,11 @@ const ClassroomFeaturesSection = () => {
             ))}
           </div>
 
-          <div className="text-center flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          <div className="text-center flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-bounce-in" style={{ animationDelay: '1.4s' }}>
             {!userRole || userRole === 'guest' ? (
               <Button 
                 onClick={() => navigate('/auth')} 
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105"
+                className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow"
               >
                 Sign Up to Access Classroom Features
               </Button>
@@ -125,26 +127,26 @@ const ClassroomFeaturesSection = () => {
                   setGameMode("classroom");
                   navigate('/teacher');
                 }} 
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105"
+                className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow"
               >
-                <School className="h-4 w-4 mr-2" />
+                <School className="h-4 w-4 mr-2 group-hover:animate-wiggle" />
                 Create Your Classroom
               </Button>
             ) : (
               <>
                 <Button 
                   onClick={() => setGameMode("classroom")} 
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105"
+                  className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow"
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 mr-2 group-hover:animate-wiggle" />
                   Join a Classroom
                 </Button>
                 {isMobile && (
                   <Button 
                     onClick={handleJoinClassroom} 
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-green-500/30 transition-all duration-300 text-sm w-full px-6 py-3 rounded-full transform hover:scale-105"
+                    className="group bg-gradient-to-r from-accent to-secondary hover:from-accent/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-accent/30 transition-all duration-300 text-sm w-full px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow"
                   >
-                    <LogIn className="mr-2 h-4 w-4" />
+                    <LogIn className="mr-2 h-4 w-4 group-hover:animate-wiggle" />
                     Join Classroom Now
                   </Button>
                 )}
