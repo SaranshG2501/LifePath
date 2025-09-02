@@ -278,7 +278,7 @@ const TeacherDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-accent/20 to-primary/20 rounded-full animate-pulse-glow">
-                  <BookOpen className="h-5 w-5 text-accent animate-icon-bounce" />
+                  <BookOpen className="h-5 w-5 text-accent " />
                 </div>
                 <div>
                   <p className="text-white/70 text-sm">Active Sessions</p>
