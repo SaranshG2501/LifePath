@@ -264,7 +264,7 @@ const TeacherDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-secondary/20 to-accent/20 rounded-full animate-pulse-glow">
-                  <Users className="h-5 w-5 text-secondary animate-icon-bounce" />
+                  <Users className="h-5 w-5 text-secondary " />
                 </div>
                 <div>
                   <p className="text-white/70 text-sm">Total Students</p>
