@@ -293,7 +293,7 @@ const TeacherDashboard = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2 animate-text-reveal">
-              <School className="h-6 w-6 text-primary animate-icon-bounce" />
+              <School className="h-6 w-6 text-primary " />
               Your Classrooms (<AnimatedCounter target={classrooms.length} />)
             </h2>
           </div>
