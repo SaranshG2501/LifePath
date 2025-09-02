@@ -18,6 +18,8 @@ import LiveSessionStartDialog from '@/components/classroom/LiveSessionStartDialo
 import AnimatedBackground from '@/components/AnimatedBackground';
 import AnimatedCounter from '@/components/AnimatedCounter';
 const TeacherDashboard = () => {
+  console.log("TeacherDashboard component rendered");
+  
   const {
     scenarios,
     startScenario,
@@ -26,6 +28,9 @@ const TeacherDashboard = () => {
   const {
     currentUser
   } = useAuth();
+  
+  console.log("Current user in dashboard:", currentUser);
+  
   const {
     toast
   } = useToast();
@@ -54,15 +59,22 @@ const TeacherDashboard = () => {
     scenario: null
   });
   useEffect(() => {
+    console.log("TeacherDashboard useEffect - currentUser:", currentUser);
+    console.log("TeacherDashboard useEffect - currentUser.uid:", currentUser?.uid);
     if (currentUser) {
       loadClassrooms();
     }
   }, [currentUser]);
   const loadClassrooms = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log("No current user found");
+      return;
+    }
     try {
+      console.log("Loading classrooms for user:", currentUser.uid);
       setLoading(true);
       const userClassrooms = await getUserClassrooms(currentUser.uid, 'teacher');
+      console.log("Fetched classrooms:", userClassrooms);
       setClassrooms(userClassrooms);
     } catch (error) {
       console.error('Error loading classrooms:', error);
@@ -473,7 +485,10 @@ const TeacherDashboard = () => {
                   Close
                 </Button>
               </div>
-              <p className="text-white/70">Classroom management features would be displayed here.</p>
+              <TeacherClassroomManager 
+                classroom={selectedClassroom} 
+                onRefresh={loadClassrooms} 
+              />
             </div>
           </div>}
 
