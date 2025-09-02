@@ -109,7 +109,7 @@ const ClassroomFeaturesSection = () => {
           <div className="text-center flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-bounce-in" style={{
           animationDelay: '1.4s'
         }}>
-            {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow">
+            {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105">
                 Sign Up to Access Classroom Features
               </Button> : userRole === 'teacher' ? <Button onClick={() => {
             setGameMode("classroom");
