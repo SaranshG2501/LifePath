@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, ArrowRight, Sparkles } from 'lucide-react';
+import { Brain, ArrowRight } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { motion } from 'framer-motion';
 
@@ -40,7 +40,6 @@ const MirrorMoment: React.FC = () => {
           <div className="text-lg font-medium text-center my-4 text-white">
             <span className="relative">
               {currentMirrorQuestion}
-              <Sparkles className="h-3 w-3 text-neon-yellow absolute -top-2 -right-4 animate-pulse-slow" />
             </span>
           </div>
           <Textarea

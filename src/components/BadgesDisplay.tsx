@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { Award, Brain, Heart, TrendingUp, Shield, Zap, Scale, Sparkles } from 'lucide-react';
+import { Award, Brain, Heart, TrendingUp, Shield, Zap, Scale, Star } from 'lucide-react';
 
 interface BadgesDisplayProps {
   earnedBadges?: string[];
@@ -85,7 +85,7 @@ const BadgesDisplay: React.FC<BadgesDisplayProps> = ({ earnedBadges = [] }) => {
                     <div className="relative">
                       {badge.icon}
                       {isEarned && (
-                        <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-yellow-300 animate-pulse" />
+                        <Star className="absolute -top-2 -right-2 h-3 w-3 text-yellow-300 animate-pulse" />
                       )}
                     </div>
                     <p className={`mt-2 text-center text-sm font-medium ${isEarned ? 'text-white' : 'text-white/70'}`}>

@@ -15,6 +15,8 @@ import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import LiveSessionStartDialog from '@/components/classroom/LiveSessionStartDialog';
+import AnimatedBackground from '@/components/AnimatedBackground';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 const TeacherDashboard = () => {
   const { scenarios, startScenario, setGameMode } = useGameContext();
@@ -251,167 +253,150 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
-          <p className="text-white/70">Manage your classrooms and scenarios</p>
-        </div>
-        <Button 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Classroom
-        </Button>
-      </div>
-
-      {/* Classrooms Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <School className="h-6 w-6 text-primary" />
-            Your Classrooms ({classrooms.length})
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-black/20 border-white/10 animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-white/10 rounded mb-2"></div>
-                  <div className="h-4 bg-white/10 rounded w-2/3"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-4 bg-white/10 rounded mb-4"></div>
-                  <div className="h-10 bg-white/10 rounded"></div>
-                </CardContent>
-              </Card>
-            ))}
+    <div className="relative min-h-screen">
+      <AnimatedBackground />
+      
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 relative z-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 animate-card-reveal">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 gradient-heading animate-text-reveal">Teacher Dashboard</h1>
+            <p className="text-white/70 animate-text-reveal" style={{animationDelay: '0.1s'}}>Manage your classrooms and scenarios</p>
           </div>
-        ) : classrooms.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {classrooms.map((classroom) => (
-              <Card key={classroom.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-white text-lg">{classroom.name}</CardTitle>
-                      <CardDescription className="text-white/70 mt-1">
-                        {classroom.description || "No description"}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      {classroom.activeSessionId && (
-                        <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                          Live
-                        </Badge>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1 h-8 w-8"
-                            disabled={deleting === classroom.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-black/90 border border-red-500/20">
-                          <AlertDialogHeader>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-red-500/20 rounded-full">
-                                <AlertTriangle className="h-5 w-5 text-red-400" />
-                              </div>
-                              <AlertDialogTitle className="text-white">Delete Classroom</AlertDialogTitle>
-                            </div>
-                            <AlertDialogDescription className="text-white/70">
-                              Are you sure you want to permanently delete <strong>"{classroom.name}"</strong>?
-                              <br /><br />
-                              This action will:
-                              <ul className="list-disc list-inside mt-2 space-y-1">
-                                <li>Remove all {classroom.students?.length || 0} students from the classroom</li>
-                                <li>Delete all session data and history</li>
-                                <li>Remove the classroom from students' profiles</li>
-                                <li>Cannot be undone</li>
-                              </ul>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteClassroom(classroom.id!, classroom.name)}
-                              className="bg-red-500 hover:bg-red-600 text-white"
-                              disabled={deleting === classroom.id}
-                            >
-                              {deleting === classroom.id ? "Deleting..." : "Delete Permanently"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Users className="h-4 w-4" />
-                        <span>{classroom.students?.length || 0} Students</span>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="glow-button w-full sm:w-auto animate-card-reveal"
+            style={{animationDelay: '0.2s'}}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Classroom
+          </Button>
+        </div>
+
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-card-reveal" style={{animationDelay: '0.1s'}}>
+          <Card className="teen-card hover:shadow-primary/20 transition-all duration-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full animate-pulse-glow">
+                  <School className="h-5 w-5 text-primary animate-icon-bounce" />
+                </div>
+                <div>
+                  <p className="text-white/70 text-sm">Total Classrooms</p>
+                  <AnimatedCounter target={classrooms.length} className="text-2xl font-bold text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="teen-card hover:shadow-primary/20 transition-all duration-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-secondary/20 to-accent/20 rounded-full animate-pulse-glow">
+                  <Users className="h-5 w-5 text-secondary animate-icon-bounce" />
+                </div>
+                <div>
+                  <p className="text-white/70 text-sm">Total Students</p>
+                  <AnimatedCounter 
+                    target={classrooms.reduce((sum, c) => sum + (c.students?.length || 0), 0)} 
+                    className="text-2xl font-bold text-white" 
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="teen-card hover:shadow-primary/20 transition-all duration-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-accent/20 to-primary/20 rounded-full animate-pulse-glow">
+                  <BookOpen className="h-5 w-5 text-accent animate-icon-bounce" />
+                </div>
+                <div>
+                  <p className="text-white/70 text-sm">Active Sessions</p>
+                  <AnimatedCounter 
+                    target={classrooms.filter(c => c.activeSessionId).length} 
+                    className="text-2xl font-bold text-white" 
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Classrooms Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2 animate-text-reveal">
+              <School className="h-6 w-6 text-primary animate-icon-bounce" />
+              Your Classrooms (<AnimatedCounter target={classrooms.length} />)
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="bg-black/20 border-white/10 animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-white/10 rounded mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-4 bg-white/10 rounded mb-4"></div>
+                    <div className="h-10 bg-white/10 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : classrooms.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {classrooms.map((classroom, index) => (
+                <Card 
+                  key={classroom.id} 
+                  className="teen-card hover:shadow-primary/20 transition-all duration-300 animate-card-reveal"
+                  style={{animationDelay: `${index * 0.1}s`}}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-white text-lg animate-text-reveal">{classroom.name}</CardTitle>
+                        <CardDescription className="text-white/70 mt-1 animate-text-reveal" style={{animationDelay: '0.1s'}}>
+                          {classroom.description || "No description"}
+                        </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Calendar className="h-4 w-4" />
-                        <span>{convertTimestampToDate(classroom.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-white/60 bg-black/30 rounded px-2 py-1 font-mono">
-                      Code: {classroom.classCode}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setSelectedClassroom(classroom)}
-                        className="flex-1 border-white/20 bg-black/20 text-white hover:bg-white/10"
-                      >
-                        <School className="h-4 w-4 mr-1" />
-                        Manage
-                      </Button>
-                      {classroom.activeSessionId && (
+                      <div className="flex items-center gap-2 ml-2">
+                        {classroom.activeSessionId && (
+                          <Badge className="bg-green-500/20 text-green-300 border-0 text-xs animate-pulse-glow">
+                            Live
+                          </Badge>
+                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40"
-                              disabled={endingSession === classroom.id}
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1 h-8 w-8"
+                              disabled={deleting === classroom.id}
                             >
-                              <StopCircle className="h-4 w-4 mr-1" />
-                              End Session
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="bg-black/90 border border-red-500/20">
                             <AlertDialogHeader>
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-red-500/20 rounded-full">
-                                  <StopCircle className="h-5 w-5 text-red-400" />
+                                  <AlertTriangle className="h-5 w-5 text-red-400" />
                                 </div>
-                                <AlertDialogTitle className="text-white">End Live Session</AlertDialogTitle>
+                                <AlertDialogTitle className="text-white">Delete Classroom</AlertDialogTitle>
                               </div>
                               <AlertDialogDescription className="text-white/70">
-                                Are you sure you want to end the live session for <strong>"{classroom.name}"</strong>?
+                                Are you sure you want to permanently delete <strong>"{classroom.name}"</strong>?
                                 <br /><br />
                                 This action will:
                                 <ul className="list-disc list-inside mt-2 space-y-1">
-                                  <li>End the current scenario session</li>
-                                  <li>Notify all students that the session has ended</li>
-                                  <li>Remove students from the live session</li>
+                                  <li>Remove all {classroom.students?.length || 0} students from the classroom</li>
+                                  <li>Delete all session data and history</li>
+                                  <li>Remove the classroom from students' profiles</li>
+                                  <li>Cannot be undone</li>
                                 </ul>
                               </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -420,204 +405,247 @@ const TeacherDashboard = () => {
                                 Cancel
                               </AlertDialogCancel>
                               <AlertDialogAction 
-                                onClick={() => handleEndLiveSession(classroom)}
+                                onClick={() => handleDeleteClassroom(classroom.id!, classroom.name)}
                                 className="bg-red-500 hover:bg-red-600 text-white"
-                                disabled={endingSession === classroom.id}
+                                disabled={deleting === classroom.id}
                               >
-                                {endingSession === classroom.id ? "Ending..." : "End Session"}
+                                {deleting === classroom.id ? "Deleting..." : "Delete Permanently"}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="bg-black/20 border-white/10">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <School className="h-16 w-16 text-white/30 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Classrooms Yet</h3>
-              <p className="text-white/70 text-center mb-6 max-w-md">
-                Create your first classroom to start teaching interactive scenarios to your students.
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-white/70 animate-text-reveal">
+                          <Users className="h-4 w-4" />
+                          <span><AnimatedCounter target={classroom.students?.length || 0} /> Students</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white/70 animate-text-reveal">
+                          <Calendar className="h-4 w-4" />
+                          <span>{convertTimestampToDate(classroom.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-white/60 bg-black/30 rounded px-2 py-1 font-mono animate-text-reveal">
+                        Code: {classroom.classCode}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setSelectedClassroom(classroom)}
+                          className="flex-1 border-white/20 bg-black/20 text-white hover:bg-white/10 animate-text-reveal"
+                        >
+                          <School className="h-4 w-4 mr-1" />
+                          Manage
+                        </Button>
+                        {classroom.activeSessionId && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                                disabled={endingSession === classroom.id}
+                              >
+                                <StopCircle className="h-4 w-4 mr-1" />
+                                End Session
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-black/90 border border-red-500/20">
+                              <AlertDialogHeader>
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="p-2 bg-red-500/20 rounded-full">
+                                    <StopCircle className="h-5 w-5 text-red-400" />
+                                  </div>
+                                  <AlertDialogTitle className="text-white">End Live Session</AlertDialogTitle>
+                                </div>
+                                <AlertDialogDescription className="text-white/70">
+                                  Are you sure you want to end the live session for <strong>"{classroom.name}"</strong>?
+                                  <br /><br />
+                                  This action will:
+                                  <ul className="list-disc list-inside mt-2 space-y-1">
+                                    <li>End the current scenario session</li>
+                                    <li>Notify all students that the session has ended</li>
+                                    <li>Remove students from the live session</li>
+                                  </ul>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="bg-transparent border border-white/10 text-white hover:bg-white/10">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleEndLiveSession(classroom)}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  disabled={endingSession === classroom.id}
+                                >
+                                  {endingSession === classroom.id ? "Ending..." : "End Session"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="teen-card p-8 text-center animate-card-reveal">
+              <School className="h-16 w-16 text-white/30 mx-auto mb-4 animate-float" />
+              <h3 className="text-xl font-semibold text-white mb-2 animate-text-reveal">No Classrooms Yet</h3>
+              <p className="text-white/70 mb-4 animate-text-reveal" style={{animationDelay: '0.1s'}}>
+                Create your first classroom to start managing students and live sessions.
               </p>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="glow-button animate-card-reveal"
+                style={{animationDelay: '0.2s'}}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Classroom
               </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </Card>
+          )}
+        </div>
 
-      {/* Selected Classroom Management */}
-      {selectedClassroom && (
-        <div className="mb-8">
-          <Card className="bg-black/20 border-white/10">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <School className="h-5 w-5 text-primary" />
-                    {selectedClassroom.name}
-                  </CardTitle>
-                  <CardDescription className="text-white/70">
-                    Classroom Management
-                  </CardDescription>
+        {/* Scenarios Section */}
+        {!selectedClassroom && (
+          <div className="animate-card-reveal" style={{animationDelay: '0.3s'}}>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-6 animate-text-reveal">
+              <BookOpen className="h-6 w-6 text-primary animate-icon-bounce" />
+              Available Scenarios
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {scenarios.map((scenario, index) => (
+                <div key={scenario.id} className="animate-card-reveal" style={{animationDelay: `${0.4 + index * 0.1}s`}}>
+                  <ScenarioCard
+                    scenario={scenario}
+                    onStart={handleStartScenario}
+                    isTeacherDashboard={true}
+                  />
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Classroom Manager */}
+        {selectedClassroom && (
+          <div className="animate-card-reveal" style={{animationDelay: '0.3s'}}>
+            <div className="p-6 border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">Classroom Details: {selectedClassroom.name}</h3>
                 <Button 
                   variant="ghost" 
                   onClick={() => setSelectedClassroom(null)}
-                  className="text-white/70 hover:text-white"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
                 >
                   Close
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <TeacherClassroomManager 
-                classroom={selectedClassroom} 
-                onRefresh={loadClassrooms}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Scenarios Section */}
-      <div>
-        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          Available Scenarios
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {scenarios.map((scenario) => (
-            <Card key={scenario.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white">{scenario.title}</CardTitle>
-                <CardDescription className="text-white/70">
-                  {scenario.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => handleStartScenario(scenario.id)}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Solo Play
-                  </Button>
-                   {selectedClassroom && (
-                     <Button 
-                       onClick={() => setSessionStartDialog({
-                         isOpen: true,
-                         classroom: selectedClassroom,
-                         scenario
-                       })}
-                       disabled={creatingSession === selectedClassroom.id}
-                       className="flex-1 bg-green-500 hover:bg-green-600"
-                     >
-                       {creatingSession === selectedClassroom.id ? (
-                         <>
-                           <Clock className="h-4 w-4 mr-2 animate-spin" />
-                           Starting...
-                         </>
-                       ) : (
-                         <>
-                           <Users className="h-4 w-4 mr-2" />
-                           Live Session
-                         </>
-                       )}
-                     </Button>
-                   )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        {!selectedClassroom && (
-          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/20">
-            <p className="text-blue-300 text-sm">
-              💡 Select a classroom above to enable live session options for scenarios
-            </p>
+              <p className="text-white/70">Classroom management features would be displayed here.</p>
+            </div>
           </div>
         )}
+
+        {/* Create Classroom Dialog */}
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="bg-black/90 border border-primary/20 backdrop-blur-sm">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl font-bold">Create New Classroom</DialogTitle>
+              <DialogDescription className="text-white/70">
+                Set up a new classroom to manage students and conduct live sessions.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-white text-sm font-medium mb-2 block">
+                  Classroom Name *
+                </label>
+                <Input
+                  value={classNameInput}
+                  onChange={(e) => setClassNameInput(e.target.value)}
+                  placeholder="e.g., Grade 10 Life Skills"
+                  className="bg-black/30 border-white/20 text-white placeholder:text-white/50"
+                />
+              </div>
+              
+              <div>
+                <label className="text-white text-sm font-medium mb-2 block">
+                  Description (Optional)
+                </label>
+                <Input
+                  value={classDescriptionInput}
+                  onChange={(e) => setClassDescriptionInput(e.target.value)}
+                  placeholder="Brief description of the classroom"
+                  className="bg-black/30 border-white/20 text-white placeholder:text-white/50"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsCreateModalOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateClassroom}
+                disabled={isCreatingClassroom || !classNameInput.trim()}
+                className="glow-button"
+              >
+                {isCreatingClassroom ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Classroom
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Live Session Start Dialog */}
+        <Dialog open={sessionStartDialog.isOpen} onOpenChange={(open) => !open && setSessionStartDialog({ isOpen: false, classroom: null, scenario: null })}>
+          <DialogContent className="bg-black/90 border border-primary/20">
+            <DialogHeader>
+              <DialogTitle className="text-white">Start Live Session</DialogTitle>
+              <DialogDescription className="text-white/70">
+                Ready to start {sessionStartDialog.scenario?.title} for {sessionStartDialog.classroom?.name}?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSessionStartDialog({ isOpen: false, classroom: null, scenario: null })}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                if (sessionStartDialog.classroom && sessionStartDialog.scenario) {
+                  handleStartLiveSession(sessionStartDialog.classroom, sessionStartDialog.scenario, false);
+                  setSessionStartDialog({ isOpen: false, classroom: null, scenario: null });
+                }
+              }}>
+                Start Session
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Create Classroom Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Classroom</DialogTitle>
-            <DialogDescription>
-              Enter details for your new classroom
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="block text-sm font-medium text-white">
-                Classroom Name
-              </label>
-              <Input
-                id="name"
-                value={classNameInput}
-                onChange={(e) => setClassNameInput(e.target.value)}
-                placeholder="My Awesome Classroom"
-                className="bg-black/20 border-white/10 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="description" className="block text-sm font-medium text-white">
-                Description (Optional)
-              </label>
-              <Input
-                id="description"
-                value={classDescriptionInput}
-                onChange={(e) => setClassDescriptionInput(e.target.value)}
-                placeholder="What will students learn in this classroom?"
-                className="bg-black/20 border-white/10 text-white"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              onClick={handleCreateClassroom}
-              disabled={!classNameInput.trim() || isCreatingClassroom}
-              className="bg-blue-500 hover:bg-blue-600"
-            >
-              {isCreatingClassroom ? (
-                <>
-                  <Clock className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Classroom"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Live Session Start Dialog */}
-      <LiveSessionStartDialog
-        isOpen={sessionStartDialog.isOpen}
-        onClose={() => setSessionStartDialog({ isOpen: false, classroom: null, scenario: null })}
-        onStart={(mirrorMomentsEnabled) => {
-          if (sessionStartDialog.classroom && sessionStartDialog.scenario) {
-            handleStartLiveSession(sessionStartDialog.classroom, sessionStartDialog.scenario, mirrorMomentsEnabled);
-            setSessionStartDialog({ isOpen: false, classroom: null, scenario: null });
-          }
-        }}
-        scenarioTitle={sessionStartDialog.scenario?.title || ''}
-        classroomName={sessionStartDialog.classroom?.name || ''}
-        isStarting={creatingSession === sessionStartDialog.classroom?.id}
-      />
     </div>
   );
 };

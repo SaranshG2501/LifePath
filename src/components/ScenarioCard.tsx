@@ -4,7 +4,7 @@ import { Scenario } from '@/types/game';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, Sparkles, CalendarClock, Image, Users, Clock, Star } from 'lucide-react';
+import { Play, CalendarClock, Image, Users, Clock, Star } from 'lucide-react';
 
 interface ScenarioCardProps {
   scenario: Scenario;
@@ -66,7 +66,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
                 ? 'bg-indigo-600/80 text-white border-indigo-400/50' 
                 : 'bg-indigo-500/40 text-white border-none'
             } backdrop-blur-sm flex items-center gap-1 text-xs px-2 py-1`}>
-              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3" />
+              <Star className="h-2 w-2 sm:h-3 sm:w-3" />
               {scenario.category}
             </Badge>
             <Badge variant="outline" className={`${
