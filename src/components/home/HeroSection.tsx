@@ -59,7 +59,7 @@ const HeroSection = () => {
         <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 sm:mb-10 px-4 animate-fade-in-up" style={{
         animationDelay: '0.9s'
       }}>
-          {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="group flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 rounded-full transform hover:scale-105 animate-pulse-glow">
+          {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="group flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 rounded-full transform hover:scale-105 animate-pulse">
               <User size={16} className="sm:w-5 sm:h-5 text-white group-hover:animate-wiggle" />
               Sign Up / Login
             </Button> : <Button onClick={() => navigate('/profile')} className="group flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 rounded-full transform hover:scale-105 ">
