@@ -457,6 +457,24 @@ const TeacherDashboard = () => {
             </Card>}
         </div>
 
+        {/* Selected Classroom Manager */}
+        {selectedClassroom && <div className="animate-card-reveal" style={{
+        animationDelay: '0.3s'
+      }}>
+            <div className="p-6 border-b border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">Classroom Details: {selectedClassroom.name}</h3>
+                <Button variant="ghost" onClick={() => setSelectedClassroom(null)} className="text-white/70 hover:text-white hover:bg-white/10">
+                  Close
+                </Button>
+              </div>
+              <TeacherClassroomManager 
+                classroom={selectedClassroom} 
+                onRefresh={loadClassrooms} 
+              />
+            </div>
+          </div>}
+
         {/* Scenarios Section */}
         {scenarios && scenarios.length > 0 && <div className="animate-card-reveal" style={{
         animationDelay: '0.3s'
@@ -480,24 +498,6 @@ const TeacherDashboard = () => {
                     onEndLiveSession={selectedClassroom ? handleEndLiveSession : undefined}
                   />
                 </div>)}
-            </div>
-          </div>}
-
-        {/* Selected Classroom Manager */}
-        {selectedClassroom && <div className="animate-card-reveal" style={{
-        animationDelay: '0.3s'
-      }}>
-            <div className="p-6 border-t border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-white">Classroom Details: {selectedClassroom.name}</h3>
-                <Button variant="ghost" onClick={() => setSelectedClassroom(null)} className="text-white/70 hover:text-white hover:bg-white/10">
-                  Close
-                </Button>
-              </div>
-              <TeacherClassroomManager 
-                classroom={selectedClassroom} 
-                onRefresh={loadClassrooms} 
-              />
             </div>
           </div>}
 
