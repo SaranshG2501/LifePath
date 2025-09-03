@@ -1,24 +1,36 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Scenario } from '@/types/game';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, CalendarClock, Image, Users, Clock, Star } from 'lucide-react';
+import { Play, CalendarClock, Image, Users, Clock, Star, Loader2, StopCircle } from 'lucide-react';
+import LiveSessionStartDialog from '@/components/classroom/LiveSessionStartDialog';
 
 interface ScenarioCardProps {
   scenario: Scenario;
   onStart: (id: string) => void;
   onClick?: () => void;
   isTeacherDashboard?: boolean;
+  selectedClassroom?: any;
+  onStartLiveSession?: (classroom: any, scenario: any, mirrorMomentsEnabled: boolean) => Promise<void>;
+  creatingSession?: string | null;
+  endingSession?: string | null;
+  onEndLiveSession?: (classroom: any) => Promise<void>;
 }
 
 const ScenarioCard: React.FC<ScenarioCardProps> = ({ 
   scenario, 
   onStart, 
   onClick, 
-  isTeacherDashboard = false 
+  isTeacherDashboard = false,
+  selectedClassroom,
+  onStartLiveSession,
+  creatingSession,
+  endingSession,
+  onEndLiveSession
 }) => {
+  const [showLiveSessionDialog, setShowLiveSessionDialog] = useState(false);
   // Add specific images for different scenarios
   const getScenarioImage = () => {
     switch(scenario.id) {
@@ -181,17 +193,67 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
       </CardContent>
       
       <CardFooter className="pt-2 sm:pt-3 flex-shrink-0 px-4 sm:px-6 pb-4 sm:pb-6">
-        <Button 
-          className={`w-full transition-all duration-300 text-sm sm:text-base py-2 sm:py-3 ${
-            isTeacherDashboard 
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5' 
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg'
-          }`}
-          onClick={() => onStart(scenario.id)}
-        >
-          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> 
-          {isTeacherDashboard ? 'Start Live Session' : 'Start Adventure'}
-        </Button>
+        <div className="w-full space-y-2">
+          {selectedClassroom && onStartLiveSession ? (
+            <>
+              {/* Live Session Actions */}
+              {selectedClassroom.activeSessionId ? (
+                <Button 
+                  className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                  onClick={() => onEndLiveSession?.(selectedClassroom)}
+                  disabled={endingSession === selectedClassroom.id}
+                >
+                  {endingSession === selectedClassroom.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <StopCircle className="w-4 h-4 mr-2" />
+                  )}
+                  End Live Session
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                  onClick={() => setShowLiveSessionDialog(true)}
+                  disabled={creatingSession === selectedClassroom.id}
+                >
+                  {creatingSession === selectedClassroom.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-2" />
+                  )}
+                  Start Live Session
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button 
+              className={`w-full transition-all duration-300 text-sm sm:text-base py-2 sm:py-3 ${
+                isTeacherDashboard 
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg'
+              }`}
+              onClick={() => onStart(scenario.id)}
+            >
+              <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> 
+              {isTeacherDashboard ? 'Preview Scenario' : 'Start Adventure'}
+            </Button>
+          )}
+        </div>
+        
+        {/* Live Session Start Dialog */}
+        {showLiveSessionDialog && onStartLiveSession && selectedClassroom && (
+          <LiveSessionStartDialog
+            scenarioTitle={scenario.title}
+            classroomName={selectedClassroom.name}
+            isOpen={showLiveSessionDialog}
+            onClose={() => setShowLiveSessionDialog(false)}
+            onStart={(mirrorMomentsEnabled) => {
+              onStartLiveSession(selectedClassroom, scenario, mirrorMomentsEnabled);
+              setShowLiveSessionDialog(false);
+            }}
+            isStarting={creatingSession === selectedClassroom.id}
+          />
+        )}
       </CardFooter>
     </Card>
   );

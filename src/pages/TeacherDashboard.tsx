@@ -458,18 +458,27 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Scenarios Section */}
-        {!selectedClassroom && <div className="animate-card-reveal" style={{
+        {scenarios && scenarios.length > 0 && <div className="animate-card-reveal" style={{
         animationDelay: '0.3s'
       }}>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-6 animate-text-reveal">
               <BookOpen className="h-6 w-6 text-primary" />
-              Available Scenarios
+              {selectedClassroom ? `Live Sessions for ${selectedClassroom.name}` : 'Available Scenarios'}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {scenarios.map((scenario, index) => <div key={scenario.id} className="animate-card-reveal" style={{
             animationDelay: `${0.4 + index * 0.1}s`
           }}>
-                  <ScenarioCard scenario={scenario} onStart={handleStartScenario} isTeacherDashboard={true} />
+                  <ScenarioCard 
+                    scenario={scenario} 
+                    onStart={handleStartScenario} 
+                    isTeacherDashboard={true}
+                    selectedClassroom={selectedClassroom}
+                    onStartLiveSession={selectedClassroom ? handleStartLiveSession : undefined}
+                    creatingSession={creatingSession}
+                    endingSession={endingSession}
+                    onEndLiveSession={selectedClassroom ? handleEndLiveSession : undefined}
+                  />
                 </div>)}
             </div>
           </div>}
