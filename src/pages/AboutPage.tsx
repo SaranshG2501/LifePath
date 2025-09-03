@@ -9,7 +9,7 @@ const AboutPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen pt-20">
       <AnimatedBackground />
       
       <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in relative z-10">

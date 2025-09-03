@@ -235,7 +235,7 @@ const TeacherDashboard = () => {
       setEndingSession(null);
     }
   };
-  return <div className="relative min-h-screen">
+  return <div className="relative min-h-screen pt-20">
       <AnimatedBackground />
       
       <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 relative z-10">
