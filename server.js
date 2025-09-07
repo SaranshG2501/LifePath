@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Comment out all routes for now
+// app.get('/user/:id', (req, res) => {
+//   const userId = req.params.id;
+//   res.send(`User  ID: ${userId}`);
+// });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
