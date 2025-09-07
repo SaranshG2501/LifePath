@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,24 +16,54 @@ import {
   RefreshCw, 
   Loader2,
   Radio,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Play,
+  StopCircle,
+  Calendar
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   onClassroomUpdated, 
   getActiveSession, 
-  ClassroomStudent, 
-  convertTimestampToDate, 
   removeStudentFromClassroom, 
   sendClassroomMessage, 
   getClassroomMessages, 
-  onClassroomMessagesUpdated, 
-  ClassroomMessage 
+  onClassroomMessagesUpdated,
+  createLiveSession,
+  endLiveSession,
+  ClassroomMessage
 } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { useGameContext } from '@/context/GameContext';
+import { useNavigate } from 'react-router-dom';
+import ScenarioCard from '@/components/ScenarioCard';
+
+interface ClassroomStudent {
+  id: string;
+  name: string;
+  joinedAt: any;
+}
+
+// ClassroomMessage interface imported from firebase.ts
+
+interface Classroom {
+  id: string;
+  name: string;
+  description?: string;
+  teacherId: string;
+  teacherName?: string;
+  students: ClassroomStudent[];
+  activeSessionId?: string | null;
+  classCode: string;
+  isActive: boolean;
+  createdAt: any;
+}
 
 interface TeacherClassroomManagerProps {
-  classroom: any;
+  classroom: Classroom;
   onRefresh: () => void;
 }
 
@@ -42,7 +72,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   onRefresh
 }) => {
   // State management
-  const [currentClassroom, setCurrentClassroom] = useState(classroom);
+  const [currentClassroom, setCurrentClassroom] = useState<Classroom>(classroom);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ClassroomMessage[]>([]);
@@ -51,10 +81,21 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     refreshing: false,
     sendingMessage: false,
     removingStudent: null as string | null,
+    creatingSession: false,
+    endingSession: false,
+  });
+
+  // Live session modal state
+  const [liveSessionModal, setLiveSessionModal] = useState({
+    isOpen: false,
+    selectedScenario: null as any,
+    mirrorMomentsEnabled: false,
   });
 
   const { toast } = useToast();
   const { currentUser, userProfile } = useAuth();
+  const { scenarios, startScenario, setGameMode } = useGameContext();
+  const navigate = useNavigate();
   
   // Update classroom when prop changes
   useEffect(() => {
@@ -68,8 +109,8 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     console.log('Setting up classroom updates listener for:', classroom.id);
     
     const unsubscribe = onClassroomUpdated(classroom.id, (updatedClassroom) => {
-      console.log('Classroom updated:', updatedClassroom);
-      setCurrentClassroom(updatedClassroom);
+      console.log('Classroom updated via listener:', updatedClassroom);
+      setCurrentClassroom(updatedClassroom as Classroom);
       onRefresh(); // Trigger parent refresh
     });
     
@@ -86,6 +127,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       
       try {
         const session = await getActiveSession(classroom.id);
+        console.log('Active session check result:', session);
         setActiveSession(session);
       } catch (error) {
         console.error("Error checking active session:", error);
@@ -93,7 +135,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     };
     
     checkActiveSession();
-  }, [classroom?.id]);
+  }, [classroom?.id, currentClassroom.activeSessionId]);
   
   // Set up real-time listener for classroom messages
   useEffect(() => {
@@ -125,7 +167,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
   }, [classroom?.id]);
   
   // Copy classroom code
-  const handleCopyCode = async () => {
+  const handleCopyCode = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(currentClassroom.classCode);
       setCopied(true);
@@ -143,10 +185,10 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
         variant: "destructive",
       });
     }
-  };
+  }, [currentClassroom.classCode, toast]);
   
   // Refresh classroom data
-  const handleRefreshClassroom = async () => {
+  const handleRefreshClassroom = useCallback(async () => {
     setActionStates(prev => ({ ...prev, refreshing: true }));
     
     try {
@@ -165,7 +207,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
     } finally {
       setActionStates(prev => ({ ...prev, refreshing: false }));
     }
-  };
+  }, [onRefresh, toast]);
   
   // Remove student from classroom
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
@@ -262,6 +304,83 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
       setActionStates(prev => ({ ...prev, sendingMessage: false }));
     }
   };
+
+  // Start live session
+  const handleStartLiveSession = async () => {
+    if (!currentUser?.uid || !currentClassroom.id || !liveSessionModal.selectedScenario) return;
+
+    setActionStates(prev => ({ ...prev, creatingSession: true }));
+    
+    try {
+      console.log('Starting live session:', {
+        classroomId: currentClassroom.id,
+        scenarioId: liveSessionModal.selectedScenario.id,
+        mirrorMomentsEnabled: liveSessionModal.mirrorMomentsEnabled
+      });
+
+      await createLiveSession(
+        currentClassroom.id,
+        liveSessionModal.selectedScenario.id,
+        currentUser.uid,
+        userProfile?.displayName || currentUser.displayName || 'Teacher',
+        liveSessionModal.selectedScenario.title,
+        liveSessionModal.mirrorMomentsEnabled
+      );
+
+      toast({
+        title: "Session Started",
+        description: `"${liveSessionModal.selectedScenario.title}" is now live!`,
+      });
+
+      // Reset modal and navigate to game
+      setLiveSessionModal({
+        isOpen: false,
+        selectedScenario: null,
+        mirrorMomentsEnabled: false,
+      });
+
+      setGameMode("classroom");
+      startScenario(liveSessionModal.selectedScenario.id);
+      navigate('/game');
+      
+    } catch (error) {
+      console.error('Error starting live session:', error);
+      toast({
+        title: "Session Start Failed",
+        description: error instanceof Error ? error.message : "Could not start live session.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionStates(prev => ({ ...prev, creatingSession: false }));
+    }
+  };
+
+  // End live session
+  const handleEndLiveSession = async () => {
+    if (!currentUser?.uid || !currentClassroom.id || !currentClassroom.activeSessionId) return;
+
+    setActionStates(prev => ({ ...prev, endingSession: true }));
+    
+    try {
+      console.log('Ending live session:', currentClassroom.activeSessionId);
+      await endLiveSession(currentClassroom.activeSessionId, currentClassroom.id);
+      
+      toast({
+        title: "Session Ended",
+        description: "Live session ended successfully.",
+      });
+      
+    } catch (error) {
+      console.error('Error ending live session:', error);
+      toast({
+        title: "End Session Failed",
+        description: "Could not end live session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionStates(prev => ({ ...prev, endingSession: false }));
+    }
+  };
   
   const studentsList = currentClassroom?.students || [];
   
@@ -321,13 +440,90 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                   </div>
                 </Badge>
                 
-                {activeSession && (
+                {currentClassroom.activeSessionId && (
                   <Badge className="bg-blue-500/20 text-blue-300 border-0 justify-center">
                     Live Session Running
                   </Badge>
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Live Session Controls */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            Live Session Management
+          </h3>
+        </div>
+
+        <Card className="bg-black/20 border-white/10">
+          <CardContent className="p-4">
+            {currentClassroom.activeSessionId ? (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-green-500/20 text-green-300 border-0 animate-pulse">
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="absolute h-2 w-2 rounded-full bg-green-400 animate-ping"></div>
+                          <div className="relative h-2 w-2 rounded-full bg-green-400"></div>
+                        </div>
+                        Session Active
+                      </div>
+                    </Badge>
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    A live session is currently running for this classroom.
+                  </p>
+                  <p className="text-white text-sm mt-1">
+                    Students can join using the classroom code above.
+                  </p>
+                </div>
+                
+                <Button 
+                  onClick={handleEndLiveSession}
+                  disabled={actionStates.endingSession}
+                  className="bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
+                >
+                  {actionStates.endingSession ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Ending...
+                    </>
+                  ) : (
+                    <>
+                      <StopCircle className="h-4 w-4 mr-2" />
+                      End Session
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <Calendar className="h-12 w-12 text-white/20 mx-auto mb-3" />
+                <h4 className="text-white font-medium mb-2">No Active Session</h4>
+                <p className="text-white/60 text-sm mb-4">
+                  Start a live session to engage with your students in real-time.
+                </p>
+                <Button 
+                  onClick={() => setLiveSessionModal(prev => ({ ...prev, isOpen: true }))}
+                  className="glow-button"
+                  disabled={studentsList.length === 0}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Live Session
+                </Button>
+                {studentsList.length === 0 && (
+                  <p className="text-white/50 text-xs mt-2">
+                    Add students to start a session
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -343,9 +539,10 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
             variant="outline" 
             size="sm" 
             className="border-white/20 bg-black/20 text-white hover:bg-white/10"
+            onClick={handleCopyCode}
           >
             <UserPlus className="mr-2 h-4 w-4" />
-            Invite Students
+            Share Code
           </Button>
         </div>
         
@@ -371,7 +568,7 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
                         </div>
                         <div className="text-xs text-white/60">
                           Joined: {student.joinedAt ? 
-                            convertTimestampToDate(student.joinedAt).toLocaleDateString() : 
+                            new Date(student.joinedAt.seconds * 1000).toLocaleDateString() : 
                             'Recently'
                           }
                         </div>
@@ -476,9 +673,9 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               />
               <Button 
                 size="sm" 
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 bg-primary/20 hover:bg-primary/30 text-white"
                 onClick={handleSendMessage}
                 disabled={actionStates.sendingMessage || !message.trim()}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3 glow-button-sm"
               >
                 {actionStates.sendingMessage ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -488,36 +685,135 @@ const TeacherClassroomManager: React.FC<TeacherClassroomManagerProps> = ({
               </Button>
             </div>
             
-            {/* Messages Feed */}
-            <div className="border-t border-white/10 pt-4 max-h-[300px] overflow-y-auto">
-              {messages && messages.length > 0 ? (
-                <div className="space-y-3">
-                  {messages.map((msg, index) => (
-                    <div key={msg.id || index} className="bg-black/20 rounded-lg p-3 hover:bg-black/30 transition-colors">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-primary flex items-center gap-2">
-                          {msg.senderRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {msg.senderName}
-                        </span>
-                        <span className="text-xs text-white/50">
-                          {msg.timestamp ? convertTimestampToDate(msg.timestamp).toLocaleString() : 'Just now'}
-                        </span>
-                      </div>
-                      <div className="text-white text-sm">{msg.text}</div>
+            {/* Messages List */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {messages.length > 0 ? (
+                messages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className="bg-black/20 rounded-lg p-3 border-l-4 border-primary/30"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-white font-medium text-sm">
+                        {msg.senderName}
+                      </span>
+                      <span className="text-white/50 text-xs">
+                        {msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleString() : 'Now'}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-white/80 text-sm">{msg.text}</p>
+                  </div>
+                ))
               ) : (
                 <div className="text-center py-6">
-                  <MessageSquare className="h-12 w-12 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/60 text-sm">
-                    No announcements yet. Send your first message to the class.
-                  </p>
+                  <MessageSquare className="h-12 w-12 text-white/20 mx-auto mb-2" />
+                  <p className="text-white/60 text-sm">No announcements yet</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Live Session Modal */}
+      <Dialog 
+        open={liveSessionModal.isOpen} 
+        onOpenChange={(open) => setLiveSessionModal(prev => ({ ...prev, isOpen: open }))}
+      >
+        <DialogContent className="bg-black/90 border border-white/10 max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Play className="h-5 w-5 text-primary" />
+              Start Live Session
+            </DialogTitle>
+            <DialogDescription className="text-white/70">
+              Choose a scenario to run with your students in real-time.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-white font-medium mb-3">Select Scenario:</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto">
+                {scenarios.map((scenario) => (
+                  <Card 
+                    key={scenario.id}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      liveSessionModal.selectedScenario?.id === scenario.id
+                        ? 'ring-2 ring-primary bg-primary/10 border-primary/30'
+                        : 'bg-black/20 border-white/10 hover:bg-black/30'
+                    }`}
+                    onClick={() => setLiveSessionModal(prev => ({ 
+                      ...prev, 
+                      selectedScenario: scenario 
+                    }))}
+                  >
+                    <CardContent className="p-4">
+                      <h5 className="text-white font-medium mb-2">{scenario.title}</h5>
+                      <p className="text-white/60 text-sm">{scenario.description}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">
+                          {scenario.category}
+                        </Badge>
+                        <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                          ~{Math.ceil(scenario.scenes.length * 2)}min
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="mirrorMoments"
+                checked={liveSessionModal.mirrorMomentsEnabled}
+                onCheckedChange={(checked) => 
+                  setLiveSessionModal(prev => ({ 
+                    ...prev, 
+                    mirrorMomentsEnabled: checked as boolean 
+                  }))
+                }
+              />
+              <label 
+                htmlFor="mirrorMoments"
+                className="text-white text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Enable Mirror Moments (reflection questions)
+              </label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLiveSessionModal(prev => ({ ...prev, isOpen: false }))}
+              disabled={actionStates.creatingSession}
+              className="border-white/20 bg-transparent text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartLiveSession}
+              disabled={actionStates.creatingSession || !liveSessionModal.selectedScenario}
+              className="glow-button"
+            >
+              {actionStates.creatingSession ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Session
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
