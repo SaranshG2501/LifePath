@@ -118,7 +118,7 @@ const ClassroomFeaturesSection = () => {
                 <School className="h-4 w-4 mr-2 group-hover:animate-wiggle" />
                 Create Your Classroom
               </Button> : <>
-                <Button onClick={() => setGameMode("classroom")} className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105 animate-pulse-glow">
+                <Button onClick={() => setGameMode("classroom")} className="group bg-gradient-to-r from-primary to-secondary hover:from-primary/80 hover:to-secondary/80 text-white shadow-lg hover:shadow-primary/30 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto px-6 py-3 rounded-full transform hover:scale-105">
                   <Play className="h-4 w-4 mr-2 group-hover:animate-wiggle" />
                   Join a Classroom
                 </Button>
