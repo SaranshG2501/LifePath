@@ -1545,4 +1545,14 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { auth, db, Timestamp, analytics };
+export { 
+  auth, 
+  db, 
+  Timestamp, 
+  analytics, 
+  onSnapshot, 
+  collection, 
+  query, 
+  where, 
+  orderBy 
+};
