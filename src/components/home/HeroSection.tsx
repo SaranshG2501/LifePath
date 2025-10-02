@@ -7,8 +7,7 @@ import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 const HeroSection = () => {
   const {
-    userRole,
-    gameMode
+    userRole
   } = useGameContext();
   const {
     currentUser
@@ -77,16 +76,6 @@ const HeroSection = () => {
         <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 px-4 animate-bounce-in" style={{
         animationDelay: '1.2s'
       }}>
-          <Badge className="py-2 px-4 bg-gradient-to-r from-muted/60 to-background/60 text-white border border-white/20 rounded-full flex items-center gap-2 shadow-lg backdrop-blur-sm hover:animate-tilt transition-all duration-300">
-            {gameMode === "classroom" ? <>
-                <Users className="h-4 w-4 text-primary animate-pulse" />
-                Classroom Mode
-              </> : <>
-                <User className="h-4 w-4 animate-pulse" />
-                Individual Mode
-              </>}
-          </Badge>
-          
           {userRole && <Badge className="py-2 px-4 bg-gradient-to-r from-muted/60 to-background/60 text-white border border-white/20 rounded-full flex items-center gap-2 shadow-lg backdrop-blur-sm hover:animate-tilt transition-all duration-300">
               {userRole === 'teacher' ? <>
                   <School className="h-4 w-4 text-primary animate-pulse" />

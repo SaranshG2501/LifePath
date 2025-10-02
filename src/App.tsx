@@ -10,7 +10,6 @@ import GamePage from "@/pages/GamePage";
 import AboutPage from "@/pages/AboutPage";
 import AuthPage from "@/pages/AuthPage";
 import ProfilePage from "@/pages/ProfilePage";
-import TeacherDashboard from "@/pages/TeacherDashboard";
 import NotFound from "@/pages/NotFound";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -31,7 +30,6 @@ const App = () => (
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/teacher" element={<TeacherDashboard />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

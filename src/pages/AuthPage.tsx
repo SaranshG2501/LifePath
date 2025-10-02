@@ -26,7 +26,6 @@ const AuthPage: React.FC = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setGameMode } = useGameContext();
   const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile, refreshUserProfile } = useAuth();
   
   // If user becomes authenticated during the process, automatically redirect
