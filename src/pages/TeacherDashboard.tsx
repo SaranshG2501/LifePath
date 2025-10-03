@@ -352,16 +352,21 @@ const TeacherDashboard = () => {
                         {session.status}
                       </Badge>
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-2">
-                      <span className="font-mono text-lg font-bold">{session.code}</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className="bg-primary/10 px-4 py-2 rounded-lg border-2 border-primary/20">
+                        <span className="font-mono text-xl font-bold text-foreground tracking-wider">
+                          {session.code}
+                        </span>
+                      </div>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => copyCode(session.code)}
+                        className="h-10"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                    </CardDescription>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
