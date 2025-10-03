@@ -31,14 +31,9 @@ const AuthPage: React.FC = () => {
   // If user becomes authenticated during the process, automatically redirect
   useEffect(() => {
     if (currentUser && userProfile && !showRoleDialog) {
-      if (userProfile.role === 'teacher') {
-        setGameMode('classroom');
-        navigate('/teacher');
-      } else {
-        navigate('/profile');
-      }
+      navigate('/profile');
     }
-  }, [currentUser, userProfile, showRoleDialog, navigate, setGameMode]);
+  }, [currentUser, userProfile, showRoleDialog, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,12 +109,7 @@ const AuthPage: React.FC = () => {
           description: "Your Google account has been set up successfully.",
         });
         
-        if (selectedRole === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
+        navigate('/profile');
       } else if (signupData) {
         // Email/password signup flow
         await signup(signupData.email, signupData.password, signupData.displayName, selectedRole);
@@ -129,12 +119,7 @@ const AuthPage: React.FC = () => {
           description: "Your account has been created successfully.",
         });
         
-        if (selectedRole === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
+        navigate('/profile');
       }
     } catch (error: any) {
       toast({
@@ -178,12 +163,7 @@ const AuthPage: React.FC = () => {
         // Ensure user profile is loaded correctly
         await refreshUserProfile();
         
-        if (profile.role === 'teacher') {
-          setGameMode('classroom');
-          navigate('/teacher');
-        } else {
-          navigate('/profile');
-        }
+        navigate('/profile');
       }
     } catch (error: any) {
       toast({
