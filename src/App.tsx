@@ -1,4 +1,3 @@
-
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -10,6 +9,9 @@ import GamePage from "@/pages/GamePage";
 import AboutPage from "@/pages/AboutPage";
 import AuthPage from "@/pages/AuthPage";
 import ProfilePage from "@/pages/ProfilePage";
+import TeacherDashboard from "@/pages/TeacherDashboard";
+import JoinClassroom from "@/pages/JoinClassroom";
+import ClassroomSession from "@/pages/ClassroomSession";
 import NotFound from "@/pages/NotFound";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -30,6 +32,9 @@ const App = () => (
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/teacher" element={<TeacherDashboard />} />
+                  <Route path="/join" element={<JoinClassroom />} />
+                  <Route path="/classroom/:sessionId" element={<ClassroomSession />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

@@ -1,14 +1,19 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, School } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogOut, Info, Home, Gamepad2, User } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 
 const AppHeader: React.FC = () => {
   const gameContext = useGameContext();
-  const { userProfile } = useAuth();
+  const { currentUser, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
   
   // Handle case where GameContext might not be ready
   if (!gameContext) {
@@ -60,12 +65,28 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userProfile ? (
-                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
-                  <Link to="/profile" className="flex items-center gap-1.5">
-                    <User className="h-4 w-4" />
-                    <span className="hidden md:inline">Profile</span>
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+                    <Link to={userProfile.role === 'teacher' ? '/teacher' : '/profile'} className="flex items-center gap-1.5">
+                      <User className="h-4 w-4" />
+                      <span className="hidden md:inline">
+                        {userProfile.role === 'teacher' ? 'Dashboard' : 'Profile'}
+                      </span>
+                    </Link>
+                  </Button>
+                  {userProfile.role === 'student' && (
+                    <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+                      <Link to="/join" className="flex items-center gap-1.5">
+                        <span className="hidden md:inline">Join Class</span>
+                        <span className="inline md:hidden">Join</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleLogout} className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden md:inline ml-1.5">Logout</span>
+                  </Button>
+                </>
               ) : (
                 <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
                   <Link to="/auth" className="flex items-center gap-1.5">
