@@ -80,7 +80,12 @@ const TeacherDashboard = () => {
     if (!currentUser) return;
     try {
       const sessions = await getTeacherClassrooms(currentUser.uid);
-      setClassrooms(sessions.sort((a, b) => b.createdAt - a.createdAt));
+      // Ensure participants is always an array
+      const sessionsWithDefaults = sessions.map(session => ({
+        ...session,
+        participants: session.participants || []
+      }));
+      setClassrooms(sessionsWithDefaults.sort((a, b) => b.createdAt - a.createdAt));
     } catch (error) {
       console.error('Error loading classrooms:', error);
     }
@@ -265,7 +270,7 @@ const TeacherDashboard = () => {
     if (!scenario) return [];
 
     const currentScene = scenario.scenes.find(s => s.id === selectedSession.currentSceneId);
-    if (!currentScene) return [];
+    if (!currentScene || !currentScene.choices) return [];
 
     const voteCounts: Record<string, { count: number; voters: string[] }> = {};
     
@@ -386,7 +391,7 @@ const TeacherDashboard = () => {
               <CardContent>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>{session.participants.length} participants</span>
+                  <span>{session.participants?.length || 0} participants</span>
                 </div>
               </CardContent>
             </Card>
@@ -474,11 +479,13 @@ const TeacherDashboard = () => {
                   <CardContent>
                     <div className="space-y-4">
                       {calculateVoteStats().map((stat) => {
-                        const choice = getCurrentScene()?.choices.find(c => c.id === stat.choiceId);
+                        const currentScene = getCurrentScene();
+                        const choice = currentScene?.choices?.find(c => c.id === stat.choiceId);
+                        if (!choice) return null;
                         return (
                           <div key={stat.choiceId} className="border rounded-lg p-4">
                             <div className="flex justify-between mb-2">
-                              <span className="font-medium">{choice?.text}</span>
+                              <span className="font-medium">{choice.text}</span>
                               <span className="text-muted-foreground">
                                 {stat.count} votes ({stat.percentage.toFixed(0)}%)
                               </span>
@@ -489,7 +496,7 @@ const TeacherDashboard = () => {
                                 style={{ width: `${stat.percentage}%` }}
                               />
                             </div>
-                            {stat.voters.length > 0 && (
+                            {stat.voters && stat.voters.length > 0 && (
                               <div className="mt-2 text-sm text-muted-foreground">
                                 {stat.voters.join(', ')}
                               </div>
