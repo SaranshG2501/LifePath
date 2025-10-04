@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Play, Pause, StopCircle, Trash2, SkipForward, Copy } from 'lucide-react';
+import { Users, Play, Pause, StopCircle, Trash2, SkipForward, Copy, UserPlus, BarChart3 } from 'lucide-react';
 import { 
   createClassroomSession, 
   getTeacherClassrooms,
@@ -26,6 +26,9 @@ import {
 import { ClassroomSession, ClassroomParticipant, ClassroomVote, VoteStats } from '@/types/game';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddStudentsDialog } from '@/components/teacher/AddStudentsDialog';
+import { SessionSummary } from '@/components/teacher/SessionSummary';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const TeacherDashboard = () => {
   const { currentUser, userProfile } = useAuth();
@@ -40,6 +43,8 @@ const TeacherDashboard = () => {
   const [participants, setParticipants] = useState<ClassroomParticipant[]>([]);
   const [votes, setVotes] = useState<ClassroomVote[]>([]);
   const [showControlPanel, setShowControlPanel] = useState(false);
+  const [showAddStudents, setShowAddStudents] = useState(false);
+  const [viewMode, setViewMode] = useState<'control' | 'summary'>('control');
 
   useEffect(() => {
     if (!currentUser || userProfile?.role !== 'teacher') {
@@ -375,6 +380,7 @@ const TeacherDashboard = () => {
                       onClick={() => {
                         setSelectedSession(session);
                         getClassroomParticipants(session.id).then(setParticipants);
+                        setViewMode('control');
                         setShowControlPanel(true);
                       }}
                     >
@@ -382,13 +388,27 @@ const TeacherDashboard = () => {
                       Manage
                     </Button>
                     {session.status === 'ended' && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteSession(session.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSession(session);
+                            setViewMode('summary');
+                            setShowControlPanel(true);
+                          }}
+                        >
+                          <BarChart3 className="h-4 w-4 mr-1" />
+                          Summary
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteSession(session.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -415,7 +435,14 @@ const TeacherDashboard = () => {
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6">
+            {viewMode === 'summary' && selectedSession ? (
+              <SessionSummary 
+                sessionId={selectedSession.id} 
+                session={selectedSession}
+                scenario={scenarios.find(s => s.id === selectedSession.scenarioId)}
+              />
+            ) : (
+              <div className="space-y-6">
               {/* Scenario Selection */}
               {!selectedSession?.scenarioId && (
                 <Card>
@@ -517,28 +544,57 @@ const TeacherDashboard = () => {
               {/* Participants */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Participants ({participants.length})</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Participants ({participants.length})</CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddStudents(true)}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Students
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {participants.map((participant) => (
-                      <div key={participant.id} className="flex justify-between items-center p-2 border rounded">
-                        <span>{participant.username}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveStudent(participant.userId)}
-                        >
-                          Remove
-                        </Button>
+                    {participants.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No students have joined yet. Share the classroom code with your students.
                       </div>
-                    ))}
+                    ) : (
+                      participants.map((participant) => (
+                        <div key={participant.id} className="flex justify-between items-center p-2 border rounded">
+                          <span>{participant.username}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveStudent(participant.userId)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
+
+        {/* Add Students Dialog */}
+        <AddStudentsDialog
+          open={showAddStudents}
+          onOpenChange={setShowAddStudents}
+          sessionId={selectedSession?.id || ''}
+          onStudentsAdded={() => {
+            if (selectedSession) {
+              getClassroomParticipants(selectedSession.id).then(setParticipants);
+            }
+          }}
+        />
       </div>
     </div>
   );

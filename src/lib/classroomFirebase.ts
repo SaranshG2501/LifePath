@@ -262,3 +262,57 @@ export const onClassroomVotesUpdate = (
     callback(votes);
   });
 };
+
+// Get all votes for a session (for summary)
+export const getAllSessionVotes = async (sessionId: string): Promise<ClassroomVote[]> => {
+  const votesRef = collection(db, 'classrooms', sessionId, 'votes');
+  const snapshot = await getDocs(votesRef);
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  })) as ClassroomVote[];
+};
+
+// Session summary data type
+export interface SessionSummaryData {
+  totalParticipants: number;
+  totalVotes: number;
+  participantVoteCounts: { username: string; voteCount: number }[];
+  votesByScene: Record<string, ClassroomVote[]>;
+}
+
+// Get session summary
+export const getSessionSummary = async (sessionId: string): Promise<SessionSummaryData> => {
+  const [participants, votes] = await Promise.all([
+    getClassroomParticipants(sessionId),
+    getAllSessionVotes(sessionId)
+  ]);
+
+  // Count votes per participant
+  const voteCounts: Record<string, number> = {};
+  votes.forEach(vote => {
+    voteCounts[vote.username] = (voteCounts[vote.username] || 0) + 1;
+  });
+
+  const participantVoteCounts = participants.map(p => ({
+    username: p.username,
+    voteCount: voteCounts[p.username] || 0
+  })).sort((a, b) => b.voteCount - a.voteCount);
+
+  // Group votes by scene
+  const votesByScene: Record<string, ClassroomVote[]> = {};
+  votes.forEach(vote => {
+    if (!votesByScene[vote.sceneId]) {
+      votesByScene[vote.sceneId] = [];
+    }
+    votesByScene[vote.sceneId].push(vote);
+  });
+
+  return {
+    totalParticipants: participants.length,
+    totalVotes: votes.length,
+    participantVoteCounts,
+    votesByScene
+  };
+};
