@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,18 +14,10 @@ import ScenarioHistoryTable from '@/components/profile/ScenarioHistoryTable';
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
-  const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loadingClassrooms, setLoadingClassrooms] = useState(true);
   const [scenarioHistory, setScenarioHistory] = useState<ScenarioHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-
-  // Redirect to home if user is not authenticated
-  useEffect(() => {
-    if (!currentUser) {
-      navigate('/');
-    }
-  }, [currentUser, navigate]);
 
   useEffect(() => {
     if (currentUser && userProfile) {

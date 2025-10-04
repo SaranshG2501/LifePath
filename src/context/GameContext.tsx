@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { GameState, Scenario, Scene, Metrics, MetricChange, UserRole } from "@/types/game";
+import { GameState, Scenario, Scene, Metrics, MetricChange, GameMode, UserRole } from "@/types/game";
 import { scenarios } from "@/data/scenarios";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { 
   updateUserProfile, 
+  getUserClassrooms, 
   saveScenarioHistory, 
   ScenarioChoice 
 } from "@/lib/firebase";
@@ -17,13 +18,25 @@ type GameContextType = {
   makeChoice: (choiceId: string) => void;
   resetGame: () => void;
   isGameActive: boolean;
+  gameMode: GameMode;
+  setGameMode: (mode: GameMode) => void;
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
+  classroomId: string | null;
+  setClassroomId: (id: string | null) => void;
   showMirrorMoment: boolean;
   setShowMirrorMoment: (show: boolean) => void;
   currentMirrorQuestion: string | null;
+  classroomVotes: Record<string, number>;
+  submitVote: (choiceId: string) => void;
+  revealVotes: boolean;
+  setRevealVotes: (reveal: boolean) => void;
   toggleMirrorMoments: () => void;
   mirrorMomentsEnabled: boolean;
+  hasJoinedClassroom: boolean;
+  setCurrentScene: (sceneId: string) => void;
+  isModeLocked: boolean;
+  syncMirrorMomentsFromSession: (enabled: boolean) => void;
 };
 
 const initialMetrics: Metrics = {
@@ -46,11 +59,17 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
+  const [gameMode, setGameMode] = useState<GameMode>("individual");
   const [userRole, setUserRole] = useState<UserRole>("student");
+  const [classroomId, setClassroomId] = useState<string | null>(null);
   const [showMirrorMoment, setShowMirrorMoment] = useState<boolean>(false);
   const [currentMirrorQuestion, setCurrentMirrorQuestion] = useState<string | null>(null);
+  const [classroomVotes, setClassroomVotes] = useState<Record<string, number>>({});
+  const [revealVotes, setRevealVotes] = useState<boolean>(false);
   const [mirrorMomentsEnabled, setMirrorMomentsEnabled] = useState<boolean>(true);
+  const [hasJoinedClassroom, setHasJoinedClassroom] = useState<boolean>(false);
   const [scenarioChoices, setScenarioChoices] = useState<ScenarioChoice[]>([]);
+  const [isModeLocked, setIsModeLocked] = useState<boolean>(false);
   const { toast } = useToast();
   const { userProfile, currentUser, refreshUserProfile } = useAuth();
 
@@ -62,6 +81,40 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole("guest");
     }
   }, [userProfile]);
+
+  // Check if user has joined any classroom
+  useEffect(() => {
+    const checkClassroomStatus = async () => {
+      if (!currentUser || !userProfile) return;
+      
+      try {
+        const userClassrooms = await getUserClassrooms(currentUser.uid, userProfile.role || 'student');
+        setHasJoinedClassroom(userClassrooms.length > 0);
+        
+        // If user has classrooms but no active classroom selected, set the first one
+        if (userClassrooms.length > 0 && !classroomId) {
+          setClassroomId(userClassrooms[0].id);
+        }
+      } catch (error) {
+        console.error("Error checking classroom status:", error);
+      }
+    };
+    
+    checkClassroomStatus();
+  }, [currentUser, userProfile, classroomId, setClassroomId]);
+
+  // Set game mode to individual if user has no classroom
+  useEffect(() => {
+    if (userRole === 'student' && !hasJoinedClassroom && gameMode === 'classroom') {
+      setGameMode('individual');
+      if (!classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "You need to join a classroom before using classroom mode.",
+        });
+      }
+    }
+  }, [hasJoinedClassroom, gameMode, userRole, classroomId, toast]);
 
   const startScenario = (id: string) => {
     const scenario = scenarios.find((s) => s.id === id);
@@ -86,6 +139,32 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Validate classroom mode
+    if (gameMode === "classroom") {
+      // Students need to be in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Teachers need to have created a classroom
+      if (userRole === "teacher" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please create a classroom before starting a scenario in classroom mode.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Lock mode when scenario starts
+    setIsModeLocked(true);
+
     const startingMetrics = { ...scenario.initialMetrics };
     setScenarioChoices([]);
 
@@ -97,6 +176,17 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     });
     setIsGameActive(true);
     setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
+
+    if (gameMode === "classroom") {
+      toast({
+        title: "Classroom Mode Active",
+        description: userRole === "teacher" 
+          ? "You're leading this scenario. Students will follow your progress." 
+          : "You're participating in a classroom activity.",
+      });
+    }
   };
 
   const makeChoice = (choiceId: string) => {
@@ -126,6 +216,23 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       ];
       setCurrentMirrorQuestion(mirrorQuestions[Math.floor(Math.random() * mirrorQuestions.length)]);
       setShowMirrorMoment(true);
+      return;
+    }
+
+    // For classroom mode, collect votes instead of immediately proceeding
+    if (gameMode === "classroom" && userRole === "teacher" && !revealVotes) {
+      // In a real app, this would communicate with backend
+      // For demo, we'll simulate votes
+      const newVotes = { ...classroomVotes };
+      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
+      setClassroomVotes(newVotes);
+      setRevealVotes(true);
+      
+      toast({
+        title: "Votes collected",
+        description: "You can now discuss the results with your class.",
+      });
+      
       return;
     }
 
@@ -191,7 +298,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setGameState(updatedGameState);
 
     // If user is logged in, update their metrics in their profile
-    if (currentUser) {
+    if (currentUser && gameMode === "individual") {
       updateUserProfile(currentUser.uid, { 
         metrics: newMetrics
       }).catch(error => {
@@ -231,8 +338,10 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
-    // Reset mirror moment state
+    // Reset mirror moment and votes state
     setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
     
     // Removed the metrics changes toast
   };
@@ -241,7 +350,33 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     setGameState(initialGameState);
     setIsGameActive(false);
     setShowMirrorMoment(false);
+    setRevealVotes(false);
+    setClassroomVotes({});
     setScenarioChoices([]);
+    setIsModeLocked(false); // Unlock mode when game resets
+  };
+
+  const submitVote = (choiceId: string) => {
+    if (gameMode === "classroom" && gameState.currentScene) {
+      // Validate student is in a classroom
+      if (userRole === "student" && !classroomId) {
+        toast({
+          title: "Classroom Required",
+          description: "Please join a classroom before voting.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const newVotes = { ...classroomVotes };
+      newVotes[choiceId] = (newVotes[choiceId] || 0) + 1;
+      setClassroomVotes(newVotes);
+      
+      toast({
+        title: "Vote submitted",
+        description: "Waiting for other students to vote.",
+      });
+    }
   };
 
   const toggleMirrorMoments = () => {
@@ -254,6 +389,47 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
+  // Add function to sync mirror moments from live session
+  const syncMirrorMomentsFromSession = (enabled: boolean) => {
+    setMirrorMomentsEnabled(enabled);
+  };
+
+  // Add setCurrentScene function
+  const setCurrentScene = (sceneId: string) => {
+    if (!gameState.currentScenario) return;
+    
+    const scene = gameState.currentScenario.scenes.find(s => s.id === sceneId);
+    if (scene) {
+      setGameState(prev => ({
+        ...prev,
+        currentScene: scene
+      }));
+    }
+  };
+
+  const setGameModeWithLock = (mode: GameMode) => {
+    if (isModeLocked) {
+      toast({
+        title: "Mode Locked",
+        description: "Cannot change mode while a live session is active.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Prevent guests from accessing classroom mode
+    if (mode === "classroom" && userRole === "guest") {
+      toast({
+        title: "Login Required",
+        description: "Please sign up or login to use classroom mode.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setGameMode(mode);
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -263,13 +439,25 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         makeChoice,
         resetGame,
         isGameActive,
+        gameMode,
+        setGameMode: setGameModeWithLock,
         userRole,
         setUserRole,
+        classroomId,
+        setClassroomId,
         showMirrorMoment,
         setShowMirrorMoment,
         currentMirrorQuestion,
+        classroomVotes,
+        submitVote,
+        revealVotes,
+        setRevealVotes,
         toggleMirrorMoments,
-        mirrorMomentsEnabled
+        mirrorMomentsEnabled,
+        hasJoinedClassroom,
+        setCurrentScene,
+        isModeLocked,
+        syncMirrorMomentsFromSession
       }}
     >
       {children}

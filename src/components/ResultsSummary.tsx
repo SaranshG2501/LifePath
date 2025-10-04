@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricsDisplay from './MetricsDisplay';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Home, Trophy, Repeat, Star, Flame, ChevronRight, Award, TrendingUp, Brain, Heart } from 'lucide-react';
+import { CheckCircle2, Home, Trophy, Sparkles, Repeat, Star, Flame, ChevronRight, Award, TrendingUp, Brain, Heart } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ResultsSummaryProps {
@@ -189,12 +189,16 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
       <Card className="shadow-lg border-primary/20 glassmorphic-card">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="p-4 rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 backdrop-blur-md border border-primary/50 animate-glow">
-              <Trophy className="h-8 w-8 text-accent animate-float" />
+            <div className="p-4 rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 backdrop-blur-md border border-primary/50 animate-glow relative">
+              <Trophy className="h-8 w-8 text-neon-yellow animate-float" />
+              <Sparkles className="h-4 w-4 absolute top-0 right-0 text-neon-yellow animate-pulse" />
+              <Sparkles className="h-4 w-4 absolute bottom-0 left-0 text-neon-yellow animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
           </div>
-          <CardTitle className="text-2xl gradient-heading animate-text-reveal">
+          <CardTitle className="text-2xl gradient-heading flex items-center justify-center gap-2">
+            <Star className="h-5 w-5 text-neon-yellow animate-pulse" />
             Your Journey Results
+            <Star className="h-5 w-5 text-neon-yellow animate-pulse" style={{ animationDelay: '0.5s' }} />
           </CardTitle>
           <CardDescription className="text-base mt-1 text-white/90">
             Here's how your choices shaped your path through "{gameState.currentScenario.title}"
@@ -213,7 +217,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           
           <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <Sparkles className="h-5 w-5 text-primary" />
               Final Stats
             </h3>
             <MetricsDisplay metrics={gameState.metrics} compact={isMobile} />
@@ -256,7 +260,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           
           <div className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Heart className="h-5 w-5 text-accent" />
+              <Sparkles className="h-5 w-5 text-neon-green" />
               Tips For Your Journey
             </h3>
             <div className="space-y-3">
@@ -276,7 +280,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-medium text-lg mb-3 text-white flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
+              <Sparkles className="h-5 w-5 text-primary" />
               Your Journey
             </h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">

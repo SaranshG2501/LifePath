@@ -26,14 +26,20 @@ const AuthPage: React.FC = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setGameMode } = useGameContext();
   const { login, signup, currentUser, userProfile, getUserProfile, createUserProfile, refreshUserProfile } = useAuth();
   
   // If user becomes authenticated during the process, automatically redirect
   useEffect(() => {
     if (currentUser && userProfile && !showRoleDialog) {
-      navigate('/profile');
+      if (userProfile.role === 'teacher') {
+        setGameMode('classroom');
+        navigate('/teacher');
+      } else {
+        navigate('/profile');
+      }
     }
-  }, [currentUser, userProfile, showRoleDialog, navigate]);
+  }, [currentUser, userProfile, showRoleDialog, navigate, setGameMode]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +115,12 @@ const AuthPage: React.FC = () => {
           description: "Your Google account has been set up successfully.",
         });
         
-        navigate('/profile');
+        if (selectedRole === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
       } else if (signupData) {
         // Email/password signup flow
         await signup(signupData.email, signupData.password, signupData.displayName, selectedRole);
@@ -119,7 +130,12 @@ const AuthPage: React.FC = () => {
           description: "Your account has been created successfully.",
         });
         
-        navigate('/profile');
+        if (selectedRole === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
       }
     } catch (error: any) {
       toast({
@@ -163,7 +179,12 @@ const AuthPage: React.FC = () => {
         // Ensure user profile is loaded correctly
         await refreshUserProfile();
         
-        navigate('/profile');
+        if (profile.role === 'teacher') {
+          setGameMode('classroom');
+          navigate('/teacher');
+        } else {
+          navigate('/profile');
+        }
       }
     } catch (error: any) {
       toast({

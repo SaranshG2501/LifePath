@@ -1,24 +1,19 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Info, Home, Gamepad2, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, School } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 
 const AppHeader: React.FC = () => {
   const gameContext = useGameContext();
-  const { currentUser, userProfile, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
+  const { userProfile } = useAuth();
   
   // Handle case where GameContext might not be ready
   if (!gameContext) {
     return (
-    <header className="border-b border-white/10 bg-indigo-900/80 backdrop-blur-md shadow-lg sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-10">
         <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex items-center justify-center">
@@ -34,11 +29,13 @@ const AppHeader: React.FC = () => {
   const {
     isGameActive,
     resetGame,
+    gameMode,
+    setGameMode,
     userRole
   } = gameContext;
 
   return (
-    <header className="border-b border-white/10 bg-indigo-900/80 backdrop-blur-md shadow-lg sticky top-0 z-50">
+    <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-10">
       <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex items-center justify-center">
@@ -57,6 +54,38 @@ const AppHeader: React.FC = () => {
                 </Link>
               </Button>
               
+              {userRole === "teacher" && (
+                <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+                  <Link to="/teacher" className="flex items-center gap-1.5">
+                    <School className="h-4 w-4" />
+                    <span className="hidden md:inline">Teacher Dashboard</span>
+                    <span className="inline md:hidden">Dashboard</span>
+                  </Link>
+                </Button>
+              )}
+              
+              {gameMode === "classroom" ? (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setGameMode("individual")}
+                  className="rounded-xl text-white hover:bg-white/10"
+                >
+                  <Users className="h-4 w-4 text-indigo-300" />
+                  <span className="hidden md:inline">Classroom</span>
+                </Button>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setGameMode("classroom")}
+                  className="rounded-xl text-white hover:bg-white/10"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">Individual</span>
+                </Button>
+              )}
+              
               <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
                 <Link to="/about" className="flex items-center gap-1.5">
                   <Info className="h-4 w-4" />
@@ -65,28 +94,12 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userProfile ? (
-                <>
-                  <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
-                    <Link to={userProfile.role === 'teacher' ? '/teacher' : '/profile'} className="flex items-center gap-1.5">
-                      <User className="h-4 w-4" />
-                      <span className="hidden md:inline">
-                        {userProfile.role === 'teacher' ? 'Dashboard' : 'Profile'}
-                      </span>
-                    </Link>
-                  </Button>
-                  {userProfile.role === 'student' && (
-                    <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
-                      <Link to="/join" className="flex items-center gap-1.5">
-                        <span className="hidden md:inline">Join Class</span>
-                        <span className="inline md:hidden">Join</span>
-                      </Link>
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={handleLogout} className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden md:inline ml-1.5">Logout</span>
-                  </Button>
-                </>
+                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+                  <Link to="/profile" className="flex items-center gap-1.5">
+                    <User className="h-4 w-4" />
+                    <span className="hidden md:inline">Profile</span>
+                  </Link>
+                </Button>
               ) : (
                 <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
                   <Link to="/auth" className="flex items-center gap-1.5">

@@ -704,17 +704,11 @@ export const createUserProfile = async (uid: string, userData: UserProfileData) 
 };
 
 export const getUserProfile = async (uid: string) => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
-    if (userDoc.exists()) {
-      return userDoc.data();
-    }
-    return null;
-  } catch (error: any) {
-    console.error('Firestore error:', error);
-    // Re-throw with more context
-    throw new Error(`Failed to fetch profile: ${error.message}`);
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (userDoc.exists()) {
+    return userDoc.data();
   }
+  return null;
 };
 
 export const updateUserProfile = async (uid: string, data: Record<string, any>) => {
@@ -891,8 +885,6 @@ export const getClassroomByCode = async (classCode: string) => {
 
 export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> => {
   try {
-    console.log("getClassrooms called with teacherId:", teacherId);
-    
     let classroomsQuery;
     if (teacherId) {
       classroomsQuery = query(collection(db, 'classrooms'), where('teacherId', '==', teacherId));
@@ -900,18 +892,11 @@ export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> =>
       classroomsQuery = collection(db, 'classrooms');
     }
     
-    console.log("Executing Firestore query...");
     const snapshot = await getDocs(classroomsQuery);
-    console.log("Query completed. Documents found:", snapshot.docs.length);
-    
-    const classrooms = snapshot.docs.map(doc => {
-      const data = doc.data() as object;
-      console.log("Classroom document:", { id: doc.id, ...data });
-      return { id: doc.id, ...data } as Classroom;
+    return snapshot.docs.map(doc => {
+      // Assert that doc.data() is an object to allow spreading
+      return { id: doc.id, ...(doc.data() as object) } as Classroom;
     });
-    
-    console.log("Returning classrooms:", classrooms);
-    return classrooms;
   } catch (error) {
     console.error("Error getting classrooms:", error);
     return [];
@@ -920,20 +905,14 @@ export const getClassrooms = async (teacherId?: string): Promise<Classroom[]> =>
 
 export const getUserClassrooms = async (userId: string, role: string) => {
   try {
-    console.log("getUserClassrooms called with:", { userId, role });
-    
     // For teachers, get classrooms they created
     if (role === 'teacher') {
-      console.log("Fetching classrooms for teacher:", userId);
-      const teacherClassrooms = await getClassrooms(userId);
-      console.log("Teacher classrooms found:", teacherClassrooms);
-      return teacherClassrooms;
+      return getClassrooms(userId);
     }
     
     // For students, get classrooms they've joined
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
-      console.log("User document not found for:", userId);
       return [];
     }
     
@@ -942,7 +921,6 @@ export const getUserClassrooms = async (userId: string, role: string) => {
     
     // If user hasn't joined any classrooms yet
     if (userClassrooms.length === 0) {
-      console.log("No classrooms found for student:", userId);
       return [];
     }
     
@@ -1551,14 +1529,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-export { 
-  auth, 
-  db, 
-  Timestamp, 
-  analytics, 
-  onSnapshot, 
-  collection, 
-  query, 
-  where, 
-  orderBy 
-};
+export { auth, db, Timestamp, analytics };

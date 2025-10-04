@@ -69,44 +69,21 @@ export type UserProfile = {
   xp: number;
   completedScenarios: string[];
   badges: string[];
+  classrooms: string[];
 };
 
-export type ClassroomSession = {
+export type Classroom = {
   id: string;
-  code: string;
   name: string;
   teacherId: string;
-  teacherName: string;
-  scenarioId: string | null;
-  currentSceneId: string | null;
-  status: 'waiting' | 'active' | 'paused' | 'ended';
-  createdAt: any;
-  participants: string[];
-};
-
-export type ClassroomParticipant = {
-  id: string;
-  userId: string;
-  username: string;
-  joinedAt: any;
-  isActive: boolean;
-};
-
-export type ClassroomVote = {
-  id: string;
-  sessionId: string;
-  sceneId: string;
-  choiceId: string;
-  userId: string;
-  username: string;
-  timestamp: any;
+  students: string[];
+  activeScenario?: string;
 };
 
 export type VoteStats = {
   choiceId: string;
   count: number;
   percentage: number;
-  voters: string[];
 };
 
 export interface ScenarioCardProps {

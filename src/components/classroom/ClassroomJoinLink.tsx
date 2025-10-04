@@ -1,0 +1,356 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useNavigate } from 'react-router-dom';
+import { School, Users, LogIn } from 'lucide-react';
+import { useGameContext } from '@/context/GameContext';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { createClassroom, getClassroomByCode, joinClassroom, getUserClassrooms } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+
+const ClassroomJoinLink: React.FC = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { currentUser, userProfile, refreshUserProfile } = useAuth();
+  const { userRole, classroomId, setClassroomId, setGameMode } = useGameContext();
+  
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [classCode, setClassCode] = useState('');
+  const [className, setClassName] = useState('');
+  const [classDescription, setClassDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [userHasClassrooms, setUserHasClassrooms] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  
+  // Check if user already has classrooms
+  useEffect(() => {
+    const checkUserClassrooms = async () => {
+      if (!currentUser || !userProfile?.role) return;
+      
+      try {
+        const classrooms = await getUserClassrooms(currentUser.uid, userProfile.role);
+        setUserHasClassrooms(classrooms.length > 0);
+        
+        if (classrooms.length > 0 && !classroomId) {
+          setClassroomId(classrooms[0].id);
+        }
+      } catch (error) {
+        console.error("Error checking user classrooms:", error);
+      }
+    };
+    
+    checkUserClassrooms();
+  }, [currentUser, userProfile, classroomId, setClassroomId]);
+  
+  // Teacher related handler
+  const handleTeacherAction = () => {
+    if (userHasClassrooms || classroomId) {
+      navigate('/teacher');
+    } else {
+      setIsCreateModalOpen(true);
+    }
+  };
+  
+  // Student related handler
+  const handleStudentAction = () => {
+    if (userHasClassrooms || classroomId) {
+      navigate('/profile');
+    } else {
+      setIsJoinModalOpen(true);
+    }
+  };
+
+  const handleCreateClassroom = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to create a classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!className.trim()) {
+      toast({
+        title: "Class Name Required",
+        description: "Please enter a name for your classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const newClassroom = await createClassroom(
+        currentUser.uid,
+        className,
+        classDescription
+      );
+      
+      if (newClassroom && newClassroom.id) {
+        setClassroomId(newClassroom.id);
+        setGameMode("classroom");
+        setUserHasClassrooms(true);
+        toast({
+          title: "Classroom Created",
+          description: `Your classroom '${className}' has been created successfully with code: ${newClassroom.classCode}`,
+        });
+        setIsCreateModalOpen(false);
+        setClassName('');
+        setClassDescription('');
+        navigate('/teacher');
+      } else {
+        throw new Error("Failed to create classroom");
+      }
+    } catch (error) {
+      console.error('Error creating classroom:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create classroom. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinClassroom = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to join a classroom",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const normalizedCode = classCode.trim().toUpperCase();
+
+    if (!normalizedCode) {
+      toast({
+        title: "Class Code Required",
+        description: "Please enter a class code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setJoinError('');
+      // Attempting to join classroom
+      
+      // First get the classroom by code
+      const classroom = await getClassroomByCode(normalizedCode);
+      if (!classroom || !classroom.id) {
+        setJoinError(`No classroom found with code ${normalizedCode}.`);
+        toast({
+          title: "Invalid Code",
+          description: `No classroom found with code ${normalizedCode}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Determine the display name for the student
+      const displayName = userProfile?.displayName || 
+                         (currentUser.email ? currentUser.email.split("@")[0] : "Student");
+      
+      // Join the classroom with our improved function
+      const joinedClassroom = await joinClassroom(
+        classroom.id,
+        currentUser.uid,
+        displayName
+      );
+      
+      // Join classroom result processed
+
+      if (!joinedClassroom || !joinedClassroom.id) {
+        throw new Error("Failed to join classroom - no valid response received");
+      }
+
+      // Refresh user profile to update classrooms list
+      if (refreshUserProfile) {
+        await refreshUserProfile();
+      }
+
+      // Force re-check of user classrooms after successful join
+      setTimeout(async () => {
+        try {
+          const updatedClassrooms = await getUserClassrooms(currentUser.uid, userProfile?.role || 'student');
+          // Updated classrooms after join
+          setUserHasClassrooms(updatedClassrooms.length > 0);
+          
+          if (updatedClassrooms.length > 0) {
+            setClassroomId(updatedClassrooms[0].id);
+            setGameMode("classroom");
+          }
+        } catch (error) {
+          console.error("Error refreshing classrooms after join:", error);
+        }
+      }, 1000);
+
+      toast({
+        title: "Success!",
+        description: `You have joined ${joinedClassroom.name}! Redirecting...`,
+      });
+
+      setIsJoinModalOpen(false);
+      setClassCode("");
+      
+      // Navigate after a short delay to ensure state updates
+      setTimeout(() => {
+        navigate("/profile");
+      }, 1500);
+      
+    } catch (error) {
+      console.error("Error joining classroom:", error);
+      setJoinError(error instanceof Error ? error.message : "Failed to join classroom");
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to join classroom. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (userRole === 'teacher') {
+    return (
+      <>
+        <Button 
+          className="bg-primary hover:bg-primary/90 w-full" 
+          onClick={handleTeacherAction}
+        >
+          <School className="mr-2 h-5 w-5" />
+          {userHasClassrooms ? 'Go to Teacher Dashboard' : 'Create a Classroom'}
+        </Button>
+        
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="bg-black/95 border border-primary/20 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl">Create a Classroom</DialogTitle>
+              <DialogDescription className="text-white/70">
+                Fill out the form below to create your virtual classroom.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <label className="text-sm text-white/70">Classroom Name</label>
+                <Input
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g., Introduction to Psychology"
+                  className="bg-black/40 border-white/20 text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm text-white/70">Description (Optional)</label>
+                <Input
+                  value={classDescription}
+                  onChange={(e) => setClassDescription(e.target.value)}
+                  placeholder="Brief description of your class"
+                  className="bg-black/40 border-white/20 text-white"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsCreateModalOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateClassroom}
+                disabled={isLoading}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isLoading ? (
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>Create Classroom</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+  
+  return (
+    <>
+      <Button 
+        className="bg-primary hover:bg-primary/90 w-full" 
+        onClick={handleStudentAction}
+      >
+        <Users className="mr-2 h-5 w-5" />
+        {userHasClassrooms ? 'View Your Classroom' : 'Join a Classroom'}
+      </Button>
+      
+      <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
+        <DialogContent className="bg-black/95 border border-primary/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl">Join a Classroom</DialogTitle>
+            <DialogDescription className="text-white/70">
+              Enter the class code provided by your teacher.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm text-white/70">Class Code</label>
+              <Input
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                placeholder="e.g., LIFE-1234"
+                className="bg-black/40 border-white/20 text-white"
+              />
+              {joinError && (
+                <p className="text-red-400 text-sm mt-1">{joinError}</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsJoinModalOpen(false);
+                setJoinError('');
+              }}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleJoinClassroom}
+              disabled={isLoading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isLoading ? (
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Join
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default ClassroomJoinLink;
