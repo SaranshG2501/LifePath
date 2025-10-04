@@ -704,11 +704,17 @@ export const createUserProfile = async (uid: string, userData: UserProfileData) 
 };
 
 export const getUserProfile = async (uid: string) => {
-  const userDoc = await getDoc(doc(db, 'users', uid));
-  if (userDoc.exists()) {
-    return userDoc.data();
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      return userDoc.data();
+    }
+    return null;
+  } catch (error: any) {
+    console.error('Firestore error:', error);
+    // Re-throw with more context
+    throw new Error(`Failed to fetch profile: ${error.message}`);
   }
-  return null;
 };
 
 export const updateUserProfile = async (uid: string, data: Record<string, any>) => {

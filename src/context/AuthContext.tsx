@@ -62,11 +62,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const getUserProfile = async (uid: string): Promise<UserProfileData | null> => {
-    const data = await getUserProfileFromDB(uid);
-    if (data) {
-      return mapToUserProfileData({ ...data, id: uid });
+    try {
+      const data = await getUserProfileFromDB(uid);
+      if (data) {
+        return mapToUserProfileData({ ...data, id: uid });
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+      // If offline or connection error, return null but don't fail
+      if (error?.code === 'unavailable' || error?.message?.includes('offline')) {
+        toast({
+          title: 'Connection Issue',
+          description: 'Working in offline mode. Profile data will sync when online.',
+          variant: 'default',
+        });
+        return null;
+      }
+      throw error;
     }
-    return null;
   };
 
   const createUserProfile = async (uid: string, data: any): Promise<void> => {
@@ -80,8 +94,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const profileData = await getUserProfile(user.uid);
           setUserProfile(profileData);
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error fetching user profile:', error);
+          // Set loading to false even if profile fetch fails
+          // User can still be authenticated without profile data
+          setUserProfile(null);
         }
       } else {
         setUserProfile(null);
@@ -108,11 +125,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const { user } = await loginUser(email, password);
       
-      const profileData = await getUserProfile(user.uid);
-      setUserProfile(profileData);
+      // Try to get profile, but don't fail login if it's unavailable
+      let profileData = null;
+      try {
+        profileData = await getUserProfile(user.uid);
+        setUserProfile(profileData);
+      } catch (profileError: any) {
+        console.warn('Could not load profile, continuing with basic auth:', profileError);
+        // Set minimal profile data from auth user
+        setUserProfile({
+          id: user.uid,
+          email: user.email || '',
+          displayName: user.email?.split('@')[0] || 'User',
+          username: user.email?.split('@')[0] || 'User',
+          role: null,
+          xp: 0,
+          level: 1,
+          completedScenarios: [],
+          badges: [],
+          history: []
+        });
+      }
+      
       toast({
         title: 'Login successful',
-        description: `Welcome back, ${profileData?.displayName || ''}!`,
+        description: `Welcome back${profileData?.displayName ? `, ${profileData.displayName}` : ''}!`,
       });
     } catch (error: any) {
       toast({
