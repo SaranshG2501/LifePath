@@ -251,61 +251,70 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
-          <p className="text-white/70">Manage your classrooms and scenarios</p>
+    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 animate-fade-in">
+      {/* Hero Header */}
+      <div className="glass-card mb-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-transparent"></div>
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold gradient-heading mb-2">Teacher Dashboard</h1>
+            <p className="text-muted-foreground text-base">Manage your classrooms and scenarios with ease</p>
+          </div>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="glow-button w-full sm:w-auto"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create Classroom
+          </Button>
         </div>
-        <Button 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Classroom
-        </Button>
       </div>
 
       {/* Classrooms Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+      <div className="mb-12">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
             <School className="h-6 w-6 text-primary" />
-            Your Classrooms ({classrooms.length})
-          </h2>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Your Classrooms</h2>
+            <p className="text-sm text-muted-foreground">{classrooms.length} active {classrooms.length === 1 ? 'classroom' : 'classrooms'}</p>
+          </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-black/20 border-white/10 animate-pulse">
+              <Card key={i} className="teen-card animate-pulse">
                 <CardHeader>
-                  <div className="h-6 bg-white/10 rounded mb-2"></div>
-                  <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                  <div className="h-6 bg-primary/10 rounded mb-2"></div>
+                  <div className="h-4 bg-primary/10 rounded w-2/3"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-4 bg-white/10 rounded mb-4"></div>
-                  <div className="h-10 bg-white/10 rounded"></div>
+                  <div className="h-4 bg-primary/10 rounded mb-4"></div>
+                  <div className="h-10 bg-primary/10 rounded"></div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : classrooms.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {classrooms.map((classroom) => (
-              <Card key={classroom.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
+              <Card key={classroom.id} className="teen-card hover-lift group">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-white text-lg">{classroom.name}</CardTitle>
-                      <CardDescription className="text-white/70 mt-1">
+                      <CardTitle className="text-foreground text-xl font-bold group-hover:text-primary transition-colors">
+                        {classroom.name}
+                      </CardTitle>
+                      <CardDescription className="text-muted-foreground mt-2 text-sm">
                         {classroom.description || "No description"}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       {classroom.activeSessionId && (
-                        <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                          Live
+                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs animate-pulse">
+                          ● Live
                         </Badge>
                       )}
                       <AlertDialog>
@@ -357,30 +366,36 @@ const TeacherDashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Users className="h-4 w-4" />
-                        <span>{classroom.students?.length || 0} Students</span>
+                  <div className="space-y-4">
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-4">
+                      <div className="stat-badge">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span className="text-foreground font-medium">{classroom.students?.length || 0}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Calendar className="h-4 w-4" />
-                        <span>{convertTimestampToDate(classroom.createdAt).toLocaleDateString()}</span>
+                      <div className="stat-badge">
+                        <Calendar className="h-4 w-4 text-secondary" />
+                        <span className="text-muted-foreground text-xs">
+                          {convertTimestampToDate(classroom.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                     
-                    <div className="text-xs text-white/60 bg-black/30 rounded px-2 py-1 font-mono">
-                      Code: {classroom.classCode}
+                    {/* Classroom Code */}
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
+                      <p className="text-xs text-muted-foreground mb-1">Classroom Code</p>
+                      <p className="text-lg font-bold text-foreground font-mono tracking-wider">{classroom.classCode}</p>
                     </div>
                     
+                    {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Button 
-                        variant="outline" 
+                        variant="default" 
                         size="sm" 
                         onClick={() => setSelectedClassroom(classroom)}
-                        className="flex-1 border-white/20 bg-black/20 text-white hover:bg-white/10"
+                        className="flex-1"
                       >
-                        <School className="h-4 w-4 mr-1" />
+                        <School className="h-4 w-4 mr-2" />
                         Manage
                       </Button>
                       {classroom.activeSessionId && (
@@ -437,15 +452,17 @@ const TeacherDashboard = () => {
             ))}
           </div>
         ) : (
-          <Card className="bg-black/20 border-white/10">
+          <Card className="teen-card">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <School className="h-16 w-16 text-white/30 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Classrooms Yet</h3>
-              <p className="text-white/70 text-center mb-6 max-w-md">
+              <div className="p-4 rounded-full bg-primary/10 border border-primary/20 w-fit mx-auto mb-6">
+                <School className="h-16 w-16 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-3">No Classrooms Yet</h3>
+              <p className="text-muted-foreground text-center mb-8 max-w-md">
                 Create your first classroom to start teaching interactive scenarios to your students.
               </p>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={() => setIsCreateModalOpen(true)} className="glow-button">
+                <Plus className="h-5 w-5 mr-2" />
                 Create Your First Classroom
               </Button>
             </CardContent>
@@ -455,29 +472,31 @@ const TeacherDashboard = () => {
 
       {/* Selected Classroom Management */}
       {selectedClassroom && (
-        <div className="mb-8">
-          <Card className="bg-black/20 border-white/10">
-            <CardHeader>
+        <div className="mb-12 animate-fade-in">
+          <Card className="teen-card">
+            <CardHeader className="border-b border-border/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <School className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-foreground text-2xl flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <School className="h-5 w-5 text-primary" />
+                    </div>
                     {selectedClassroom.name}
                   </CardTitle>
-                  <CardDescription className="text-white/70">
-                    Classroom Management
+                  <CardDescription className="text-muted-foreground mt-2">
+                    Manage students and sessions
                   </CardDescription>
                 </div>
                 <Button 
                   variant="ghost" 
                   onClick={() => setSelectedClassroom(null)}
-                  className="text-white/70 hover:text-white"
+                  className="hover:bg-primary/10"
                 >
                   Close
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <TeacherClassroomManager 
                 classroom={selectedClassroom} 
                 onRefresh={loadClassrooms}
@@ -542,9 +561,10 @@ const TeacherDashboard = () => {
         </div>
         
         {!selectedClassroom && (
-          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/20">
-            <p className="text-blue-300 text-sm">
-              💡 Select a classroom above to enable live session options for scenarios
+          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-primary/10 border border-blue-500/20">
+            <p className="text-blue-300 text-sm flex items-center gap-2">
+              <span className="text-lg">💡</span>
+              <span>Select a classroom above to enable live session options for scenarios</span>
             </p>
           </div>
         )}
@@ -552,44 +572,50 @@ const TeacherDashboard = () => {
 
       {/* Create Classroom Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent>
+        <DialogContent className="teen-card max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Classroom</DialogTitle>
-            <DialogDescription>
-              Enter details for your new classroom
+            <DialogTitle className="text-foreground text-2xl">Create New Classroom</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Set up a new classroom to manage students and sessions
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="block text-sm font-medium text-white">
-                Classroom Name
+              <label htmlFor="name" className="block text-sm font-medium text-foreground">
+                Classroom Name *
               </label>
               <Input
                 id="name"
                 value={classNameInput}
                 onChange={(e) => setClassNameInput(e.target.value)}
-                placeholder="My Awesome Classroom"
-                className="bg-black/20 border-white/10 text-white"
+                placeholder="e.g., Year 10 Ethics Class"
+                className="bg-background border-border"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="description" className="block text-sm font-medium text-white">
+              <label htmlFor="description" className="block text-sm font-medium text-foreground">
                 Description (Optional)
               </label>
               <Input
                 id="description"
                 value={classDescriptionInput}
                 onChange={(e) => setClassDescriptionInput(e.target.value)}
-                placeholder="What will students learn in this classroom?"
-                className="bg-black/20 border-white/10 text-white"
+                placeholder="What will students learn?"
+                className="bg-background border-border"
               />
             </div>
           </div>
           <DialogFooter>
             <Button 
+              variant="outline"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
               onClick={handleCreateClassroom}
               disabled={!classNameInput.trim() || isCreatingClassroom}
-              className="bg-blue-500 hover:bg-blue-600"
+              className="glow-button"
             >
               {isCreatingClassroom ? (
                 <>
@@ -597,7 +623,10 @@ const TeacherDashboard = () => {
                   Creating...
                 </>
               ) : (
-                "Create Classroom"
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Classroom
+                </>
               )}
             </Button>
           </DialogFooter>
