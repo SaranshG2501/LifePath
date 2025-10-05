@@ -39,24 +39,25 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
   const estimatedDuration = Math.ceil(scenario.scenes.length * 2); // Estimate 2 minutes per scene
   
   return (
-    <Card className={`overflow-hidden h-full flex flex-col transition-all duration-300 shadow-lg hover:shadow-2xl ${
+    <Card className={`overflow-hidden h-full flex flex-col transition-all duration-500 shadow-2xl hover:shadow-primary/50 hover:-translate-y-2 hover:scale-105 animate-scale-in group ${
       isTeacherDashboard 
-        ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-slate-600/30 hover:border-indigo-400/50 hover:scale-[1.02]' 
-        : 'bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 backdrop-blur-md hover:border-indigo-300/30'
+        ? 'bg-gradient-to-br from-card/80 to-card/60 border-primary/30 hover:border-secondary/60' 
+        : 'bg-gradient-to-br from-card/60 to-card/40 border-primary/20 backdrop-blur-xl hover:border-secondary/50'
     }`}>
-      <div className="relative h-40 sm:h-48 overflow-hidden group">
+      <div className="relative h-40 sm:h-48 overflow-hidden">
         {scenarioImage ? (
           <img 
             src={scenarioImage} 
             alt={scenario.title} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125 group-hover:rotate-2"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center">
-            <Image className="h-16 w-16 text-white/30" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+            <Image className="h-16 w-16 text-white/30 animate-pulse-slow" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent group-hover:from-black/80"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         
         {/* Fixed positioning and spacing for badges */}
         <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4">
@@ -182,14 +183,14 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
       
       <CardFooter className="pt-2 sm:pt-3 flex-shrink-0 px-4 sm:px-6 pb-4 sm:pb-6">
         <Button 
-          className={`w-full transition-all duration-300 text-sm sm:text-base py-2 sm:py-3 ${
+          className={`w-full transition-all duration-500 text-sm sm:text-base py-2 sm:py-3 group/btn ${
             isTeacherDashboard 
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5' 
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg'
+              ? 'bg-gradient-to-r from-primary via-accent to-secondary hover:scale-105 text-white shadow-2xl hover:shadow-primary/60 animate-shimmer' 
+              : 'bg-gradient-to-r from-primary to-secondary hover:scale-105 text-white hover:shadow-2xl hover:shadow-primary/50'
           }`}
           onClick={() => onStart(scenario.id)}
         >
-          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" /> 
+          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2 group-hover/btn:animate-bounce-in" /> 
           {isTeacherDashboard ? 'Start Live Session' : 'Start Adventure'}
         </Button>
       </CardFooter>

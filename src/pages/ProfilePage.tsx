@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getUserClassrooms, getClassrooms, Classroom, convertTimestampToDate, Timestamp, ScenarioHistory, db } from '@/lib/firebase';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ScenarioHistoryTable from '@/components/profile/ScenarioHistoryTable';
-
+import FloatingElements from '@/components/FloatingElements';
 
 const ProfilePage = () => {
   const { userProfile, currentUser, logout } = useAuth();
@@ -91,12 +91,13 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-[#1A1F2C] to-purple-900">
-      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-7xl">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-[#1A1F2C] to-purple-900 relative">
+      <FloatingElements count={20} variant="sparse" />
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-7xl relative z-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 sm:mb-10">
           <div className="text-center sm:text-left mb-4 sm:mb-0">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2 sm:mb-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display gradient-heading animate-scale-in mb-2 sm:mb-3">
               My Profile
             </h1>
             <p className="text-slate-300 text-sm sm:text-base lg:text-lg px-2 sm:px-0">Track your learning journey and celebrate your achievements</p>
@@ -113,18 +114,18 @@ const ProfilePage = () => {
 
         {/* User Profile Card */}
         {userProfile && (
-          <Card className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 border-slate-600/50 backdrop-blur-lg mb-6 sm:mb-8 shadow-2xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
+          <Card className="bg-gradient-to-r from-card/60 to-card/40 border-primary/30 backdrop-blur-xl mb-6 sm:mb-8 shadow-2xl overflow-hidden hover-lift animate-scale-in">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 animate-shimmer"></div>
             <CardHeader className="relative pb-4 sm:pb-6 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                <div className="relative">
-                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-gradient-to-r from-blue-500/50 to-purple-500/50 shadow-2xl">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white text-xl sm:text-2xl font-bold">
+                <div className="relative animate-float">
+                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-primary/50 shadow-2xl ring-4 ring-primary/20 animate-glow">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/60 to-secondary/60 text-white text-xl sm:text-2xl font-bold">
                       {userProfile.username?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-1.5 sm:p-2">
-                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                  <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-gradient-to-r from-accent to-secondary rounded-full p-1.5 sm:p-2 animate-bounce-in">
+                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-white animate-spin" style={{ animationDuration: '3s' }} />
                   </div>
                 </div>
                 

@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import GlobalSessionNotification from '@/components/classroom/GlobalSessionNotification';
+import FloatingElements from '@/components/FloatingElements';
+
 const HomePage = () => {
   const {
     scenarios,
@@ -51,18 +53,19 @@ const HomePage = () => {
     }
   };
   return <>
+      <FloatingElements count={25} variant="default" />
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
-      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12">
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12 relative z-10">
         <section className="text-center mb-12 sm:mb-16 animate-fade-in">
           <div className="max-w-3xl mx-auto">
-            <div className="inline-flex justify-center items-center p-2 sm:p-3 bg-blue-500/10 rounded-full mb-4 sm:mb-6 shadow-lg shadow-blue-500/20">
-              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
+            <div className="inline-flex justify-center items-center p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full mb-4 sm:mb-6 shadow-2xl shadow-primary/30 animate-glow">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse-slow" />
             </div>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 text-white">
-              <span className="bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">LifePath</span>
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 md:mb-6 text-white font-display animate-scale-in">
+              <span className="gradient-heading animate-shimmer">LifePath</span>
             </h1>
             
             <p className="text-lg sm:text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>

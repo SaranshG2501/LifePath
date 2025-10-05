@@ -3,19 +3,22 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, BrainCircuit, School, Target, Users, Star, Heart, Zap, Sparkles, Gamepad2 } from 'lucide-react';
+import FloatingElements from '@/components/FloatingElements';
+
 const AboutPage = () => {
   const navigate = useNavigate();
-  return <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
-      <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 rounded-xl text-white border border-white/10 hover:bg-white/10">
-        <ArrowLeft size={16} />
+  return <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in relative">
+      <FloatingElements count={15} variant="sparse" />
+      <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 rounded-2xl text-white border-2 border-primary/30 hover:bg-primary/20 hover:border-secondary/50 hover:scale-105 transition-all duration-300 relative z-10">
+        <ArrowLeft size={16} className="animate-hover-bounce" />
         Back to Home
       </Button>
 
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center gradient-heading flex justify-center items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary animate-pulse-slow" />
+      <div className="max-w-3xl mx-auto relative z-10">
+        <h1 className="text-3xl md:text-5xl font-bold font-display mb-8 text-center gradient-heading flex justify-center items-center gap-3 animate-scale-in">
+          <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-secondary animate-pulse-slow animate-wiggle" />
           About LifePath
-          <Sparkles className="h-6 w-6 text-primary animate-pulse-slow" style={{
+          <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-accent animate-pulse-slow animate-wiggle" style={{
           animationDelay: '0.5s'
         }} />
         </h1>

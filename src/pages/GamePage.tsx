@@ -26,6 +26,7 @@ import {
   getActiveSession,
   onClassroomUpdated
 } from '@/lib/firebase';
+import FloatingElements from '@/components/FloatingElements';
 
 const GamePage = () => {
   const { 
@@ -323,10 +324,11 @@ const GamePage = () => {
 
 
   return (
-    <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in">
+    <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in relative">
+      <FloatingElements count={15} variant="sparse" />
       {/* Header with scenario title, mode and metrics */}
-      <div className="mb-4 sm:mb-6 md:mb-8">
-        <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 rounded-xl p-3 sm:p-4 border border-white/10 shadow-lg">
+      <div className="mb-4 sm:mb-6 md:mb-8 relative z-10">
+        <div className="bg-gradient-to-br from-card/60 to-card/40 rounded-2xl p-3 sm:p-4 border-2 border-primary/30 shadow-2xl backdrop-blur-xl hover-lift">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2 flex-wrap">
               <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-300" />
