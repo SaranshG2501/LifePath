@@ -5,105 +5,165 @@
 
 @layer base {
   :root {
-    --background: 260 30% 10%;
-    --foreground: 260 10% 95%;
+    /* Gen Z Dark Mode - Deep Space Background */
+    --background: 250 40% 8%;
+    --foreground: 280 15% 98%;
 
-    --card: 265 70% 10%;
-    --card-foreground: 265 70% 95%;
+    /* Cards with subtle glow */
+    --card: 250 35% 12%;
+    --card-foreground: 280 15% 98%;
 
-    --primary: 265 70% 60%;
-    --primary-foreground: 260 100% 97%;
+    /* Electric Purple - Main Brand */
+    --primary: 270 95% 65%;
+    --primary-foreground: 280 100% 100%;
 
-    --secondary: 285 60% 65%;
-    --secondary-foreground: 280 100% 97%;
+    /* Neon Cyan - Secondary Actions */
+    --secondary: 180 100% 60%;
+    --secondary-foreground: 250 40% 8%;
 
-    --muted: 265 20% 25%;
-    --muted-foreground: 265 10% 80%;
+    /* Muted with more contrast */
+    --muted: 250 30% 20%;
+    --muted-foreground: 280 10% 75%;
 
-    --accent: 290 70% 70%;
-    --accent-foreground: 290 100% 97%;
+    /* Hot Pink - Accent/Highlights */
+    --accent: 330 100% 65%;
+    --accent-foreground: 280 100% 100%;
 
-    --destructive: 350 70% 60%;
-    --destructive-foreground: 350 100% 97%;
+    /* Neon Red - Destructive */
+    --destructive: 0 100% 65%;
+    --destructive-foreground: 280 100% 100%;
 
-    --border: 265 30% 30%;
-    --input: 265 30% 30%;
-    --ring: 265 70% 50%;
+    /* Borders and inputs with glow potential */
+    --border: 270 60% 30%;
+    --input: 250 30% 18%;
+    --ring: 270 95% 65%;
 
-    --radius: 0.75rem;
+    /* Neo-rounded corners */
+    --radius: 1rem;
+
+    /* Custom Gen Z Colors */
+    --neon-green: 140 100% 60%;
+    --neon-yellow: 55 100% 60%;
+    --vaporwave-pink: 320 100% 70%;
+    --cyber-blue: 200 100% 55%;
   }
 }
 
 @layer base {
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
   body {
     @apply bg-background text-foreground;
-    background-color: #1d1033;
+    background-color: #0a0514;
     background-image: 
-      radial-gradient(circle at 25% 25%, rgba(155, 135, 245, 0.05) 2%, transparent 10%),
-      radial-gradient(circle at 75% 75%, rgba(155, 135, 245, 0.05) 2%, transparent 10%),
-      radial-gradient(circle at 50% 50%, rgba(155, 135, 245, 0.03) 30%, transparent 80%),
-      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      radial-gradient(circle at 20% 30%, rgba(170, 102, 255, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(77, 238, 234, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(247, 104, 161, 0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(170, 102, 255, 0.03) 2px, rgba(170, 102, 255, 0.03) 4px);
     background-attachment: fixed;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
   
   ::-webkit-scrollbar-track {
-    background: rgba(120, 100, 210, 0.1);
+    background: hsl(var(--background));
     border-radius: 10px;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: rgba(155, 135, 245, 0.5);
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--accent)));
     border-radius: 10px;
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(155, 135, 245, 0.7);
+    background: linear-gradient(180deg, hsl(var(--accent)), hsl(var(--secondary)));
+    box-shadow: 0 0 15px hsl(var(--accent) / 0.7);
   }
 }
 
 @layer components {
   .gradient-bg {
-    @apply bg-gradient-to-br from-primary/80 via-secondary/80 to-accent/80;
+    @apply bg-gradient-to-br from-primary via-secondary to-accent;
+    background-size: 200% 200%;
+    animation: background-pulse 8s ease infinite;
   }
 
   .glassmorphic-card {
-    @apply bg-black/15 backdrop-blur-lg border border-white/10 shadow-lg rounded-xl;
+    @apply bg-card/40 backdrop-blur-xl border border-primary/20 shadow-2xl rounded-2xl;
+    box-shadow: 0 8px 32px 0 rgba(170, 102, 255, 0.2), 0 0 0 1px rgba(170, 102, 255, 0.1);
   }
 
   .teen-card {
-    @apply rounded-xl sm:rounded-2xl bg-black/15 backdrop-blur-lg border border-primary/20 shadow-lg transition-all duration-300 hover:shadow-primary/30 hover:border-primary/40;
+    @apply rounded-2xl bg-card/50 backdrop-blur-xl border border-primary/30 shadow-2xl transition-all duration-500;
+    box-shadow: 0 8px 32px 0 rgba(170, 102, 255, 0.25), 0 0 20px rgba(77, 238, 234, 0.1);
+  }
+
+  .teen-card:hover {
+    @apply border-secondary/60 -translate-y-2 scale-[1.02];
+    box-shadow: 0 12px 48px 0 rgba(170, 102, 255, 0.4), 0 0 30px rgba(77, 238, 234, 0.2);
   }
   
   .glass-card {
-    @apply p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-black/15 backdrop-blur-lg border border-white/10 shadow-lg hover:shadow-primary/20 transition-all duration-300;
+    @apply p-6 rounded-2xl bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl hover:shadow-primary/30 transition-all duration-500;
   }
 
   .gradient-heading {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-neon-purple via-primary to-neon-pink font-bold;
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-secondary via-primary to-accent font-bold;
+    background-size: 200% auto;
+    animation: shimmer 3s linear infinite;
   }
 
   .stat-badge {
-    @apply flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-black/20 backdrop-blur-md border border-white/10 shadow-sm hover:bg-black/30 transition-all duration-200;
+    @apply flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-card/60 backdrop-blur-xl border border-primary/30 shadow-lg hover:scale-105 transition-all duration-300;
+    box-shadow: 0 4px 12px rgba(170, 102, 255, 0.2);
   }
 
   .choice-button {
-    @apply flex items-center gap-2 w-full p-3 sm:p-4 rounded-lg sm:rounded-xl text-left transition-all duration-200 
-    bg-black/20 backdrop-blur-sm border border-primary/20 hover:bg-primary/20 hover:border-primary/40 
-    hover:translate-x-1 shadow-sm hover:shadow-primary/20 text-sm sm:text-base;
+    @apply flex items-center gap-3 w-full p-4 sm:p-5 rounded-2xl text-left transition-all duration-300 
+    bg-card/40 backdrop-blur-xl border-2 border-primary/30 hover:bg-primary/20 hover:border-secondary/60 
+    hover:translate-x-2 hover:scale-[1.02] shadow-lg hover:shadow-2xl text-sm sm:text-base font-medium;
+    box-shadow: 0 4px 16px rgba(170, 102, 255, 0.15);
+  }
+
+  .choice-button:hover {
+    box-shadow: 0 8px 32px rgba(77, 238, 234, 0.3);
+  }
+
+  .choice-button:active {
+    @apply scale-95;
+    animation: squish 0.2s ease;
   }
 
   .scenario-card {
-    @apply rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 backdrop-blur-lg border border-white/10 
-    shadow-lg transition-all duration-300 hover:shadow-primary/30 hover:border-primary/30 hover:-translate-y-1 sm:hover:-translate-y-2;
+    @apply rounded-2xl overflow-hidden bg-card/50 backdrop-blur-xl border-2 border-primary/30 
+    shadow-2xl transition-all duration-500 hover:shadow-primary/50 hover:border-secondary/60 hover:-translate-y-3 hover:scale-[1.03];
+    box-shadow: 0 8px 32px rgba(170, 102, 255, 0.2);
+  }
+
+  .scenario-card:hover {
+    box-shadow: 0 16px 64px rgba(170, 102, 255, 0.4), 0 0 40px rgba(77, 238, 234, 0.2);
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-primary/20;
+    @apply transition-all duration-500 hover:-translate-y-3 hover:scale-105 hover:shadow-2xl;
+    box-shadow: 0 4px 16px rgba(170, 102, 255, 0.2);
+  }
+
+  .hover-lift:hover {
+    box-shadow: 0 12px 48px rgba(170, 102, 255, 0.4);
   }
 
   .animate-bounce-light {
@@ -120,38 +180,80 @@
   }
 
   .glow-button {
-    @apply relative overflow-hidden bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl 
-    shadow-lg transition-all duration-300 hover:shadow-primary/30 hover:scale-105 text-sm sm:text-base;
+    @apply relative overflow-hidden bg-gradient-to-r from-primary via-accent to-secondary text-white px-6 py-3 sm:px-8 sm:py-4 rounded-2xl 
+    shadow-2xl transition-all duration-500 hover:scale-110 text-sm sm:text-base font-bold;
+    background-size: 200% auto;
+    box-shadow: 0 8px 32px rgba(170, 102, 255, 0.4), 0 0 20px rgba(77, 238, 234, 0.3);
+  }
+
+  .glow-button:hover {
+    animation: shimmer 1.5s linear infinite, hover-bounce 0.6s ease-in-out infinite;
+    box-shadow: 0 12px 48px rgba(170, 102, 255, 0.6), 0 0 40px rgba(77, 238, 234, 0.5);
   }
   
   .glow-button::after {
-    @apply content-[''] absolute inset-0 bg-gradient-to-r from-primary/40 to-secondary/40 blur-2xl opacity-0 transition-opacity duration-300;
+    @apply content-[''] absolute inset-0 bg-gradient-to-r from-secondary/50 to-accent/50 blur-3xl opacity-0 transition-opacity duration-500;
   }
   
   .glow-button:hover::after {
     @apply opacity-100;
   }
 
+  .glow-button:active {
+    @apply scale-95;
+  }
+
   .neon-border {
-    @apply border border-transparent relative;
-    background: linear-gradient(to right, #4DEEEA, #A566FF, #F768A1);
+    @apply border-2 border-transparent relative;
+    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)), hsl(var(--accent)));
     background-clip: padding-box;
-    box-shadow: 0 0 10px rgba(155, 135, 245, 0.5);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.6), inset 0 0 20px hsl(var(--primary) / 0.1);
+    background-size: 200% 200%;
+    animation: background-pulse 3s ease infinite;
   }
 
   .neon-border::after {
     content: '';
     position: absolute;
-    top: -2px; right: -2px; bottom: -2px; left: -2px;
-    background: linear-gradient(to right, #4DEEEA, #A566FF, #F768A1);
+    top: -3px; right: -3px; bottom: -3px; left: -3px;
+    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)), hsl(var(--accent)));
     border-radius: inherit;
     z-index: -1;
+    filter: blur(8px);
+    opacity: 0.7;
+    animation: rotate-glow 4s linear infinite;
   }
 
   .shimmer-bg {
-    background: linear-gradient(to right, transparent 0%, rgba(155, 135, 245, 0.2) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--secondary) / 0.3) 50%, transparent 100%);
     background-size: 200% 100%;
-    animation: shimmer 3s infinite linear;
+    animation: shimmer 2s infinite linear;
+  }
+
+  .vhs-glitch {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vhs-glitch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: glitch-scan 3s infinite;
+  }
+
+  @keyframes glitch-scan {
+    0%, 100% { left: -100%; }
+    50% { left: 100%; }
+  }
+
+  @keyframes squish {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.95); }
   }
 
   @keyframes bounce {
@@ -177,11 +279,24 @@
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(20px) scale(0.95);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
+  }
+
+  @keyframes neon-pulse {
+    0%, 100% {
+      box-shadow: 0 0 10px hsl(var(--primary) / 0.5), 0 0 20px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.8), 0 0 40px hsl(var(--primary) / 0.5), 0 0 60px hsl(var(--secondary) / 0.3);
+    }
+  }
+
+  .animate-neon-pulse {
+    animation: neon-pulse 2s ease-in-out infinite;
   }
 }
