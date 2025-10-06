@@ -65,7 +65,7 @@ const HomePage = () => {
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 md:mb-6 text-white font-display animate-scale-in">
-              <span className="gradient-heading animate-shimmer">LifePath</span>
+              <span className="gradient-heading">LifePath</span>
             </h1>
             
             <p className="text-lg sm:text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>

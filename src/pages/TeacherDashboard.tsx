@@ -508,25 +508,33 @@ const TeacherDashboard = () => {
 
       {/* Scenarios Section */}
       <div>
-        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          Available Scenarios
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+            <BookOpen className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Available Scenarios</h2>
+            <p className="text-sm text-muted-foreground">{scenarios.length} {scenarios.length === 1 ? 'scenario' : 'scenarios'} available</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {scenarios.map((scenario) => (
-            <Card key={scenario.id} className="bg-black/20 border-white/10 hover:bg-black/30 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white">{scenario.title}</CardTitle>
-                <CardDescription className="text-white/70">
+            <Card key={scenario.id} className="teen-card hover-lift group flex flex-col h-full">
+              <CardHeader className="flex-grow">
+                <CardTitle className="text-foreground text-xl font-bold group-hover:text-primary transition-colors">
+                  {scenario.title}
+                </CardTitle>
+                <CardDescription className="text-muted-foreground mt-2 text-sm">
                   {scenario.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => handleStartScenario(scenario.id)}
-                    className="flex-1 bg-primary hover:bg-primary/90"
+                    className="flex-1"
+                    size="sm"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     Solo Play
@@ -540,6 +548,7 @@ const TeacherDashboard = () => {
                        })}
                        disabled={creatingSession === selectedClassroom.id}
                        className="flex-1 bg-green-500 hover:bg-green-600"
+                       size="sm"
                      >
                        {creatingSession === selectedClassroom.id ? (
                          <>

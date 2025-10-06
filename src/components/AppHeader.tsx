@@ -13,7 +13,7 @@ const AppHeader: React.FC = () => {
   // Handle case where GameContext might not be ready
   if (!gameContext) {
     return (
-      <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-10">
+      <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex items-center justify-center">
@@ -35,7 +35,7 @@ const AppHeader: React.FC = () => {
   } = gameContext;
 
   return (
-    <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-10">
+    <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex items-center justify-center">
