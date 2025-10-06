@@ -194,12 +194,15 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className = "", widt
     const imageData = offscreenCtx.getImageData(0, 0, canvas.width, canvas.height)
     const pixels = imageData.data
 
-    // Generate new color
-    const newColor = {
-      r: Math.random() * 255,
-      g: Math.random() * 255,
-      b: Math.random() * 255,
-    }
+    // Generate vibrant Gen Z colors (electric purple, neon cyan, hot pink)
+    const colors = [
+      { r: 147, g: 51, b: 234 },  // Electric purple
+      { r: 6, g: 182, b: 212 },   // Neon cyan
+      { r: 236, g: 72, b: 153 },  // Hot pink
+      { r: 34, g: 211, b: 238 },  // Bright cyan
+      { r: 168, g: 85, b: 247 },  // Bright purple
+    ]
+    const newColor = colors[Math.floor(Math.random() * colors.length)]
 
     const particles = particlesRef.current
     let particleIndex = 0
@@ -272,8 +275,9 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className = "", widt
     const ctx = canvas.getContext("2d")!
     const particles = particlesRef.current
 
-    // Background with motion blur
-    ctx.fillStyle = "rgba(0, 0, 0, 0.1)"
+    // Transparent background with motion blur
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.05)"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     // Update and draw particles

@@ -12,6 +12,7 @@ import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import GlobalSessionNotification from '@/components/classroom/GlobalSessionNotification';
 import FloatingElements from '@/components/FloatingElements';
 import { ParticleTextEffect } from '@/components/ui/particle-text-effect';
+import { MagnetLines } from '@/components/ui/magnet-lines';
 
 const HomePage = () => {
   const {
@@ -54,6 +55,19 @@ const HomePage = () => {
     }
   };
   return <>
+      {/* Magnet Lines Background */}
+      <div className="fixed inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
+        <MagnetLines
+          rows={12}
+          columns={12}
+          containerSize="100vmin"
+          lineColor="hsl(var(--neon-cyan))"
+          lineWidth="0.5vmin"
+          lineHeight="4vmin"
+          baseAngle={0}
+        />
+      </div>
+      
       <FloatingElements count={25} variant="default" />
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
