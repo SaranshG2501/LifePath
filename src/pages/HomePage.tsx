@@ -61,35 +61,48 @@ const HomePage = () => {
           rows={12}
           columns={12}
           containerSize="100vmin"
-          lineColor="hsl(var(--neon-cyan))"
+          lineColor="hsl(var(--secondary))"
           lineWidth="0.5vmin"
           lineHeight="4vmin"
           baseAngle={0}
         />
       </div>
       
-      <FloatingElements count={25} variant="default" />
+      {/* Animated Gradient Orbs */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-[120px] animate-float" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-secondary/30 rounded-full blur-[100px] animate-float" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-accent/30 rounded-full blur-[90px] animate-float" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+      </div>
+      
+      <FloatingElements count={40} variant="default" />
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
       <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12 relative z-10">
-        <section className="text-center mb-12 sm:mb-16 animate-fade-in">
-          <div className="max-w-3xl mx-auto">
-            <div className="inline-flex justify-center items-center p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full mb-4 sm:mb-6 shadow-2xl shadow-primary/30 animate-glow">
-              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse-slow" />
+        <section className="text-center mb-12 sm:mb-16 animate-fade-in relative">
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex justify-center items-center p-3 sm:p-4 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-full mb-4 sm:mb-6 shadow-2xl shadow-primary/40 animate-neon-pulse backdrop-blur-xl border border-primary/30">
+              <BookOpen className="h-7 w-7 sm:h-10 sm:w-10 text-secondary animate-pulse-slow drop-shadow-[0_0_10px_rgba(77,238,234,0.8)]" />
             </div>
             
-            <div className="mb-3 sm:mb-4 md:mb-6 flex justify-center">
-              <ParticleTextEffect 
-                words={["LifePath"]} 
-                width={600} 
-                height={150}
-                showOnce={true}
-                className="rounded-lg"
-              />
+            {/* Particle Text with Enhanced Container */}
+            <div className="mb-3 sm:mb-4 md:mb-6 flex justify-center relative">
+              {/* Glow effect behind the text */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/30 to-accent/20 blur-3xl animate-pulse-slow" />
+              
+              <div className="relative border-2 border-primary/30 rounded-2xl p-4 bg-black/20 backdrop-blur-xl shadow-[0_0_50px_rgba(170,102,255,0.4)] hover:shadow-[0_0_80px_rgba(77,238,234,0.6)] transition-all duration-500">
+                <ParticleTextEffect 
+                  words={["LifePath"]} 
+                  width={600} 
+                  height={150}
+                  showOnce={true}
+                  className="rounded-lg"
+                />
+              </div>
             </div>
             
-            <p className="text-lg sm:text-xl md:text-2xl mb-2 font-medium text-white/90">Real Life Based Decision Simulator</p>
+            <p className="text-lg sm:text-xl md:text-2xl mb-2 font-bold bg-gradient-to-r from-secondary via-primary to-accent bg-clip-text text-transparent animate-shimmer" style={{ backgroundSize: '200% auto' }}>Real Life Based Decision Simulator</p>
             <p className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 max-w-xl mx-auto px-2">
               Navigate realistic scenarios and shape your future through thoughtful choices
             </p>

@@ -194,13 +194,13 @@ export function ParticleTextEffect({ words = DEFAULT_WORDS, className = "", widt
     const imageData = offscreenCtx.getImageData(0, 0, canvas.width, canvas.height)
     const pixels = imageData.data
 
-    // Generate vibrant Gen Z colors (electric purple, neon cyan, hot pink)
+    // Generate vibrant Gen Z colors matching the theme
     const colors = [
-      { r: 147, g: 51, b: 234 },  // Electric purple
-      { r: 6, g: 182, b: 212 },   // Neon cyan
-      { r: 236, g: 72, b: 153 },  // Hot pink
-      { r: 34, g: 211, b: 238 },  // Bright cyan
-      { r: 168, g: 85, b: 247 },  // Bright purple
+      { r: 170, g: 102, b: 255 }, // Electric Purple (primary)
+      { r: 77, g: 238, b: 234 },  // Neon Cyan (secondary)
+      { r: 247, g: 104, b: 161 }, // Hot Pink (accent)
+      { r: 153, g: 255, b: 153 }, // Neon Green
+      { r: 255, g: 204, b: 102 }, // Neon Yellow
     ]
     const newColor = colors[Math.floor(Math.random() * colors.length)]
 
