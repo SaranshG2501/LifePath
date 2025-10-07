@@ -10,9 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import StudentClassroomView from '@/components/classroom/StudentClassroomView';
 import GlobalSessionNotification from '@/components/classroom/GlobalSessionNotification';
-import FloatingElements from '@/components/FloatingElements';
 import { ParticleTextEffect } from '@/components/ui/particle-text-effect';
-import { MagnetLines } from '@/components/ui/magnet-lines';
 
 const HomePage = () => {
   const {
@@ -55,27 +53,6 @@ const HomePage = () => {
     }
   };
   return <>
-      {/* Magnet Lines Background */}
-      <div className="fixed inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
-        <MagnetLines
-          rows={12}
-          columns={12}
-          containerSize="100vmin"
-          lineColor="hsl(var(--secondary))"
-          lineWidth="0.5vmin"
-          lineHeight="4vmin"
-          baseAngle={0}
-        />
-      </div>
-      
-      {/* Animated Gradient Orbs */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-[120px] animate-float" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-secondary/30 rounded-full blur-[100px] animate-float" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-accent/30 rounded-full blur-[90px] animate-float" style={{ animationDuration: '12s', animationDelay: '4s' }} />
-      </div>
-      
-      <FloatingElements count={40} variant="default" />
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
