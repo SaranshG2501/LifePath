@@ -56,8 +56,8 @@ const HomePage = () => {
       {/* Global Session Notification for Students */}
       {currentUser && userRole === 'student' && <GlobalSessionNotification />}
       
-      <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-8 md:py-12 relative z-10 max-w-7xl">
-        <section className="text-center mb-8 sm:mb-12 md:mb-16 animate-fade-in relative">
+      <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 md:py-12 relative z-10">
+        <section className="text-center mb-12 sm:mb-16 animate-fade-in relative">
           <div className="max-w-4xl mx-auto">
             <div className="inline-flex justify-center items-center p-3 sm:p-4 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-full mb-4 sm:mb-6 shadow-2xl shadow-primary/40 animate-neon-pulse backdrop-blur-xl border border-primary/30">
               <BookOpen className="h-7 w-7 sm:h-10 sm:w-10 text-secondary animate-pulse-slow drop-shadow-[0_0_10px_rgba(77,238,234,0.8)]" />
@@ -84,17 +84,17 @@ const HomePage = () => {
               Navigate realistic scenarios and shape your future through thoughtful choices
             </p>
             
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 px-2">
-              {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-4 sm:px-5 h-11 sm:h-10">
-                  <User size={16} className="sm:w-4 sm:h-4 text-white" />
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-2">
+              {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-3 sm:px-4">
+                  <User size={14} className="sm:w-4 sm:h-4 text-white" />
                   Sign Up / Login
-                </Button> : <Button onClick={() => navigate('/profile')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-4 sm:px-5 h-11 sm:h-10">
-                  <User size={16} className="sm:w-4 sm:h-4 text-white" />
+                </Button> : <Button onClick={() => navigate('/profile')} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all text-sm sm:text-base px-3 sm:px-4">
+                  <User size={14} className="sm:w-4 sm:h-4 text-white" />
                   My Profile
                 </Button>}
               
-              <Button onClick={() => navigate('/about')} variant="outline" className="flex items-center gap-2 border-white/20 bg-black/20 text-white hover:bg-black/40 text-sm sm:text-base px-4 sm:px-5 h-11 sm:h-10">
-                <Info size={16} className="sm:w-4 sm:h-4 text-blue-300" />
+              <Button onClick={() => navigate('/about')} variant="outline" className="flex items-center gap-2 border-white/20 bg-black/20 text-white hover:bg-black/40 text-sm sm:text-base px-3 sm:px-4">
+                <Info size={14} className="sm:w-4 sm:h-4 text-blue-300" />
                 Learn More
               </Button>
             </div>
@@ -124,14 +124,14 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="mb-8 sm:mb-12 md:mb-16 animate-fade-in" style={{
+        <section className="mb-12 sm:mb-16 animate-fade-in" style={{
         animationDelay: "0.3s"
       }}>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8 text-center flex items-center justify-center text-white px-2">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-center flex items-center justify-center text-white px-2">
             <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-300 mr-2" />
             Choose Your Scenario
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {scenarios.map((scenario, index) => <div key={scenario.id} className="animate-fade-in" style={{
             animationDelay: `${0.1 * (index + 1)}s`
           }}>
@@ -140,14 +140,14 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-5 sm:p-6 md:p-8 mb-8 sm:mb-12 md:mb-16 animate-fade-in" style={{
+        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-4 sm:p-6 lg:p-8 mb-12 sm:mb-16 animate-fade-in" style={{
         animationDelay: "0.5s"
       }}>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-5 md:mb-6 flex items-center text-white">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center text-white">
             <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-300 mr-2" />
             Why LifePath Is Different
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-black/40 border border-white/10 p-5 rounded-lg hover:border-blue-300/30 transition-all hover:shadow-md">
               <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
                 <Brain className="text-blue-300" />
@@ -172,15 +172,15 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section id="classroom-section" className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-5 sm:p-6 md:p-8 mb-8 sm:mb-12 md:mb-16 animate-fade-in" style={{
+        <section id="classroom-section" className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-8 mb-16 animate-fade-in" style={{
         animationDelay: "0.6s"
       }}>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center text-white">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold flex items-center text-white">
               <Users className="h-5 w-5 text-blue-300 mr-2" />
               Classroom Features
             </h2>
-            <Button onClick={handleJoinClassroom} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all h-11 sm:h-10 w-full sm:w-auto">
+            <Button onClick={handleJoinClassroom} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
               <LogIn className="mr-2 h-4 w-4" />
               Join Classroom
             </Button>
@@ -191,22 +191,22 @@ const HomePage = () => {
               <StudentClassroomView />
             </div>}
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mt-5 sm:mt-6">
-            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
               <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
                 <MessageSquare className="text-blue-300" />
               </div>
               <h3 className="font-bold text-lg mb-2 text-white">Discussion Mode</h3>
               <p className="text-white/70">Teachers can lead discussions and collect anonymous votes on decisions.</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all">
+            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
               <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
                 <BarChart className="text-blue-300" />
               </div>
               <h3 className="font-bold text-lg mb-2 text-white">Assessment</h3>
               <p className="text-white/70">Track student progress and decision-making patterns across scenarios.</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 sm:p-5 border border-white/10 hover:border-blue-300/30 transition-all">
+            <div className="bg-black/40 rounded-lg p-5 border border-white/10 hover:border-blue-300/30 transition-all">
               <div className="p-3 bg-blue-500/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
                 <Award className="text-blue-300" />
               </div>
@@ -214,32 +214,32 @@ const HomePage = () => {
               <p className="text-white/70">Students earn XP and badges based on their decision patterns.</p>
             </div>
           </div>
-          <div className="mt-5 sm:mt-6 text-center">
-            {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all h-11 sm:h-10 w-full sm:w-auto px-5">
+          <div className="mt-6 text-center">
+            {!userRole || userRole === 'guest' ? <Button onClick={() => navigate('/auth')} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
                 Sign Up to Access Classroom Features
               </Button> : userRole === 'teacher' ? <Button onClick={() => {
             setGameMode("classroom");
             navigate('/teacher');
-          }} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all h-11 sm:h-10 w-full sm:w-auto px-5">
+          }} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
                 <School className="h-4 w-4 mr-2" />
                 Create Your Classroom
-              </Button> : <Button onClick={() => setGameMode("classroom")} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all h-11 sm:h-10 w-full sm:w-auto px-5">
+              </Button> : <Button onClick={() => setGameMode("classroom")} className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all">
                 <Play className="h-4 w-4 mr-2" />
                 Join a Classroom
               </Button>}
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-5 sm:p-6 md:p-8 animate-fade-in" style={{
+        <section className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-white/10 backdrop-blur-md rounded-xl p-8 animate-fade-in" style={{
         animationDelay: "0.7s"
       }}>
-          <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center">
+          <div className="flex flex-col md:flex-row gap-8 items-center">
             <div className="md:w-1/2">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-white">For Parents & Educators</h2>
-              <p className="text-white/70 mb-5 sm:mb-6 font-normal text-sm sm:text-base">
+              <h2 className="text-2xl font-bold mb-4 text-white">For Parents & Educators</h2>
+              <p className="text-white/70 mb-6 font-normal \n">
                 LifePath helps young people develop critical thinking and decision-making skills through realistic scenarios. Students can experiment with choices and see their consequences in a safe environment.
               </p>
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all h-11 sm:h-10 w-full sm:w-auto px-5" asChild>
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/20 transition-all" asChild>
                 <a href="/about">Learn More</a>
               </Button>
             </div>
