@@ -73,16 +73,29 @@ const GamePage = () => {
         if (updatedSession.status === 'ended') {
           setIsInLiveSession(false);
           setHasVoted(false);
+          setLiveSession(null);
           
-          if (updatedSession.resultPayload) {
+          // Show modal and navigate away for students
+          if (userRole === 'student') {
+            toast({
+              title: "Session Ended",
+              description: "The teacher has ended this live session. Returning to home...",
+              duration: 3000,
+            });
+            
+            // Navigate away after a short delay
+            setTimeout(() => {
+              navigate('/');
+            }, 2000);
+          } else if (updatedSession.resultPayload) {
             setSessionResult(updatedSession.resultPayload);
             setShowResultScreen(true);
           } else {
-            setLiveSession(null);
             toast({
               title: "Session Ended",
-              description: "The live session has been ended by the teacher.",
+              description: "The live session has been ended.",
             });
+            navigate('/');
           }
           return;
         }
@@ -92,6 +105,8 @@ const GamePage = () => {
             updatedSession.currentSceneId && 
             gameState.currentScene?.id !== updatedSession.currentSceneId) {
           setCurrentScene(updatedSession.currentSceneId);
+          
+          // Important: Reset hasVoted BEFORE checking currentChoices
           setHasVoted(false);
           
           toast({
@@ -105,10 +120,12 @@ const GamePage = () => {
           syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
         }
         
-        // Check if current user has voted
+        // Check if current user has voted for the CURRENT scene
+        // This must run after scene synchronization to avoid race conditions
         if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
           setHasVoted(true);
-        } else {
+        } else if (currentUser) {
+          // Explicitly set to false if no vote found
           setHasVoted(false);
         }
       });

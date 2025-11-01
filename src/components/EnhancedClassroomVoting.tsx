@@ -61,11 +61,17 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
       unsubscribeLiveSession = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
         setLiveSession(updatedSession);
         
+        // Handle session ended - kick out students
+        if (updatedSession.status === 'ended') {
+          // EnhancedClassroomVoting will be unmounted when parent handles navigation
+          return;
+        }
+        
         // Sync scene changes from teacher to students
         if (userRole === 'student' && updatedSession.currentSceneId && 
             updatedSession.currentSceneId !== scene.id) {
           setCurrentScene(updatedSession.currentSceneId);
-          // Reset voting state when scene changes
+          // Reset voting state when scene changes - CRITICAL for allowing new votes
           setHasVoted(false);
           setSelectedChoice(null);
           setIsSubmitting(false);
@@ -84,14 +90,17 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         }));
         setVotes(liveVotes);
         
-        // Check if current user has voted for the CURRENT scene
-        if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
-          setHasVoted(true);
-          setSelectedChoice(updatedSession.currentChoices[currentUser.uid]);
-        } else if (currentUser) {
-          // User hasn't voted for this scene yet
-          setHasVoted(false);
-          setSelectedChoice(null);
+        // ONLY check if voted AFTER scene has already been synced
+        // This prevents race condition where old votes apply to new scene
+        if (updatedSession.currentSceneId === scene.id) {
+          if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
+            setHasVoted(true);
+            setSelectedChoice(updatedSession.currentChoices[currentUser.uid]);
+          } else if (currentUser) {
+            // User hasn't voted for this scene yet
+            setHasVoted(false);
+            setSelectedChoice(null);
+          }
         }
       });
     }
