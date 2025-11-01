@@ -65,6 +65,9 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         if (userRole === 'student' && updatedSession.currentSceneId && 
             updatedSession.currentSceneId !== scene.id) {
           setCurrentScene(updatedSession.currentSceneId);
+          // Reset voting state when scene changes
+          setHasVoted(false);
+          setSelectedChoice(null);
         }
 
         // Sync mirror moments setting for students
@@ -80,10 +83,14 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         }));
         setVotes(liveVotes);
         
-        // Check if current user has voted
+        // Check if current user has voted for the CURRENT scene
         if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
           setHasVoted(true);
           setSelectedChoice(updatedSession.currentChoices[currentUser.uid]);
+        } else if (currentUser) {
+          // User hasn't voted for this scene yet
+          setHasVoted(false);
+          setSelectedChoice(null);
         }
       });
     }
@@ -91,7 +98,7 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
     return () => {
       if (unsubscribeLiveSession) unsubscribeLiveSession();
     };
-  }, [classroomId, currentUser, liveSession?.id, userRole, scene.id, setCurrentScene]);
+  }, [classroomId, currentUser, liveSession?.id, userRole, scene.id, setCurrentScene, syncMirrorMomentsFromSession]);
 
   const totalVotes = votes.length;
   

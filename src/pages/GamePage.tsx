@@ -154,8 +154,11 @@ const GamePage = () => {
           }
         }
         
+        // Reset votes when advancing
+        setHasVoted(false);
+        
         await advanceLiveSession(liveSession.id, nextSceneId, nextSceneIndex);
-        makeChoice('advance');
+        makeChoice('advance', true); // Skip mirror moments during live sessions
         
         toast({
           title: "Scene Advanced",
@@ -411,7 +414,7 @@ const GamePage = () => {
           onPlayAgain={handlePlayAgain} 
           onReturnHome={handleReturnHome} 
         />
-      ) : showMirrorMoment ? (
+      ) : (showMirrorMoment && liveSession?.mirrorMomentsEnabled !== false) ? (
         <MirrorMoment />
       ) : isInLiveSession ? (
         <SceneDisplay 

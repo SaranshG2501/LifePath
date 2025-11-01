@@ -15,7 +15,7 @@ type GameContextType = {
   gameState: GameState;
   scenarios: Scenario[];
   startScenario: (id: string) => void;
-  makeChoice: (choiceId: string) => void;
+  makeChoice: (choiceId: string, skipMirrorMoment?: boolean) => void;
   resetGame: () => void;
   isGameActive: boolean;
   gameMode: GameMode;
@@ -189,7 +189,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const makeChoice = (choiceId: string) => {
+  const makeChoice = (choiceId: string, skipMirrorMoment: boolean = false) => {
     if (!gameState.currentScene || !gameState.currentScenario) return;
 
     const choice = gameState.currentScene.choices.find(
@@ -205,8 +205,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // If mirror moments are enabled, show reflection question
-    if (mirrorMomentsEnabled && !showMirrorMoment && Math.random() < 0.5) {
+    // If mirror moments are enabled, show reflection question (but skip during live sessions)
+    if (mirrorMomentsEnabled && !showMirrorMoment && !skipMirrorMoment && Math.random() < 0.5) {
       const mirrorQuestions = [
         "Pause. Why did you choose that option?",
         "Would your real self make the same choice?",
