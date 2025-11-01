@@ -68,6 +68,7 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
           // Reset voting state when scene changes
           setHasVoted(false);
           setSelectedChoice(null);
+          setIsSubmitting(false);
         }
 
         // Sync mirror moments setting for students

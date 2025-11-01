@@ -418,6 +418,7 @@ const GamePage = () => {
         <MirrorMoment />
       ) : isInLiveSession ? (
         <SceneDisplay 
+          key={gameState.currentScene.id}
           scene={gameState.currentScene} 
           onChoiceMade={handleChoiceMade}
           isLiveSession={true}
@@ -428,6 +429,7 @@ const GamePage = () => {
         <EnhancedClassroomVoting scene={gameState.currentScene} />
       ) : (
         <SceneDisplay 
+          key={gameState.currentScene.id}
           scene={gameState.currentScene} 
           onChoiceMade={handleChoiceMade} 
         />
