@@ -36,18 +36,18 @@ const AppHeader: React.FC = () => {
 
   return (
     <header className="border-b border-white/10 bg-indigo-900/50 backdrop-blur-md shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-3 sm:px-6 sm:py-3 flex justify-between items-center max-w-7xl">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex items-center justify-center">
-            <Gamepad2 className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-300" />
+            <Gamepad2 className="h-6 w-6 sm:h-6 sm:w-6 text-indigo-300" />
           </div>
           <span className="font-bold text-lg sm:text-xl text-white ml-1">LifePath</span>
         </Link>
         
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
           {!isGameActive && (
             <>
-              <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+              <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10 h-9 sm:h-8 px-2.5 sm:px-3">
                 <Link to="/" className="flex items-center gap-1.5">
                   <Home className="h-4 w-4" />
                   <span className="hidden md:inline">Home</span>
@@ -55,11 +55,11 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userRole === "teacher" && (
-                <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+                <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10 h-9 sm:h-8 px-2.5 sm:px-3">
                   <Link to="/teacher" className="flex items-center gap-1.5">
                     <School className="h-4 w-4" />
-                    <span className="hidden md:inline">Teacher Dashboard</span>
-                    <span className="inline md:hidden">Dashboard</span>
+                    <span className="hidden lg:inline">Teacher Dashboard</span>
+                    <span className="inline lg:hidden hidden sm:inline">Dashboard</span>
                   </Link>
                 </Button>
               )}
@@ -69,24 +69,24 @@ const AppHeader: React.FC = () => {
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setGameMode("individual")}
-                  className="rounded-xl text-white hover:bg-white/10"
+                  className="rounded-xl text-white hover:bg-white/10 h-9 sm:h-8 px-2.5 sm:px-3"
                 >
                   <Users className="h-4 w-4 text-indigo-300" />
-                  <span className="hidden md:inline">Classroom</span>
+                  <span className="hidden md:inline ml-1.5">Classroom</span>
                 </Button>
               ) : (
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setGameMode("classroom")}
-                  className="rounded-xl text-white hover:bg-white/10"
+                  className="rounded-xl text-white hover:bg-white/10 h-9 sm:h-8 px-2.5 sm:px-3"
                 >
                   <User className="h-4 w-4" />
-                  <span className="hidden md:inline">Individual</span>
+                  <span className="hidden md:inline ml-1.5">Individual</span>
                 </Button>
               )}
               
-              <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+              <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10 h-9 sm:h-8 px-2.5 sm:px-3 hidden sm:flex">
                 <Link to="/about" className="flex items-center gap-1.5">
                   <Info className="h-4 w-4" />
                   <span className="hidden md:inline">About</span>
@@ -94,14 +94,14 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userProfile ? (
-                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50 h-9 sm:h-8 px-2.5 sm:px-3">
                   <Link to="/profile" className="flex items-center gap-1.5">
                     <User className="h-4 w-4" />
                     <span className="hidden md:inline">Profile</span>
                   </Link>
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+                <Button variant="outline" size="sm" asChild className="rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50 h-9 sm:h-8 px-3 sm:px-3">
                   <Link to="/auth" className="flex items-center gap-1.5">
                     <User className="h-4 w-4" />
                     <span className="inline">Login</span>
@@ -112,7 +112,7 @@ const AppHeader: React.FC = () => {
           )}
           
           {isGameActive && (
-            <Button variant="outline" size="sm" onClick={resetGame} className="flex items-center gap-1.5 rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50">
+            <Button variant="outline" size="sm" onClick={resetGame} className="flex items-center gap-1.5 rounded-xl border-indigo-500/30 bg-indigo-900/50 text-white hover:bg-indigo-800/50 h-9 sm:h-8 px-3">
               <LogOut className="h-4 w-4" />
               <span className="hidden md:inline">Exit Scenario</span>
               <span className="inline md:hidden">Exit</span>

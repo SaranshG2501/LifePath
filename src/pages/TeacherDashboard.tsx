@@ -251,18 +251,18 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 animate-fade-in">
+    <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-8 animate-fade-in max-w-7xl">
       {/* Hero Header */}
-      <div className="glass-card mb-8 relative overflow-hidden">
+      <div className="glass-card mb-6 sm:mb-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-transparent"></div>
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="relative flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold gradient-heading mb-2">Teacher Dashboard</h1>
-            <p className="text-muted-foreground text-base">Manage your classrooms and scenarios with ease</p>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-heading mb-2">Teacher Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage your classrooms and scenarios with ease</p>
           </div>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="glow-button w-full sm:w-auto"
+            className="glow-button w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm"
           >
             <Plus className="h-5 w-5 mr-2" />
             Create Classroom
@@ -271,19 +271,19 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Classrooms Section */}
-      <div className="mb-12">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="mb-8 sm:mb-12">
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-            <School className="h-6 w-6 text-primary" />
+            <School className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Your Classrooms</h2>
-            <p className="text-sm text-muted-foreground">{classrooms.length} active {classrooms.length === 1 ? 'classroom' : 'classrooms'}</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Your Classrooms</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">{classrooms.length} active {classrooms.length === 1 ? 'classroom' : 'classrooms'}</p>
           </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="teen-card animate-pulse">
                 <CardHeader>
@@ -298,22 +298,22 @@ const TeacherDashboard = () => {
             ))}
           </div>
         ) : classrooms.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {classrooms.map((classroom) => (
               <Card key={classroom.id} className="teen-card hover-lift group">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-foreground text-xl font-bold group-hover:text-primary transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-foreground text-lg sm:text-xl font-bold group-hover:text-primary transition-colors break-words">
                         {classroom.name}
                       </CardTitle>
-                      <CardDescription className="text-muted-foreground mt-2 text-sm">
+                      <CardDescription className="text-muted-foreground mt-1.5 text-xs sm:text-sm line-clamp-2">
                         {classroom.description || "No description"}
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2 ml-2">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       {classroom.activeSessionId && (
-                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs animate-pulse">
+                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs whitespace-nowrap animate-pulse px-2 py-0.5">
                           ● Live
                         </Badge>
                       )}
@@ -322,7 +322,7 @@ const TeacherDashboard = () => {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1 h-8 w-8"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1.5 h-9 w-9 sm:h-8 sm:w-8"
                             disabled={deleting === classroom.id}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -365,18 +365,18 @@ const TeacherDashboard = () => {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+                <CardContent className="pt-3">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Stats Row */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                       <div className="stat-badge">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="text-foreground font-medium">{classroom.students?.length || 0}</span>
+                        <span className="text-foreground font-medium text-sm">{classroom.students?.length || 0}</span>
                       </div>
                       <div className="stat-badge">
                         <Calendar className="h-4 w-4 text-secondary" />
                         <span className="text-muted-foreground text-xs">
-                          {convertTimestampToDate(classroom.createdAt).toLocaleDateString()}
+                          {convertTimestampToDate(classroom.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     </div>
@@ -384,16 +384,16 @@ const TeacherDashboard = () => {
                     {/* Classroom Code */}
                     <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
                       <p className="text-xs text-muted-foreground mb-1">Classroom Code</p>
-                      <p className="text-lg font-bold text-foreground font-mono tracking-wider">{classroom.classCode}</p>
+                      <p className="text-base sm:text-lg font-bold text-foreground font-mono tracking-wider">{classroom.classCode}</p>
                     </div>
                     
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         variant="default" 
                         size="sm" 
                         onClick={() => setSelectedClassroom(classroom)}
-                        className="flex-1"
+                        className="flex-1 h-11 sm:h-9 text-sm"
                       >
                         <School className="h-4 w-4 mr-2" />
                         Manage
@@ -404,7 +404,7 @@ const TeacherDashboard = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                              className="border-red-500/20 bg-red-900/20 text-red-400 hover:bg-red-900/40 h-11 sm:h-9 text-sm flex-1 sm:flex-initial"
                               disabled={endingSession === classroom.id}
                             >
                               <StopCircle className="h-4 w-4 mr-1" />
@@ -508,17 +508,17 @@ const TeacherDashboard = () => {
 
       {/* Scenarios Section */}
       <div>
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-            <BookOpen className="h-6 w-6 text-primary" />
+            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Available Scenarios</h2>
-            <p className="text-sm text-muted-foreground">{scenarios.length} {scenarios.length === 1 ? 'scenario' : 'scenarios'} available</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Available Scenarios</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">{scenarios.length} {scenarios.length === 1 ? 'scenario' : 'scenarios'} available</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {scenarios.map((scenario) => (
             <Card key={scenario.id} className="teen-card hover-lift group flex flex-col h-full">
               <CardHeader className="flex-grow">

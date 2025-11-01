@@ -344,65 +344,65 @@ const GamePage = () => {
 
 
   return (
-    <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8 animate-fade-in relative">
+    <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-6 md:py-8 animate-fade-in relative max-w-7xl">
       <FloatingElements count={15} variant="sparse" />
       {/* Header with scenario title, mode and metrics */}
-      <div className="mb-4 sm:mb-6 md:mb-8 relative z-10">
-        <div className="bg-gradient-to-br from-card/60 to-card/40 rounded-2xl p-3 sm:p-4 border-2 border-primary/30 shadow-2xl backdrop-blur-xl hover-lift">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+      <div className="mb-4 sm:mb-5 md:mb-8 relative z-10">
+        <div className="bg-gradient-to-br from-card/60 to-card/40 rounded-2xl p-4 sm:p-4 border-2 border-primary/30 shadow-2xl backdrop-blur-xl hover-lift">
+          <div className="flex flex-col gap-3 sm:gap-4 mb-3 sm:mb-4">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2 flex-wrap">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-300" />
+              <Sparkles className="h-5 w-5 sm:h-5 sm:w-5 text-indigo-300 flex-shrink-0" />
               <span className="break-words">{gameState.currentScenario.title}</span>
               {isInLiveSession && (
-                <div className="flex items-center gap-1">
-                  <Wifi className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 animate-pulse" />
+                <div className="flex items-center gap-1.5">
+                  <Wifi className="h-4 w-4 sm:h-4 sm:w-4 text-green-400 animate-pulse" />
                   <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                    <Radio className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
+                    <Radio className="h-3 w-3 sm:h-3 sm:w-3 mr-1" />
                     Live
                   </Badge>
                 </div>
               )}
             </h1>
             
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
-                className={`flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3 ${
+                className={`flex items-center gap-1.5 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-3 h-9 sm:h-8 ${
                   (userRole === 'student' && gameMode === 'classroom' && isInLiveSession) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={handleToggleMirrorMoments}
                 disabled={userRole === 'student' && gameMode === 'classroom' && isInLiveSession}
               >
-                {(userRole === 'student' && gameMode === 'classroom' && isInLiveSession) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
+                {(userRole === 'student' && gameMode === 'classroom' && isInLiveSession) && <Lock className="h-4 w-4 text-orange-400" />}
                 {mirrorMomentsEnabled ? (
-                  <ToggleRight className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-300" />
+                  <ToggleRight className="h-4 w-4 text-indigo-300" />
                 ) : (
-                  <ToggleLeft className="h-3 w-3 sm:h-4 sm:w-4 text-white/50" />
+                  <ToggleLeft className="h-4 w-4 text-white/50" />
                 )}
-                <span className="hidden sm:inline">Mirror Moments</span>
-                <span className="sm:hidden">Mirror</span>
+                <span className="hidden xs:inline">Mirror Moments</span>
+                <span className="xs:hidden">Mirror</span>
               </Button>
               
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3"
+                className="flex items-center gap-1.5 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-3 h-9 sm:h-8"
                 onClick={toggleGameMode}
                 disabled={(!classroomId && gameMode === "individual") || isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')}
               >
-                {(isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
+                {(isInLiveSession || (userRole === 'teacher' && liveSession?.status === 'active')) && <Lock className="h-4 w-4 text-orange-400" />}
                 {gameMode === "classroom" ? (
                   <>
-                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-300" />
-                    <span className="hidden sm:inline">Classroom Mode</span>
-                    <span className="sm:hidden">Classroom</span>
+                    <Users className="h-4 w-4 text-indigo-300" />
+                    <span className="hidden xs:inline">Classroom Mode</span>
+                    <span className="xs:hidden">Classroom</span>
                   </>
                 ) : (
                   <>
-                    <User className="h-3 w-3 sm:h-4 sm:w-4 text-white/50" />
-                    <span className="hidden sm:inline">Individual Mode</span>
-                    <span className="sm:hidden">Individual</span>
+                    <User className="h-4 w-4 text-white/50" />
+                    <span className="hidden xs:inline">Individual Mode</span>
+                    <span className="xs:hidden">Individual</span>
                   </>
                 )}
               </Button>
@@ -414,7 +414,7 @@ const GamePage = () => {
 
       {/* Live Session Tracker for Teachers and Students */}
       {isInLiveSession && liveSession && (
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-4 sm:mb-5 md:mb-6">
           <LiveSessionTracker
             session={liveSession}
             onAdvanceScene={handleAdvanceScene}
