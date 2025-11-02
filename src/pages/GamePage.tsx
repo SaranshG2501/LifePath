@@ -77,6 +77,9 @@ const GamePage = () => {
           
           // Show modal and navigate away for students
           if (userRole === 'student') {
+            // Reset game state to kick student out of scenario
+            resetGame();
+            
             toast({
               title: "Session Ended",
               description: "The teacher has ended this live session. Returning to home...",
@@ -294,11 +297,11 @@ const GamePage = () => {
   };
 
   const handleToggleMirrorMoments = () => {
-    // Prevent students from changing mirror mode during live sessions
-    if (userRole === 'student' && isInLiveSession) {
+    // Prevent anyone from changing mirror mode during live sessions
+    if (isInLiveSession) {
       toast({
-        title: "Permission Denied",
-        description: "Only teachers can change mirror moments settings during live sessions.",
+        title: "Setting Locked",
+        description: "Mirror moments cannot be changed during an active live session.",
         variant: "destructive",
       });
       return;
@@ -369,12 +372,12 @@ const GamePage = () => {
                 variant="outline" 
                 size="sm"
                 className={`flex items-center gap-1 border-indigo-300/20 bg-black/20 text-white hover:bg-indigo-900/20 text-xs sm:text-sm px-2 sm:px-3 ${
-                  (userRole === 'student' && gameMode === 'classroom' && isInLiveSession) ? 'opacity-50 cursor-not-allowed' : ''
+                  isInLiveSession ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={handleToggleMirrorMoments}
-                disabled={userRole === 'student' && gameMode === 'classroom' && isInLiveSession}
+                disabled={isInLiveSession}
               >
-                {(userRole === 'student' && gameMode === 'classroom' && isInLiveSession) && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
+                {isInLiveSession && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
                 {mirrorMomentsEnabled ? (
                   <ToggleRight className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-300" />
                 ) : (
