@@ -110,8 +110,19 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
-      allow write: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      // Allow teachers to create notifications for students (session started/ended)
+      allow create: if isAuthenticated();
+      // Allow students to update their own notifications (mark as read)
+      allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
       allow delete: if isAuthenticated();
+    }
+    
+    // Classroom Messages
+    match /classroomMessages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
     }
     
     // Class codes (for joining classrooms)
