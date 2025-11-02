@@ -11,6 +11,7 @@ import ResultsSummary from '@/components/ResultsSummary';
 import MirrorMoment from '@/components/MirrorMoment';
 import EnhancedClassroomVoting from '@/components/EnhancedClassroomVoting';
 import LiveSessionTracker from '@/components/classroom/LiveSessionTracker';
+import SessionEndedResult from '@/components/SessionEndedResult';
 import { Sparkles, Loader2, Users, User, ToggleLeft, ToggleRight, Wifi, Lock, Radio } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,8 @@ const GamePage = () => {
   const [hasVoted, setHasVoted] = useState(false);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [sessionResult, setSessionResult] = useState<any>(null);
+  const [showSessionEndedScreen, setShowSessionEndedScreen] = useState(false);
+  const [sessionEndMessage, setSessionEndMessage] = useState<string>('');
 
   useEffect(() => {
     if (!isGameActive) {
@@ -75,21 +78,16 @@ const GamePage = () => {
           setHasVoted(false);
           setLiveSession(null);
           
-          // Show modal and navigate away for students
+          // Show session ended screen for students
           if (userRole === 'student') {
-            // Reset game state to kick student out of scenario
-            resetGame();
+            setSessionEndMessage("The teacher has ended this live session.");
+            setShowSessionEndedScreen(true);
             
             toast({
               title: "Session Ended",
-              description: "The teacher has ended this live session. Returning to home...",
+              description: "The teacher has ended this live session.",
               duration: 3000,
             });
-            
-            // Navigate away after a short delay
-            setTimeout(() => {
-              navigate('/');
-            }, 2000);
           } else if (updatedSession.resultPayload) {
             setSessionResult(updatedSession.resultPayload);
             setShowResultScreen(true);
@@ -236,6 +234,8 @@ const GamePage = () => {
     resetGame();
     setShowResultScreen(false);
     setSessionResult(null);
+    setShowSessionEndedScreen(false);
+    setSessionEndMessage('');
     navigate('/');
   };
 
@@ -321,6 +321,19 @@ const GamePage = () => {
           <Loader2 className="h-8 w-8 text-indigo-300 animate-spin" />
           <p className="text-white text-lg">Loading your adventure...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show session ended screen for students
+  if (showSessionEndedScreen) {
+    return (
+      <div className="container mx-auto px-4 py-6 md:py-8 animate-fade-in">
+        <SessionEndedResult 
+          gameState={gameState}
+          onReturnHome={handleReturnHome}
+          message={sessionEndMessage}
+        />
       </div>
     );
   }

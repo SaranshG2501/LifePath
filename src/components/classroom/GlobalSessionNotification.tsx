@@ -177,11 +177,14 @@ const GlobalSessionNotification: React.FC = () => {
               
               <DialogDescription className="text-center text-white/90 space-y-4">
                 <div className="bg-gradient-to-r from-red-800/60 to-red-700/60 rounded-xl p-5 space-y-3 border border-red-600/30">
-                  <div className="text-white/80 text-base">
-                    {notification.message || `The live session "${notification.scenarioTitle}" has been ended by ${notification.teacherName}.`}
+                  <div className="text-white font-medium text-lg mb-2">
+                    Live Session Has Ended
                   </div>
-                  <div className="text-white/60 text-sm">
-                    You will be returned to individual mode.
+                  <div className="text-white/80 text-base">
+                    {notification.message || `Your teacher, ${notification.teacherName}, has ended the live session for "${notification.scenarioTitle}".`}
+                  </div>
+                  <div className="text-white/70 text-sm mt-3 bg-red-900/30 rounded-lg p-3">
+                    Don't worry! You'll be notified when the next live session begins.
                   </div>
                 </div>
               </DialogDescription>
