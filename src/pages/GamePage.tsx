@@ -434,7 +434,9 @@ const GamePage = () => {
           onPlayAgain={handlePlayAgain} 
           onReturnHome={handleReturnHome} 
         />
-      ) : (showMirrorMoment && liveSession?.mirrorMomentsEnabled !== false) ? (
+      ) : (showMirrorMoment && !isInLiveSession) ? (
+        <MirrorMoment />
+      ) : (showMirrorMoment && isInLiveSession && liveSession?.mirrorMomentsEnabled === true) ? (
         <MirrorMoment />
       ) : isInLiveSession ? (
         <SceneDisplay 

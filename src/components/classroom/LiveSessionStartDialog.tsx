@@ -60,16 +60,17 @@ const LiveSessionStartDialog: React.FC<LiveSessionStartDialogProps> = ({
             <p className="text-white/80 text-sm">{classroomName}</p>
           </div>
 
-          <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <div className="bg-black/20 rounded-lg p-4 border border-orange-500/20">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
                 <Eye className="h-5 w-5 text-orange-400" />
-                <div>
+                <div className="flex-1">
                   <Label htmlFor="mirror-moments" className="text-white font-medium">
-                    Mirror Moments
+                    Enable Mirror Moments?
                   </Label>
                   <p className="text-white/70 text-xs mt-1">
-                    Enable reflection prompts during gameplay
+                    When enabled, students will see reflection prompts during gameplay. 
+                    <strong className="text-orange-300"> This setting cannot be changed once the session starts.</strong>
                   </p>
                 </div>
               </div>
@@ -77,6 +78,7 @@ const LiveSessionStartDialog: React.FC<LiveSessionStartDialogProps> = ({
                 id="mirror-moments"
                 checked={mirrorMomentsEnabled}
                 onCheckedChange={setMirrorMomentsEnabled}
+                className="data-[state=checked]:bg-orange-500"
               />
             </div>
           </div>
