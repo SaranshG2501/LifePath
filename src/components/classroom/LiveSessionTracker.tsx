@@ -82,17 +82,24 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
       <Card className="bg-black/30 border-blue-500/20">
         <CardHeader>
           <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-white flex items-center gap-2">
-                <div className="relative">
-                  <div className="absolute h-3 w-3 rounded-full bg-green-400 animate-ping"></div>
-                  <div className="relative h-3 w-3 rounded-full bg-green-400"></div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle className="text-white">Classroom Decision</CardTitle>
+                <Badge className="bg-green-500/20 text-green-300 border-0">
+                  <div className="relative mr-1">
+                    <div className="absolute h-2 w-2 rounded-full bg-green-400 animate-ping"></div>
+                    <div className="relative h-2 w-2 rounded-full bg-green-400"></div>
+                  </div>
+                  Live
+                </Badge>
+              </div>
+              {currentScene && (
+                <div>
+                  <CardTitle className="text-white text-lg">{currentScene.title}</CardTitle>
+                  <CardDescription className="text-white/80">{currentScene.description}</CardDescription>
                 </div>
-                Live Session Active
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                {session.scenarioTitle} - Scene: {session.currentSceneId}
-              </CardDescription>
+              )}
             </div>
             {isTeacher && (
               <div className="flex gap-2">
