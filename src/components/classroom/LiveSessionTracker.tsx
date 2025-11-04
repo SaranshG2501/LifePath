@@ -77,42 +77,6 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Current Scene Question - visible to both teachers and students */}
-      {currentScene && (
-        <Card className="bg-gradient-to-br from-green-900/30 to-green-800/20 border-2 border-green-500/30 shadow-xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-green-400 animate-pulse" />
-              {isTeacher ? 'Current Scene Question' : 'Live Question'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-black/30 rounded-xl p-5 border border-green-500/20">
-                <h3 className="text-xl font-bold text-white mb-3">{currentScene.title}</h3>
-                <p className="text-white/90 leading-relaxed text-base">{currentScene.description}</p>
-              </div>
-              
-              {currentScene.choices && currentScene.choices.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-base font-semibold text-green-300 flex items-center gap-2">
-                    Available Choices:
-                  </h4>
-                  <div className="space-y-2">
-                    {currentScene.choices.map((choice, index) => (
-                      <div key={choice.id} className="bg-black/30 rounded-lg p-4 border-l-4 border-green-500/50 hover:border-green-400 transition-all">
-                        <span className="text-white text-base">
-                          <strong className="text-green-400">Choice {index + 1}:</strong> {choice.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Live Session Tracker */}
       <Card className="bg-black/30 border-blue-500/20">

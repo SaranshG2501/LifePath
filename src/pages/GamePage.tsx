@@ -391,13 +391,13 @@ const GamePage = () => {
                 disabled={isInLiveSession}
               >
                 {isInLiveSession && <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 mr-1" />}
-                {mirrorMomentsEnabled ? (
+                {(isInLiveSession ? liveSession?.mirrorMomentsEnabled : mirrorMomentsEnabled) ? (
                   <ToggleRight className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-300" />
                 ) : (
                   <ToggleLeft className="h-3 w-3 sm:h-4 sm:w-4 text-white/50" />
                 )}
-                <span className="hidden sm:inline">Mirror Moments</span>
-                <span className="sm:hidden">Mirror</span>
+                <span className="hidden sm:inline">Mirror Moments {isInLiveSession ? '(Locked)' : ''}</span>
+                <span className="sm:hidden">Mirror {isInLiveSession ? '(L)' : ''}</span>
               </Button>
               
               <Button 
