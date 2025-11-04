@@ -116,8 +116,8 @@ const GamePage = () => {
           });
         }
 
-        // Sync mirror moments setting for students
-        if (userRole === 'student' && updatedSession.mirrorMomentsEnabled !== undefined) {
+        // Sync mirror moments setting for all clients to reflect locked state during session
+        if (updatedSession.mirrorMomentsEnabled !== undefined) {
           syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
         }
         

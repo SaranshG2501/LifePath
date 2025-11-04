@@ -102,8 +102,9 @@ service cloud.firestore {
                      request.resource.data.studentId == request.auth.uid;
       allow read: if isAuthenticated();
       allow update: if isAuthenticated() && 
-                     (resource.data.studentId == request.auth.uid ||
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isActive']));
+                     ((resource.data.studentId == request.auth.uid) ||
+                      // Allow system updates to participant activity and status
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentChoice', 'lastActivity', 'isActive']));
       allow delete: if isAuthenticated() && resource.data.studentId == request.auth.uid;
     }
     

@@ -197,6 +197,12 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
       </CardHeader>
       
       <CardContent>
+        {/* Question under Classroom Decision */}
+        <div className="bg-black/30 rounded-lg p-4 border border-primary/20 mb-4">
+          <CardTitle className="text-white text-lg mb-2">{scene.title}</CardTitle>
+          <CardDescription className="text-white/90">{scene.description}</CardDescription>
+        </div>
+
         <div className="bg-black/20 rounded-lg p-3 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart className="h-5 w-5 text-primary" />

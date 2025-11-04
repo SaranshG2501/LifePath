@@ -328,7 +328,7 @@ export const endLiveSession = async (sessionId: string, classroomId: string, res
     const oldNotificationsQuery = query(
       collection(db, 'notifications'),
       where('sessionId', '==', sessionId),
-      where('type', '==', 'session_started')
+      where('type', '==', 'live_session_started')
     );
     const oldNotificationsSnapshot = await getDocs(oldNotificationsQuery);
     cleanupPromises.push(
