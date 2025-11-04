@@ -41,26 +41,22 @@ const SceneDisplay: React.FC<SceneDisplayProps> = ({
 
   return (
     <Card className="w-full max-w-4xl mx-auto bg-black/40 border-primary/20 backdrop-blur-lg shadow-xl animate-fade-in">
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          {isLiveSession && (
-            <Badge className="bg-green-500/20 text-green-300 border-0">
-              <Wifi className="h-3 w-3 mr-1" />
-              Live Session
-            </Badge>
-          )}
-          {scene.isEnding && (
-            <Badge className="bg-purple-500/20 text-purple-300 border-0">
-              <Clock className="h-3 w-3 mr-1" />
-              Final Scene
-            </Badge>
-          )}
-        </div>
-        <CardTitle className="text-2xl text-white mb-4">{scene.title}</CardTitle>
-        <CardDescription className="text-lg text-white/90 leading-relaxed">
-          {scene.description}
-        </CardDescription>
-      </CardHeader>
+      {!isLiveSession && (
+        <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {scene.isEnding && (
+              <Badge className="bg-purple-500/20 text-purple-300 border-0">
+                <Clock className="h-3 w-3 mr-1" />
+                Final Scene
+              </Badge>
+            )}
+          </div>
+          <CardTitle className="text-2xl text-white mb-4">{scene.title}</CardTitle>
+          <CardDescription className="text-lg text-white/90 leading-relaxed">
+            {scene.description}
+          </CardDescription>
+        </CardHeader>
+      )}
       
       <CardContent>
         <div className="space-y-4">
