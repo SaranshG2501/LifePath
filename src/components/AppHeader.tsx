@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, School, History } from 'lucide-react';
+import { LogOut, Info, Home, Gamepad2, Sparkles, User, Users, School } from 'lucide-react';
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -55,20 +55,13 @@ const AppHeader: React.FC = () => {
               </Button>
               
               {userRole === "teacher" && (
-                <>
-                  <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
-                    <Link to="/teacher" className="flex items-center gap-1.5">
-                      <School className="h-4 w-4" />
-                      <span className="hidden md:inline">Dashboard</span>
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
-                    <Link to="/session-history" className="flex items-center gap-1.5">
-                      <History className="h-4 w-4" />
-                      <span className="hidden md:inline">History</span>
-                    </Link>
-                  </Button>
-                </>
+                <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
+                  <Link to="/teacher" className="flex items-center gap-1.5">
+                    <School className="h-4 w-4" />
+                    <span className="hidden md:inline">Teacher Dashboard</span>
+                    <span className="inline md:hidden">Dashboard</span>
+                  </Link>
+                </Button>
               )}
               
               <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">

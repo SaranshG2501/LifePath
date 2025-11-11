@@ -1510,40 +1510,6 @@ export const onLiveSessionUpdated = (sessionId: string, callback: (session: Live
   });
 };
 
-// Get session history for a teacher
-export const getTeacherSessionHistory = async (teacherId: string): Promise<LiveSession[]> => {
-  try {
-    const sessionsQuery = query(
-      collection(db, 'sessions'),
-      where('teacherId', '==', teacherId),
-      where('status', '==', 'ended'),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(sessionsQuery);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveSession));
-  } catch (error) {
-    console.error("Error fetching session history:", error);
-    throw error;
-  }
-};
-
-// Get participant details for a session
-export const getSessionParticipants = async (sessionId: string) => {
-  try {
-    const participantsQuery = query(
-      collection(db, 'sessionParticipants'),
-      where('sessionId', '==', sessionId)
-    );
-    
-    const snapshot = await getDocs(participantsQuery);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error fetching session participants:", error);
-    return [];
-  }
-};
-
 export const onSessionParticipantsUpdated = (sessionId: string, callback: (participants: SessionParticipant[]) => void) => {
   const q = query(
     collection(db, 'sessionParticipants'),

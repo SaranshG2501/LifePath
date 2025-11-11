@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle, History } from 'lucide-react';
+import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle } from 'lucide-react';
 import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -260,23 +260,13 @@ const TeacherDashboard = () => {
             <h1 className="text-3xl sm:text-4xl font-bold gradient-heading mb-2">Teacher Dashboard</h1>
             <p className="text-muted-foreground text-base">Manage your classrooms and scenarios with ease</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              onClick={() => navigate('/session-history')}
-              variant="outline"
-              className="flex-1 sm:flex-none border-primary/30"
-            >
-              <History className="h-5 w-5 mr-2" />
-              Session History
-            </Button>
-            <Button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="glow-button flex-1 sm:flex-none"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Classroom
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="glow-button w-full sm:w-auto"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create Classroom
+          </Button>
         </div>
       </div>
 

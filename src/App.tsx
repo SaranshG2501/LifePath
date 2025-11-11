@@ -11,7 +11,6 @@ import AboutPage from "@/pages/AboutPage";
 import AuthPage from "@/pages/AuthPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherDashboard from "@/pages/TeacherDashboard";
-import SessionHistoryPage from "@/pages/SessionHistoryPage";
 import NotFound from "@/pages/NotFound";
 import { Toaster } from "@/components/ui/toaster";
 import { MagnetLines } from "@/components/ui/magnet-lines";
@@ -58,7 +57,6 @@ const App = () => (
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/teacher" element={<TeacherDashboard />} />
-                  <Route path="/session-history" element={<SessionHistoryPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
