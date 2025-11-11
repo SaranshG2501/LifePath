@@ -64,28 +64,6 @@ const AppHeader: React.FC = () => {
                 </Button>
               )}
               
-              {gameMode === "classroom" ? (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setGameMode("individual")}
-                  className="rounded-xl text-white hover:bg-white/10"
-                >
-                  <Users className="h-4 w-4 text-indigo-300" />
-                  <span className="hidden md:inline">Classroom</span>
-                </Button>
-              ) : (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setGameMode("classroom")}
-                  className="rounded-xl text-white hover:bg-white/10"
-                >
-                  <User className="h-4 w-4" />
-                  <span className="hidden md:inline">Individual</span>
-                </Button>
-              )}
-              
               <Button variant="ghost" size="sm" asChild className="rounded-xl text-white hover:bg-white/10">
                 <Link to="/about" className="flex items-center gap-1.5">
                   <Info className="h-4 w-4" />
