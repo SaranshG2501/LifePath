@@ -1529,44 +1529,4 @@ export const signInWithGoogle = () => {
   return signInWithPopup(auth, provider);
 };
 
-// Session History Functions
-export const getTeacherSessionHistory = async (teacherId: string) => {
-  try {
-    const q = query(
-      collection(db, 'sessions'),
-      where('teacherId', '==', teacherId),
-      where('status', '==', 'ended'),
-      orderBy('startedAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(q);
-    const sessions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as LiveSession[];
-    
-    return sessions;
-  } catch (error) {
-    console.error('Error fetching session history:', error);
-    throw error;
-  }
-};
-
-export const getSessionParticipants = async (sessionId: string) => {
-  try {
-    const q = query(
-      collection(db, 'sessionParticipants'),
-      where('sessionId', '==', sessionId)
-    );
-    
-    const snapshot = await getDocs(q);
-    const participants = snapshot.docs.map(doc => doc.data()) as SessionParticipant[];
-    
-    return participants;
-  } catch (error) {
-    console.error('Error fetching session participants:', error);
-    throw error;
-  }
-};
-
 export { auth, db, Timestamp, analytics };
