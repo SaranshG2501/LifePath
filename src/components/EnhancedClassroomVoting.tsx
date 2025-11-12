@@ -50,7 +50,7 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
     checkLiveSession();
   }, [classroomId]);
   
-  // Set up real-time listeners for live session updates
+  // Set up real-time listeners for live session updates with proper sync
   useEffect(() => {
     if (!classroomId) return;
     
@@ -59,22 +59,36 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
     if (liveSession?.id) {
       // Use live session real-time updates
       unsubscribeLiveSession = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
+        console.log('[VOTING_SYNC] Session update:', {
+          sessionSceneId: updatedSession.currentSceneId,
+          localSceneId: scene.id,
+          userRole,
+          choicesCount: Object.keys(updatedSession.currentChoices || {}).length
+        });
+
         setLiveSession(updatedSession);
         
         // Handle session ended - kick out students
         if (updatedSession.status === 'ended') {
-          // EnhancedClassroomVoting will be unmounted when parent handles navigation
+          console.log('[VOTING_SYNC] Session ended - component will unmount');
           return;
         }
         
-        // Sync scene changes from teacher to students
-        if (userRole === 'student' && updatedSession.currentSceneId && 
-            updatedSession.currentSceneId !== scene.id) {
-          setCurrentScene(updatedSession.currentSceneId);
-          // Reset voting state when scene changes - CRITICAL for allowing new votes
+        // Sync scene changes from teacher to students - CRITICAL SECTION
+        const sceneMismatch = updatedSession.currentSceneId && updatedSession.currentSceneId !== scene.id;
+        
+        if (userRole === 'student' && sceneMismatch) {
+          console.log('[VOTING_SYNC] Scene mismatch - syncing student to:', updatedSession.currentSceneId);
+          
+          // IMMEDIATELY reset all vote-related state
           setHasVoted(false);
           setSelectedChoice(null);
           setIsSubmitting(false);
+          
+          // Update to new scene
+          setCurrentScene(updatedSession.currentSceneId);
+          
+          return; // Exit early, next update will handle vote checking for new scene
         }
 
         // Sync mirror moments setting for students
@@ -82,7 +96,7 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
           syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
         }
         
-        // Convert live session choices to votes format
+        // Convert live session choices to votes format for display
         const liveVotes = Object.entries(updatedSession.currentChoices || {}).map(([studentId, choiceId]) => ({
           studentId,
           choiceId,
@@ -90,17 +104,31 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
         }));
         setVotes(liveVotes);
         
-        // ONLY check if voted AFTER scene has already been synced
-        // This prevents race condition where old votes apply to new scene
+        // Check vote status ONLY if scene IDs match (no sync needed)
         if (updatedSession.currentSceneId === scene.id) {
-          if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
-            setHasVoted(true);
-            setSelectedChoice(updatedSession.currentChoices[currentUser.uid]);
-          } else if (currentUser) {
-            // User hasn't voted for this scene yet
-            setHasVoted(false);
-            setSelectedChoice(null);
+          console.log('[VOTING_SYNC] Scene IDs match - checking vote status');
+          
+          if (currentUser) {
+            const userChoice = updatedSession.currentChoices?.[currentUser.uid];
+            const hasVotedForScene = !!userChoice;
+            
+            console.log('[VOTING_SYNC] Vote status:', {
+              userId: currentUser.uid,
+              userChoice,
+              hasVotedForScene
+            });
+            
+            if (hasVotedForScene) {
+              setHasVoted(true);
+              setSelectedChoice(userChoice);
+            } else {
+              setHasVoted(false);
+              setSelectedChoice(null);
+            }
           }
+        } else if (!sceneMismatch) {
+          // Scene IDs don't match but no teacher sync needed (teacher view)
+          console.log('[VOTING_SYNC] No scene sync needed for teacher');
         }
       });
     }
@@ -123,19 +151,27 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
 
   const handleChoiceClick = async (choiceId: string) => {
     if (userRole === 'student' && !hasVoted) {
+      console.log('[VOTING_CLICK] Student submitting vote:', {
+        choiceId,
+        sceneId: scene.id,
+        sessionId: liveSession?.id
+      });
+      
       setSelectedChoice(choiceId);
       setIsSubmitting(true);
       
       try {
         if (currentUser && classroomId) {
           if (liveSession?.id) {
-            await submitLiveChoice(liveSession.id, currentUser.uid, choiceId);
+            await submitLiveChoice(liveSession.id, currentUser.uid, choiceId, scene.id);
+            console.log('[VOTING_CLICK] Vote submitted successfully');
           }
           setHasVoted(true);
         }
       } catch (error) {
-        console.error('Error recording vote:', error);
+        console.error('[VOTING_CLICK] Error recording vote:', error);
         setSelectedChoice(null);
+        setHasVoted(false);
       } finally {
         setIsSubmitting(false);
       }
@@ -148,14 +184,21 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
           const choice = scene.choices.find(c => c.id === choiceId);
           if (choice && choice.nextSceneId) {
             try {
+              console.log('[VOTING_CLICK] Teacher advancing to:', choice.nextSceneId);
               await advanceLiveSession(liveSession.id, choice.nextSceneId);
             } catch (error) {
-              console.error("Error advancing live session:", error);
+              console.error("[VOTING_CLICK] Error advancing:", error);
             }
           }
         }
         makeChoice(choiceId);
       }
+    } else {
+      console.log('[VOTING_CLICK] Click blocked:', {
+        userRole,
+        hasVoted,
+        isSubmitting
+      });
     }
   };
 

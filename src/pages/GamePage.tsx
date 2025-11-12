@@ -65,15 +65,24 @@ const GamePage = () => {
     }
   }, [isGameActive, navigate]);
 
-  // Enhanced live session listener
+  // Enhanced live session listener with proper scene sync
   useEffect(() => {
     if (liveSession?.id && isInLiveSession) {
       
       const unsubscribe = onLiveSessionUpdated(liveSession.id, (updatedSession) => {
+        console.log('[LIVE_SYNC] Session update received:', {
+          status: updatedSession.status,
+          currentSceneId: updatedSession.currentSceneId,
+          localSceneId: gameState.currentScene?.id,
+          userRole,
+          choicesCount: Object.keys(updatedSession.currentChoices || {}).length
+        });
+
         setLiveSession(updatedSession);
         
         // Immediate session end handling
         if (updatedSession.status === 'ended') {
+          console.log('[LIVE_SYNC] Session ended - cleaning up');
           setIsInLiveSession(false);
           setHasVoted(false);
           setLiveSession(null);
@@ -101,68 +110,106 @@ const GamePage = () => {
           return;
         }
         
-        // Real-time scene synchronization for students
-        if (userRole === 'student' && 
-            updatedSession.currentSceneId && 
-            gameState.currentScene?.id !== updatedSession.currentSceneId) {
-          setCurrentScene(updatedSession.currentSceneId);
+        // Real-time scene synchronization - CRITICAL FOR PROPER SYNC
+        if (updatedSession.currentSceneId) {
+          const sceneMismatch = gameState.currentScene?.id !== updatedSession.currentSceneId;
           
-          // Important: Reset hasVoted BEFORE checking currentChoices
-          setHasVoted(false);
-          
-          toast({
-            title: "Scene Updated",
-            description: "Your teacher has advanced to the next scene.",
-          });
+          if (sceneMismatch) {
+            console.log('[LIVE_SYNC] Scene mismatch detected - syncing to:', updatedSession.currentSceneId);
+            
+            // IMMEDIATELY reset vote state BEFORE updating scene
+            setHasVoted(false);
+            
+            // Update to new scene
+            setCurrentScene(updatedSession.currentSceneId);
+            
+            if (userRole === 'student') {
+              toast({
+                title: "Scene Updated",
+                description: "Moving to the next scene...",
+              });
+            }
+          } else {
+            // Scene IDs match - now check vote status for CURRENT scene
+            console.log('[LIVE_SYNC] Scene IDs match - checking vote status');
+            
+            if (currentUser) {
+              const userChoice = updatedSession.currentChoices?.[currentUser.uid];
+              const hasVotedForCurrentScene = !!userChoice;
+              
+              console.log('[LIVE_SYNC] Vote check:', {
+                userId: currentUser.uid,
+                userChoice,
+                hasVotedForCurrentScene,
+                currentHasVoted: hasVoted
+              });
+              
+              // Only update if state changed to avoid unnecessary re-renders
+              if (hasVotedForCurrentScene !== hasVoted) {
+                setHasVoted(hasVotedForCurrentScene);
+              }
+            }
+          }
         }
 
-        // Sync mirror moments setting for all clients to reflect locked state during session
+        // Sync mirror moments setting for all clients
         if (updatedSession.mirrorMomentsEnabled !== undefined) {
           syncMirrorMomentsFromSession(updatedSession.mirrorMomentsEnabled);
-        }
-        
-        // Check if current user has voted for the CURRENT scene
-        // This must run after scene synchronization to avoid race conditions
-        if (currentUser && updatedSession.currentChoices?.[currentUser.uid]) {
-          setHasVoted(true);
-        } else if (currentUser) {
-          // Explicitly set to false if no vote found
-          setHasVoted(false);
         }
       });
 
       return unsubscribe;
     }
-  }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, currentUser, toast, userRole]);
+  }, [liveSession?.id, isInLiveSession, gameState.currentScene?.id, setCurrentScene, currentUser, toast, userRole, hasVoted, navigate, syncMirrorMomentsFromSession]);
 
-  // Enhanced live choice submission
+  // Enhanced live choice submission with validation
   const handleLiveChoice = async (choiceId: string) => {
     if (liveSession?.id && currentUser && !hasVoted) {
       try {
+        console.log('[LIVE_CHOICE] Submitting choice:', {
+          choiceId,
+          sceneId: gameState.currentScene?.id,
+          userId: currentUser.uid
+        });
+        
+        // Optimistically set voted state
         setHasVoted(true);
         
+        // Submit with current scene ID for validation
         await submitLiveChoice(liveSession.id, currentUser.uid, choiceId, gameState.currentScene?.id);
+        
+        console.log('[LIVE_CHOICE] Choice submitted successfully');
         
         toast({
           title: "✅ Choice Submitted",
           description: "Your decision has been recorded successfully!",
         });
       } catch (error) {
-        console.error("Error submitting live choice:", error);
+        console.error("[LIVE_CHOICE] Error submitting:", error);
+        
+        // Rollback on error
         setHasVoted(false);
+        
         toast({
           title: "Submission Error",
           description: "Failed to record your choice. Please try again.",
           variant: "destructive",
         });
       }
+    } else {
+      console.log('[LIVE_CHOICE] Choice blocked:', {
+        hasSession: !!liveSession?.id,
+        hasUser: !!currentUser,
+        hasVoted
+      });
     }
   };
 
-  // Enhanced scene advancement
+  // Enhanced scene advancement with proper state reset
   const handleAdvanceScene = async (nextSceneId: string) => {
     if (liveSession?.id) {
       try {
+        console.log('[ADVANCE_SCENE] Teacher advancing to:', nextSceneId);
         
         let nextSceneIndex;
         if (gameState.currentScenario) {
@@ -172,18 +219,23 @@ const GamePage = () => {
           }
         }
         
-        // Reset votes when advancing
+        // Reset local vote state immediately
         setHasVoted(false);
         
+        // Update session in Firebase - this will trigger sync for all clients
         await advanceLiveSession(liveSession.id, nextSceneId, nextSceneIndex);
+        
+        // Update local scene
         makeChoice('advance', true); // Skip mirror moments during live sessions
+        
+        console.log('[ADVANCE_SCENE] Scene advanced successfully');
         
         toast({
           title: "Scene Advanced",
           description: "All students will be synced to the new scene.",
         });
       } catch (error) {
-        console.error("Error advancing scene:", error);
+        console.error("[ADVANCE_SCENE] Error:", error);
         toast({
           title: "Error",
           description: "Failed to advance scene. Please try again.",
