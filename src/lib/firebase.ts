@@ -266,101 +266,144 @@ export const getTeacherActiveSessions = async (teacherId: string): Promise<LiveS
 
 // Enhanced session ending with atomic cleanup
 export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
+  console.log(`Ending live session: ${sessionId} for classroom: ${classroomId}`);
+  
   try {
-    
     // Get session and classroom data first to notify students
     const sessionDoc = await getDoc(doc(db, 'sessions', sessionId));
     const classroomDoc = await getDoc(doc(db, 'classrooms', classroomId));
     
     if (!sessionDoc.exists()) {
-      throw new Error("Session not found");
+      console.warn(`Session ${sessionId} not found - may already be ended`);
+      return; // Don't throw error if session doesn't exist
     }
     
     const sessionData = sessionDoc.data() as LiveSession;
     const classroomData = classroomDoc.exists() ? classroomDoc.data() : null;
     
-    await runTransaction(db, async (transaction) => {
-      const sessionRef = doc(db, 'sessions', sessionId);
-      const classroomRef = doc(db, 'classrooms', classroomId);
-      
-      // End the session with result payload
-      const updateData: any = {
-        status: 'ended',
-        endedAt: Timestamp.now(),
-        lastUpdated: Timestamp.now()
-      };
-      
-      if (resultPayload) {
-        updateData.resultPayload = resultPayload;
-      }
-      
-      transaction.update(sessionRef, updateData);
-      
-      // Clear active session from classroom (atomic)
-      transaction.update(classroomRef, {
-        activeSessionId: null,
-        activeScenario: null,
-        currentScene: null,
-        lastActivity: Timestamp.now()
-      });
-    });
-    
-    // Send session ended notifications to all students
-    if (classroomData && classroomData.students && classroomData.students.length > 0) {
-      try {
-        const endSessionNotifications = classroomData.students.map(async (student: any) => {
-          try {
-            const notificationData = {
-              studentId: student.id,
-              classroomId: classroomId,
-              sessionId: sessionId,
-              type: 'session_ended',
-              teacherName: sessionData.teacherName || 'Teacher',
-              scenarioTitle: sessionData.scenarioTitle || 'Scenario',
-              message: `The live session "${sessionData.scenarioTitle}" has been ended by the teacher.`,
-              read: false,
-              createdAt: Timestamp.now()
-            };
-            
-            await addDoc(collection(db, 'notifications'), notificationData);
-          } catch (error) {
-            console.error(`Error sending session ended notification to student ${student.id}:`, error);
-          }
-        });
+    // Main transaction to end session and clear classroom
+    try {
+      await runTransaction(db, async (transaction) => {
+        const sessionRef = doc(db, 'sessions', sessionId);
+        const classroomRef = doc(db, 'classrooms', classroomId);
         
-        await Promise.all(endSessionNotifications);
-      } catch (error) {
-        console.error("Error sending session ended notifications:", error);
-      }
+        // End the session with result payload
+        const updateData: any = {
+          status: 'ended',
+          endedAt: Timestamp.now(),
+          lastUpdated: Timestamp.now()
+        };
+        
+        if (resultPayload) {
+          updateData.resultPayload = resultPayload;
+        }
+        
+        transaction.update(sessionRef, updateData);
+        
+        // Clear active session from classroom (atomic)
+        if (classroomDoc.exists()) {
+          transaction.update(classroomRef, {
+            activeSessionId: null,
+            activeScenario: null,
+            currentScene: null,
+            lastActivity: Timestamp.now()
+          });
+        }
+      });
+      
+      console.log(`Successfully ended session ${sessionId}`);
+    } catch (transactionError) {
+      console.error("Transaction error ending session:", transactionError);
+      throw transactionError; // Throw transaction errors
     }
     
-    // Clean up participants and old notifications (outside transaction)
-    const participantsQuery = query(
-      collection(db, 'sessionParticipants'),
-      where('sessionId', '==', sessionId)
-    );
-    const participantsSnapshot = await getDocs(participantsQuery);
+    // Send session ended notifications to all students (don't fail if this fails)
+    if (classroomData && classroomData.students && classroomData.students.length > 0) {
+      const endSessionNotifications = classroomData.students.map(async (student: any) => {
+        try {
+          const notificationData = {
+            studentId: student.id,
+            classroomId: classroomId,
+            sessionId: sessionId,
+            type: 'session_ended' as const,
+            teacherName: sessionData.teacherName || 'Teacher',
+            scenarioTitle: sessionData.scenarioTitle || 'Scenario',
+            message: `The live session "${sessionData.scenarioTitle}" has been ended by the teacher.`,
+            read: false,
+            createdAt: Timestamp.now()
+          };
+          
+          await addDoc(collection(db, 'notifications'), notificationData);
+        } catch (error) {
+          console.warn(`Could not notify student ${student.id}:`, error);
+          // Don't fail the whole operation if notification fails
+        }
+      });
+      
+      await Promise.allSettled(endSessionNotifications);
+    }
     
-    const cleanupPromises = [
-      ...participantsSnapshot.docs.map(doc => 
-        updateDoc(doc.ref, { isActive: false })
-      )
-    ];
-    
-    // Clean up old session start notifications only (keep session ended notifications)
-    const oldNotificationsQuery = query(
-      collection(db, 'notifications'),
-      where('sessionId', '==', sessionId),
-      where('type', '==', 'live_session_started')
-    );
-    const oldNotificationsSnapshot = await getDocs(oldNotificationsQuery);
-    cleanupPromises.push(
-      ...oldNotificationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
-    );
-    
-    await Promise.all(cleanupPromises);
+    // Clean up participants and old notifications (don't fail if this fails)
+    try {
+      const participantsQuery = query(
+        collection(db, 'sessionParticipants'),
+        where('sessionId', '==', sessionId)
+      );
+      const participantsSnapshot = await getDocs(participantsQuery);
+      
+      const cleanupPromises = [
+        ...participantsSnapshot.docs.map(doc => 
+          updateDoc(doc.ref, { isActive: false }).catch(err => {
+            console.warn(`Could not update participant ${doc.id}:`, err);
+          })
+        )
+      ];
+      
+      // Clean up old session start notifications only (keep session ended notifications)
+      const oldNotificationsQuery = query(
+        collection(db, 'notifications'),
+        where('sessionId', '==', sessionId),
+        where('type', '==', 'live_session_started')
+      );
+      const oldNotificationsSnapshot = await getDocs(oldNotificationsQuery);
+      cleanupPromises.push(
+        ...oldNotificationsSnapshot.docs.map(doc => 
+          deleteDoc(doc.ref).catch(err => {
+            console.warn(`Could not delete notification ${doc.id}:`, err);
+          })
+        )
+      );
+      
+      await Promise.allSettled(cleanupPromises);
+    } catch (cleanupError) {
+      console.warn("Non-critical cleanup error:", cleanupError);
+      // Don't throw - session is already ended
+    }
   } catch (error) {
     console.error("Error ending live session:", error);
+    throw error;
+  }
+};
+
+// Bulk end all active sessions for a teacher
+export const endAllTeacherSessions = async (teacherId: string) => {
+  console.log(`Ending all active sessions for teacher: ${teacherId}`);
+  
+  try {
+    const activeSessions = await getTeacherActiveSessions(teacherId);
+    console.log(`Found ${activeSessions.length} active sessions to end`);
+    
+    const endPromises = activeSessions.map(session => 
+      endLiveSession(session.id!, session.classroomId).catch(error => {
+        console.error(`Failed to end session ${session.id}:`, error);
+        // Continue with other sessions even if one fails
+      })
+    );
+    
+    await Promise.allSettled(endPromises);
+    console.log(`Completed ending all sessions for teacher ${teacherId}`);
+  } catch (error) {
+    console.error("Error ending all teacher sessions:", error);
     throw error;
   }
 };

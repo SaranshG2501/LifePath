@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle } from 'lucide-react';
+import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle, X } from 'lucide-react';
 import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession, getTeacherActiveSessions, LiveSession } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -250,34 +250,58 @@ const TeacherDashboard = () => {
       
       toast({
         title: "Session Ended",
-        description: `Live session has been ended. All students have been notified.`,
+        description: `Live session has been ended successfully.`,
       });
       
     } catch (error) {
       console.error('Error ending live session:', error);
-      console.error('Full error object:', error);
       
-      // Check if it's a permissions error but the session actually ended
-      if (error instanceof Error && error.message.includes('permissions')) {
-        console.log('Permission error detected, but checking if session actually ended...');
-        
-        // Refresh to see if the session was actually ended despite the error
-        await loadClassrooms();
-        await loadActiveSessions();
-        
-        toast({
-          title: "Session Ended",
-          description: "Live session has been ended (with permission warning - this is normal).",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to end live session. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to end live session. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Refresh anyway to check current state
+      await loadClassrooms();
+      await loadActiveSessions();
     } finally {
       setEndingSession(null);
+    }
+  };
+
+  const handleEndAllSessions = async () => {
+    if (!currentUser) return;
+    
+    const confirm = window.confirm(
+      `Are you sure you want to end all ${activeSessions.length} active sessions? This action cannot be undone.`
+    );
+    
+    if (!confirm) return;
+    
+    try {
+      const { endAllTeacherSessions } = await import('../lib/firebase');
+      await endAllTeacherSessions(currentUser.uid);
+      
+      toast({
+        title: "All Sessions Ended",
+        description: "All active sessions have been successfully ended.",
+      });
+      
+      await loadClassrooms();
+      await loadActiveSessions();
+    } catch (error: any) {
+      console.error('Error ending all sessions:', error);
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to end all sessions",
+        variant: "destructive",
+      });
+      
+      // Reload sessions anyway to check current state
+      await loadClassrooms();
+      await loadActiveSessions();
     }
   };
 
@@ -316,6 +340,17 @@ const TeacherDashboard = () => {
                     You have {activeSessions.length} ongoing session{activeSessions.length > 1 ? 's' : ''}
                   </CardDescription>
                 </div>
+                {activeSessions.length > 1 && (
+                  <Button
+                    onClick={handleEndAllSessions}
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    End All Sessions
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
