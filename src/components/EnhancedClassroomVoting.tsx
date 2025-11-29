@@ -6,7 +6,7 @@ import { Users, BarChart, ArrowRight, Clock, CheckCircle, Wifi } from 'lucide-re
 import { useGameContext } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { Scene, Choice } from '@/types/game';
-import { recordStudentVote, getScenarioVotes, onVotesUpdated, getActiveSession, onLiveSessionUpdated, submitLiveChoice, advanceLiveSession } from '@/lib/firebase';
+import { recordStudentVote, getScenarioVotes, onVotesUpdated, getActiveSession, onLiveSessionUpdated, submitLiveChoice, advanceLiveSession, updateStudentPresence } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 
 interface EnhancedClassroomVotingProps {
@@ -49,6 +49,16 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
     
     checkLiveSession();
   }, [classroomId]);
+  
+  // Update presence when scene changes (student viewing scene)
+  useEffect(() => {
+    if (userRole === 'student' && liveSession?.id && currentUser && scene.id) {
+      updateStudentPresence(liveSession.id, currentUser.uid, {
+        currentSceneId: scene.id,
+        isTyping: false
+      });
+    }
+  }, [userRole, liveSession?.id, currentUser, scene.id]);
   
   // Set up real-time listeners for live session updates with proper sync
   useEffect(() => {
@@ -163,6 +173,11 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
       try {
         if (currentUser && classroomId) {
           if (liveSession?.id) {
+            // Update presence to show no longer typing
+            await updateStudentPresence(liveSession.id, currentUser.uid, {
+              isTyping: false
+            });
+            
             await submitLiveChoice(liveSession.id, currentUser.uid, choiceId, scene.id);
             console.log('[VOTING_CLICK] Vote submitted successfully');
           }
@@ -284,6 +299,16 @@ const EnhancedClassroomVoting: React.FC<EnhancedClassroomVotingProps> = ({ scene
                   isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={() => !isSubmitting && handleChoiceClick(choice.id)}
+                onMouseEnter={() => {
+                  if (userRole === 'student' && !hasVoted && liveSession?.id && currentUser) {
+                    updateStudentPresence(liveSession.id, currentUser.uid, { isTyping: true });
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (userRole === 'student' && !hasVoted && liveSession?.id && currentUser) {
+                    updateStudentPresence(liveSession.id, currentUser.uid, { isTyping: false });
+                  }
+                }}
                 disabled={isSubmitting || (userRole === 'student' && hasVoted)}
               >
                 <span className="text-base">{choice.text}</span>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, BookOpen } from 'lucide-react';
+import { Users, Clock, BarChart3, CheckCircle, Loader2, Eye, EyeOff, BookOpen, MessageSquare } from 'lucide-react';
 import { LiveSession, SessionParticipant, onLiveSessionUpdated, onSessionParticipantsUpdated } from '@/lib/firebase';
 import { useGameContext } from '@/context/GameContext';
 import { scenarios } from '@/data/scenarios';
@@ -171,6 +171,9 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
             <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
               {participants.length > 0 ? participants.map((participant) => {
                 const hasVoted = getParticipantChoice(participant.studentId);
+                const isViewingScene = participant.currentSceneId === session.currentSceneId;
+                const isTyping = participant.isTyping && !hasVoted;
+                
                 return (
                   <div key={participant.studentId} className="flex items-center gap-2 bg-black/20 rounded p-2">
                     <Avatar className="h-6 w-6">
@@ -179,16 +182,36 @@ const LiveSessionTracker: React.FC<LiveSessionTrackerProps> = ({
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-white/80 text-sm truncate flex-1">{participant.studentName}</span>
-                    {showResults && hasVoted && (
-                      <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
-                        Choice {hasVoted}
-                      </Badge>
-                    )}
-                    {hasVoted ? (
-                      <CheckCircle className="h-4 w-4 text-green-400" />
-                    ) : (
-                      <Loader2 className="h-4 w-4 text-orange-400 animate-spin" />
-                    )}
+                    
+                    <div className="flex items-center gap-1">
+                      {/* Viewing indicator */}
+                      {isViewingScene && !hasVoted && (
+                        <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs px-1.5 py-0.5">
+                          <Eye className="h-3 w-3" />
+                        </Badge>
+                      )}
+                      
+                      {/* Typing/selecting indicator */}
+                      {isTyping && (
+                        <Badge className="bg-yellow-500/20 text-yellow-300 border-0 text-xs px-1.5 py-0.5 animate-pulse">
+                          <MessageSquare className="h-3 w-3" />
+                        </Badge>
+                      )}
+                      
+                      {/* Choice display for teacher */}
+                      {showResults && hasVoted && (
+                        <Badge className="bg-green-500/20 text-green-300 border-0 text-xs">
+                          Choice {hasVoted}
+                        </Badge>
+                      )}
+                      
+                      {/* Vote status indicator */}
+                      {hasVoted ? (
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 text-orange-400 animate-spin" />
+                      )}
+                    </div>
                   </div>
                 );
               }) : (
