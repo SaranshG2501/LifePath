@@ -149,6 +149,9 @@ export interface SessionParticipant {
   isActive: boolean;
   currentChoice?: string;
   lastActivity?: Timestamp;
+  currentSceneId?: string;
+  isTyping?: boolean;
+  typingStartedAt?: Timestamp;
 }
 
 export interface SessionNotification {
@@ -1521,6 +1524,35 @@ export const onSessionParticipantsUpdated = (sessionId: string, callback: (parti
     const participants = snapshot.docs.map(doc => doc.data() as SessionParticipant);
     callback(participants);
   });
+};
+
+// Update student presence/activity
+export const updateStudentPresence = async (
+  sessionId: string, 
+  studentId: string, 
+  updates: {
+    currentSceneId?: string;
+    isTyping?: boolean;
+  }
+) => {
+  try {
+    const participantRef = doc(db, 'sessionParticipants', `${sessionId}_${studentId}`);
+    const updateData: any = {
+      lastActivity: Timestamp.now(),
+      ...updates
+    };
+    
+    // If isTyping is being set to true, record when typing started
+    if (updates.isTyping === true) {
+      updateData.typingStartedAt = Timestamp.now();
+    } else if (updates.isTyping === false) {
+      updateData.typingStartedAt = null;
+    }
+    
+    await updateDoc(participantRef, updateData);
+  } catch (error) {
+    console.error("Error updating student presence:", error);
+  }
 };
 
 export const signInWithGoogle = () => {
