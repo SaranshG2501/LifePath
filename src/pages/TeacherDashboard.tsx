@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { School, Plus, Users, Play, Trash2, AlertTriangle, Calendar, Clock, BookOpen, StopCircle } from 'lucide-react';
-import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession } from '@/lib/firebase';
+import { getUserClassrooms, deleteClassroom, Classroom, convertTimestampToDate, createClassroom, createLiveSession, endLiveSession, getTeacherActiveSessions, LiveSession } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import LiveSessionStartDialog from '@/components/classroom/LiveSessionStartDialog';
@@ -28,6 +28,7 @@ const TeacherDashboard = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [creatingSession, setCreatingSession] = useState<string | null>(null);
   const [endingSession, setEndingSession] = useState<string | null>(null);
+  const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
 
   // Classroom creation state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -49,6 +50,7 @@ const TeacherDashboard = () => {
   useEffect(() => {
     if (currentUser) {
       loadClassrooms();
+      loadActiveSessions();
     }
   }, [currentUser]);
 
@@ -69,6 +71,32 @@ const TeacherDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadActiveSessions = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const sessions = await getTeacherActiveSessions(currentUser.uid);
+      console.log("Active sessions found:", sessions);
+      setActiveSessions(sessions);
+    } catch (error) {
+      console.error('Error loading active sessions:', error);
+    }
+  };
+
+  const handleRejoinSession = async (session: LiveSession) => {
+    if (!session.classroomId || !session.scenarioId) return;
+    
+    toast({
+      title: "Rejoining Session",
+      description: `Returning to "${session.scenarioTitle}"...`,
+    });
+    
+    // Set classroom mode and start the scenario
+    setGameMode("classroom");
+    startScenario(session.scenarioId);
+    navigate('/game');
   };
 
   const handleStartScenario = (id: string) => {
@@ -179,8 +207,9 @@ const TeacherDashboard = () => {
         mirrorMomentsEnabled
       );
       
-      // Refresh classrooms to show updated state
+      // Refresh classrooms and active sessions to show updated state
       await loadClassrooms();
+      await loadActiveSessions();
       
       toast({
         title: "Live Session Started!",
@@ -215,8 +244,9 @@ const TeacherDashboard = () => {
       
       await endLiveSession(classroom.activeSessionId, classroom.id);
       
-      // Refresh classrooms to show updated state
+      // Refresh classrooms and active sessions to show updated state
       await loadClassrooms();
+      await loadActiveSessions();
       
       toast({
         title: "Session Ended",
@@ -233,6 +263,7 @@ const TeacherDashboard = () => {
         
         // Refresh to see if the session was actually ended despite the error
         await loadClassrooms();
+        await loadActiveSessions();
         
         toast({
           title: "Session Ended",
@@ -269,6 +300,49 @@ const TeacherDashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Active Sessions Banner */}
+      {activeSessions.length > 0 && (
+        <div className="mb-8">
+          <Card className="teen-card border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/20 border border-green-500/30">
+                  <Play className="h-6 w-6 text-green-400 animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-green-400 text-xl">Active Live Session{activeSessions.length > 1 ? 's' : ''}</CardTitle>
+                  <CardDescription className="text-green-300/70">
+                    You have {activeSessions.length} ongoing session{activeSessions.length > 1 ? 's' : ''}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {activeSessions.map((session) => {
+                const classroom = classrooms.find(c => c.id === session.classroomId);
+                return (
+                  <div key={session.id} className="p-4 rounded-lg bg-black/30 border border-green-500/20 flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-foreground font-semibold text-lg">{session.scenarioTitle}</h3>
+                      <p className="text-muted-foreground text-sm">
+                        {classroom?.name || 'Classroom'}
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => handleRejoinSession(session)}
+                      className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Rejoin Session
+                    </Button>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Classrooms Section */}
       <div className="mb-12">

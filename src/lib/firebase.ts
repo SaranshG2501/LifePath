@@ -244,6 +244,26 @@ export const createLiveSession = async (
   }
 };
 
+// Get teacher's active sessions
+export const getTeacherActiveSessions = async (teacherId: string): Promise<LiveSession[]> => {
+  try {
+    const sessionsQuery = query(
+      collection(db, 'sessions'),
+      where('teacherId', '==', teacherId),
+      where('status', '==', 'active')
+    );
+    
+    const snapshot = await getDocs(sessionsQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as LiveSession));
+  } catch (error) {
+    console.error("Error getting teacher active sessions:", error);
+    throw error;
+  }
+};
+
 // Enhanced session ending with atomic cleanup
 export const endLiveSession = async (sessionId: string, classroomId: string, resultPayload?: any) => {
   try {
